@@ -1,41 +1,44 @@
 import './App.css';
-// Importamos todos tus componentes de la imagen
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ProblemSection from "./components/ProblemSection";
 import SolutionSection from "./components/SolutionSection";
 import BenefitSection from "./components/BenefitSection";
 import DifferentialsSection from "./components/DifferentialsSection";
+import MarketSection from "./components/MarketSection"; // <-- El nuevo integrante
 import CTASection from "./components/CTASection";
 import FooterSection from "./components/FooterSection"; 
 
 function App() {
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-gray-900">
-      {/* 1. La barra de navegación (Fija arriba) */}
+      {/* 1. Barra de navegación fija */}
       <Navbar />
 
       <main>
-        {/* 2. El gancho inicial */}
+        {/* 2. Impacto visual y propuesta de valor */}
         <HeroSection />
 
-        {/* 3. Por qué existimos (El dolor del desperdicio) */}
+        {/* 3. Empatía con el problema del desperdicio */}
         <ProblemSection />
 
-        {/* 4. Nuestra propuesta (Cómo lo arreglamos) */}
+        {/* 4. Presentación de la App como solución */}
         <SolutionSection />
 
-        {/* 5. ¿Qué gana el usuario? (Ahorro, planeta, etc.) */}
+        {/* 5. Ventajas para el usuario final */}
         <BenefitSection />
 
-        {/* 6. Por qué somos mejores que otros (Lo de Manus) */}
+        {/* 6. Lo que nos hace únicos frente a otros */}
         <DifferentialsSection />
 
-        {/* 7. El empujón final (Registro + Regalos) */}
+        {/* 7. Datos de mercado: Por qué es el momento de LATAM */}
+        <MarketSection />
+
+        {/* 8. Cierre con registro y beneficios (Regalo/Envío gratis) */}
         <CTASection />
       </main>
 
-      {/* 8. Información de contacto y links */}
+      {/* 9. Información final */}
       <FooterSection />
     </div>
   );
