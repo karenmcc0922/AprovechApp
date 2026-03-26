@@ -3,6 +3,7 @@ import ProblemSection from "./components/ProblemSection";
 import SolutionSection from "./components/SolutionSection";
 import BenefitsSection from "./components/BenefitSection";
 import CTASection from "./components/CTASection";
+import Navbar from "./components/Navbar";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <SolutionSection />
       <BenefitsSection />
       <CTASection />
+      <Navbar/>
     </div>
   );
 }
