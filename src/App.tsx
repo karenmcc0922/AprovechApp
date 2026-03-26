@@ -7,7 +7,7 @@ import CTASection from "./components/CTASection";
 
 function App() {
   return (
-    <div>
+    <div className="App">
       {/* Navbar siempre arriba */}
       <Navbar />
 
@@ -17,9 +17,6 @@ function App() {
       <SolutionSection />
       <BenefitsSection />
       <CTASection />
-
-      {/* Footer (si tienes uno) */}
-      {/* <Footer /> */}
     </div>
   );
 }
