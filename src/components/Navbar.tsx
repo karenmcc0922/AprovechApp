@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Menu, X, Leaf } from "lucide-react";
 
 const navLinks = [
-  { label: "El Problema", href: "#problema" },
+  { label: "Problema", href: "#problema" },
   { label: "Solución", href: "#solucion" },
   { label: "Beneficios", href: "#beneficios" },
   { label: "Registro", href: "#registro" },
@@ -14,106 +14,50 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleNavClick = (href: string) => {
     setIsOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed w-full z-50 transition ${
         scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
-          : "bg-transparent"
+          ? "bg-white shadow-sm border-b"
+          : "bg-white/80 backdrop-blur-md"
       }`}
     >
-      <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-18">
-          {/* Logo */}
-          <a
-            href="#"
-            className="flex items-center gap-2 group"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          >
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-sm group-hover:bg-emerald-700 transition-colors">
-              <Leaf className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-extrabold text-gray-900 tracking-tight">
-              Aprovech<span className="text-emerald-600">App</span>
-            </span>
-          </a>
+      <nav className="max-w-7xl mx-auto px-6 flex justify-between items-center h-16">
+        
+        {/* Logo */}
+        <div className="flex items-center gap-2 font-bold text-lg">
+          <Leaf className="text-emerald-600" />
+          Aprovech<span className="text-emerald-600">App</span>
+        </div>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick(link.href);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-all duration-200"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
+        {/* Desktop */}
+        <div className="hidden md:flex gap-4">
+          {navLinks.map((link) => (
             <a
-              href="#registro"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavClick("#registro");
-              }}
-              className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all duration-200 shadow-sm shadow-emerald-200"
+              key={link.href}
+              onClick={() => handleNavClick(link.href)}
+              className="px-4 py-2 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 cursor-pointer"
             >
-              Registrarse gratis
+              {link.label}
             </a>
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-          >
-            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          ))}
         </div>
 
-        {/* Mobile menu */}
-        <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            isOpen ? "max-h-80 opacity-100 pb-4" : "max-h-0 opacity-0"
-          }`}
+        <button
+          className="md:hidden"
+          onClick={() => setIsOpen(!isOpen)}
         >
-          <div className="flex flex-col gap-1 pt-2 border-t border-gray-100">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick(link.href);
-                }}
-                className="px-4 py-3 text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-        </div>
+          {isOpen ? <X /> : <Menu />}
+        </button>
       </nav>
     </header>
   );
