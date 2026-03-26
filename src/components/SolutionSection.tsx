@@ -1,29 +1,49 @@
 export default function SolutionSection() {
   return (
-    <section id="solucion" className="py-20 text-center bg-white">
-
-      <h2 className="text-4xl font-extrabold text-gray-900">
-        ¿Cómo funciona?
+    <section style={{ padding: "60px 20px", textAlign: "center" }}>
+      
+      <h2 style={{ fontSize: "2rem", fontWeight: "bold" }}>
+        ¿Cómo funciona AprovechApp?
       </h2>
 
-      <div className="mt-10 grid sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <p style={{ marginTop: "10px", color: "#555" }}>
+        Conectamos comercios con personas que quieren ahorrar y reducir el desperdicio.
+      </p>
 
-        <div className="p-6 border rounded-xl">
-          <h3 className="text-emerald-600 font-bold">1. Comercios publican</h3>
-          <p>Suben alimentos que no lograron vender.</p>
+      <div style={{
+        marginTop: "40px",
+        display: "flex",
+        justifyContent: "center",
+        gap: "20px",
+        flexWrap: "wrap"
+      }}>
+
+        {/* Paso 1 */}
+        <div style={{ width: "250px", padding: "20px", border: "1px solid #ddd", borderRadius: "10px" }}>
+          <h3 style={{ color: "#059669" }}>1. Comercios publican</h3>
+          <p>
+            Restaurantes y supermercados publican alimentos que no lograron vender.
+          </p>
         </div>
 
-        <div className="p-6 border rounded-xl">
-          <h3 className="text-amber-500 font-bold">2. Usuarios descubren</h3>
-          <p>Encuentran ofertas cercanas.</p>
+        {/* Paso 2 */}
+        <div style={{ width: "250px", padding: "20px", border: "1px solid #ddd", borderRadius: "10px" }}>
+          <h3 style={{ color: "#F59E0B" }}>2. Usuarios descubren</h3>
+          <p>
+            Las personas encuentran ofertas cerca de su ubicación.
+          </p>
         </div>
 
-        <div className="p-6 border rounded-xl">
-          <h3 className="text-teal-600 font-bold">3. Compran</h3>
-          <p>Ahorran dinero y ayudan al planeta.</p>
+        {/* Paso 3 */}
+        <div style={{ width: "250px", padding: "20px", border: "1px solid #ddd", borderRadius: "10px" }}>
+          <h3 style={{ color: "#0D9488" }}>3. Compran y recogen</h3>
+          <p>
+            Compran a bajo precio y recogen su pedido fácilmente.
+          </p>
         </div>
 
       </div>
+
     </section>
   );
 }

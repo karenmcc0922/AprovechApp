@@ -1,29 +1,35 @@
 export default function ProblemSection() {
   return (
-    <section id="problema" className="py-20 bg-emerald-900 text-white text-center">
+    <section style={{ backgroundColor: "#064E3B", color: "white", padding: "60px 20px", textAlign: "center" }}>
 
-      <h2 className="text-4xl font-extrabold">
-        Colombia desperdicia millones de alimentos
+      <h2 style={{ fontSize: "2rem", fontWeight: "bold" }}>
+        Colombia desperdicia <span style={{ color: "#FBBF24" }}>9.7M toneladas</span> de alimentos al año
       </h2>
 
-      <p className="mt-4 max-w-xl mx-auto text-emerald-100">
-        Mientras muchas personas pasan hambre, toneladas de comida en buen estado se pierden.
+      <p style={{ marginTop: "15px", maxWidth: "600px", marginInline: "auto", color: "#d1fae5" }}>
+        Mientras millones de personas pasan hambre, toneladas de comida en buen estado
+        terminan en la basura. Es una crisis silenciosa con impacto económico, social y ambiental.
       </p>
 
-      <div className="mt-10 grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-        <div>
-          <h3 className="text-3xl font-bold text-amber-400">9.7M</h3>
+      <div style={{ marginTop: "30px", display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+        
+        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
+          <h3 style={{ color: "#FBBF24" }}>9.7M</h3>
           <p>Toneladas desperdiciadas</p>
         </div>
-        <div>
-          <h3 className="text-3xl font-bold text-red-400">34%</h3>
+
+        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
+          <h3 style={{ color: "#F87171" }}>34%</h3>
           <p>Alimentos perdidos</p>
         </div>
-        <div>
-          <h3 className="text-3xl font-bold text-green-400">$8B</h3>
+
+        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
+          <h3 style={{ color: "#34D399" }}>$8B</h3>
           <p>Pérdidas económicas</p>
         </div>
+
       </div>
+
     </section>
   );
 }

@@ -1,28 +1,43 @@
-import { ArrowRight } from "lucide-react";
-
 export default function HeroSection() {
   return (
-    <section className="pt-24 pb-20 bg-gradient-to-br from-emerald-50 to-white text-center">
-
-      <h1 className="text-4xl sm:text-6xl font-extrabold text-gray-900">
-        Menos desperdicio. <span className="text-emerald-600">Más ahorro.</span>
+    <section style={{ padding: "80px 20px", textAlign: "center" }}>
+      
+      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold" }}>
+        Menos desperdicio, <span style={{ color: "#059669" }}>más ahorro</span>
       </h1>
 
-      <p className="mt-4 text-gray-600 max-w-xl mx-auto">
-        Conecta comercios con excedentes de alimentos con personas que quieren ahorrar hasta un 70%.
+      <p style={{ fontSize: "1.2rem", marginTop: "10px", color: "#555" }}>
+        AprovechApp conecta restaurantes con excedentes de comida
+        con personas que quieren ahorrar hasta un 70%.
       </p>
 
-      {/* BENEFICIO CLAVE */}
-      <p className="mt-4 text-amber-600 font-semibold">
-        🎁 Descuento en tu primera compra + domicilios GRATIS por 1 semana
-      </p>
+      <div style={{ marginTop: "20px" }}>
+        <input
+          type="email"
+          placeholder="Ingresa tu correo"
+          style={{
+            padding: "10px",
+            width: "250px",
+            marginRight: "10px",
+            borderRadius: "5px",
+            border: "1px solid #ccc"
+          }}
+        />
 
-      <button
-        onClick={() => document.querySelector("#registro")?.scrollIntoView({ behavior: "smooth" })}
-        className="mt-6 px-6 py-3 bg-emerald-600 text-white rounded-xl flex items-center gap-2 mx-auto hover:bg-emerald-700"
-      >
-        Únete gratis <ArrowRight size={18} />
-      </button>
+        <button
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#059669",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer"
+          }}
+        >
+          Quiero ofertas
+        </button>
+      </div>
+
     </section>
   );
 }
