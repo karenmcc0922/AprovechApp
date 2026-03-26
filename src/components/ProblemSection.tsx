@@ -1,35 +1,85 @@
+import { useState, useEffect, useRef } from "react";
+
 export default function ProblemSection() {
+  const [counts, setCounts] = useState({ desperdiciadas: 0, perdidos: 0, perdidas: 0 });
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          // Iniciar animación de contadores
+          const desperdiciadasInterval = setInterval(() => {
+            setCounts((prev) => ({
+              ...prev,
+              desperdiciadas: Math.min(prev.desperdiciadas + 0.1, 9.7),
+            }));
+          }, 50);
+
+          const perdidosInterval = setInterval(() => {
+            setCounts((prev) => ({
+              ...prev,
+              perdidos: Math.min(prev.perdidos + 1, 34),
+            }));
+          }, 50);
+
+          const perdidasInterval = setInterval(() => {
+            setCounts((prev) => ({
+              ...prev,
+              perdidas: Math.min(prev.perdidas + 0.2, 8),
+            }));
+          }, 50);
+
+          // Limpiar intervalos
+          return () => {
+            clearInterval(desperdiciadasInterval);
+            clearInterval(perdidosInterval);
+            clearInterval(perdidasInterval);
+          };
+        }
+      },
+      { threshold: 0.5 } // Se activa cuando el 50% de la sección es visible
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <section style={{ backgroundColor: "#064E3B", color: "white", padding: "60px 20px", textAlign: "center" }}>
+    <section id="problema" ref={sectionRef} className="bg-emerald-900 py-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto text-center">
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+          Colombia desperdicia <span className="text-amber-400">{counts.desperdiciadas.toFixed(1)}M toneladas</span> de alimentos al año
+        </h2>
 
-      <h2 style={{ fontSize: "2rem", fontWeight: "bold" }}>
-        Colombia desperdicia <span style={{ color: "#FBBF24" }}>9.7M toneladas</span> de alimentos al año
-      </h2>
+        <p className="text-emerald-100 max-w-3xl mx-auto text-lg mb-12">
+          Mientras millones de personas pasan hambre, toneladas de comida en buen estado terminan en la basura. Es una crisis silenciosa con impacto económico, social y ambiental.
+        </p>
 
-      <p style={{ marginTop: "15px", maxWidth: "600px", marginInline: "auto", color: "#d1fae5" }}>
-        Mientras millones de personas pasan hambre, toneladas de comida en buen estado
-        terminan en la basura. Es una crisis silenciosa con impacto económico, social y ambiental.
-      </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
+            <h3 className="text-4xl font-extrabold text-amber-400 mb-2">{counts.desperdiciadas.toFixed(1)}M</h3>
+            <p className="text-emerald-50 font-medium">Toneladas desperdiciadas</p>
+          </div>
 
-      <div style={{ marginTop: "30px", display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
-        
-        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
-          <h3 style={{ color: "#FBBF24" }}>9.7M</h3>
-          <p>Toneladas desperdiciadas</p>
+          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
+            <h3 className="text-4xl font-extrabold text-red-400 mb-2">{counts.perdidos}%</h3>
+            <p className="text-emerald-50 font-medium">Alimentos perdidos</p>
+          </div>
+
+          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
+            <h3 className="text-4xl font-extrabold text-emerald-400 mb-2">${counts.perdidas.toFixed(1)}B</h3>
+            <p className="text-emerald-50 font-medium">Pérdidas económicas</p>
+          </div>
         </div>
-
-        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
-          <h3 style={{ color: "#F87171" }}>34%</h3>
-          <p>Alimentos perdidos</p>
-        </div>
-
-        <div style={{ background: "#065F46", padding: "15px", borderRadius: "10px", width: "200px" }}>
-          <h3 style={{ color: "#34D399" }}>$8B</h3>
-          <p>Pérdidas económicas</p>
-        </div>
-
       </div>
-
     </section>
   );
 }

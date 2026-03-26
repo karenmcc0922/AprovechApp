@@ -1,4 +1,4 @@
-{/*import Navbar from "./components/Navbar";*/}
+import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ProblemSection from "./components/ProblemSection";
 import SolutionSection from "./components/SolutionSection";
@@ -9,7 +9,7 @@ function App() {
   return (
     <div className="App">
       {/* Navbar siempre arriba */}
-      {/*<Navbar />*/}
+      <Navbar />
 
       {/* Secciones */}
       <HeroSection />
