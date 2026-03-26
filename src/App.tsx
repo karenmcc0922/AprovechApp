@@ -1,28 +1,32 @@
 import './App.css';
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
+import DifferentialsSection from "./components/DifferentialsSection"; // La sección de Manus
 import ProblemSection from "./components/ProblemSection";
-import SolutionSection from "./components/SolutionSection";
-import BenefitsSection from "./components/BenefitSection";
-import CTASection from "./components/CTASection";
-import Footer from "./components/FooterSection"; 
+import CTASection from "./components/CTASection"; // La sección con los regalos
+import Footer from "./components/FooterSection";
 
 function App() {
   return (
-    <div className="App font-sans antialiased text-gray-900 bg-white">
-      {/* Navbar siempre arriba */}
+    <div className="min-h-screen bg-white font-sans antialiased">
+      {/* 1. Navegación siempre arriba */}
       <Navbar />
 
-      {/* Secciones */}
       <main>
+        {/* 2. Impacto inicial */}
         <HeroSection />
+
+        {/* 3. El problema que resolvemos (Contexto) */}
         <ProblemSection />
-        <SolutionSection />
-        <BenefitsSection />
+
+        {/* 4. Por qué somos diferentes (Lo que me pasaste de Manus) */}
+        <DifferentialsSection />
+
+        {/* 5. Gancho final y Registro (Con el descuento y envíos gratis) */}
         <CTASection />
       </main>
 
-      {/* Footer al final */}
+      {/* 6. Pie de página */}
       <Footer />
     </div>
   );
