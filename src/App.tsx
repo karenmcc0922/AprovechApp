@@ -11,7 +11,7 @@ function App() {
       {/* Navbar siempre arriba */}
       <Navbar />
 
-      {/* Secciones principales */}
+      {/* Secciones */}
       <HeroSection />
       <ProblemSection />
       <SolutionSection />

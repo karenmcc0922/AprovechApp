@@ -31,7 +31,6 @@ export default function HeroSection() {
       id="hero"
       className="relative min-h-[calc(100vh-64px)] pt-16 flex items-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-gray-50"
     >
-      {/* Fondo decorativo */}
       <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-emerald-300/20 rounded-full blur-3xl" />
       <div className="absolute bottom-10 left-10 w-[300px] h-[300px] bg-amber-200/20 rounded-full blur-2xl" />
 
