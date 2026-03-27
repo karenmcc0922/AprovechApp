@@ -57,7 +57,7 @@ export default function MarketSection() {
             📈 Oportunidad de mercado
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-            Latinoamérica está{" "}
+            Colombia está{" "}
             <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
               esperando
             </span>{" "}
@@ -131,7 +131,7 @@ export default function MarketSection() {
             <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4">
               <span className="text-2xl shrink-0">🌎</span>
               <div>
-                <h4 className="font-bold text-emerald-900 text-lg mb-1">Primer mover en LATAM</h4>
+                <h4 className="font-bold text-emerald-900 text-lg mb-1">Iniciativa en Colombia</h4>
                 <p className="text-emerald-700/80 text-sm leading-relaxed">
                   No existe una solución consolidada en la región. AprovechApp define la categoría desde cero.
                 </p>
