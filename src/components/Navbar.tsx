@@ -61,7 +61,7 @@ export default function Navbar() {
               />
             </div>
             <span className="text-2xl font-black text-gray-900 tracking-tighter">
-              Aprovech<span className="text-brand-green font-extrabold">App</span>
+              Aprovech<span className="text-green-700 font-extrabold">App</span>
             </span>
           </a>
 

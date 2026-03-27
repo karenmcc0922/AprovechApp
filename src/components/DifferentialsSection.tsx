@@ -75,7 +75,7 @@ export default function DifferentialsSection() {
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
             ¿Por qué elegir{" "}
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-green-700 to-teal-500 bg-clip-text text-transparent">
               AprovechApp?
             </span>
           </h2>
