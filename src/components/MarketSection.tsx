@@ -41,9 +41,9 @@ const marketStats = [
 
 const globalPlayers = [
   { name: "Too Good To Go", region: "Europa", presence: 85, color: "bg-emerald-600" },
-  { name: "Olio", region: "Reino Unido", presence: 60, color: "bg-emerald-400" },
-  { name: "Karma", region: "Escandinavia", presence: 45, color: "bg-teal-400" },
-  { name: "AprovechApp", region: "Colombia 🇨🇴", presence: 15, color: "bg-amber-500", isUs: true },
+  { name: "Foodsi", region: "Polonia", presence: 60, color: "bg-emerald-400" },
+  { name: "Food for All", region: "Estados Unidos", presence: 45, color: "bg-teal-400" },
+  { name: "AprovechApp", region: "Colombia", presence: 15, color: "bg-amber-500", isUs: true },
 ];
 
 export default function MarketSection() {
@@ -65,7 +65,7 @@ export default function MarketSection() {
           </h2>
           <p className="mt-6 text-lg text-gray-600 leading-relaxed">
             Mientras en Europa estas apps ya tienen millones de usuarios, 
-            en nuestra región no existe un jugador dominante. **AprovechApp** llega para liderar.
+            en nuestra región no existe un jugador dominante. AprovechApp llega para liderar.
           </p>
         </div>
 
