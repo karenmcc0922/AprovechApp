@@ -52,7 +52,7 @@ export default function ProblemSection() {
       id="problema" 
       ref={sectionRef} 
       /* CAMBIO AQUÍ: bg-brand-green en lugar de bg-brand-green-dark para más vibrancia */
-      className="bg-emerald-500 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      className="bg-green-700 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
     >
       {/* Decoración de fondo */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-brand-orange opacity-10 blur-[120px] rounded-full"></div>
