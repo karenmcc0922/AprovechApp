@@ -32,7 +32,7 @@ export default function HeroSection() {
         {/* Título de alto impacto */}
         <h1 className="animate-fade-up [animation-delay:200ms] text-5xl md:text-7xl font-black text-gray-900 tracking-tight mb-8 leading-[1.1]">
           Comida deliciosa, <br />
-          <span className="bg-gradient-to-r from-brand-green-700 to-teal-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-brand-green to-teal-500 bg-clip-text text-transparent">
             a mitad de precio.
           </span>
         </h1>
@@ -40,7 +40,7 @@ export default function HeroSection() {
         {/* Subtítulo persuasivo */}
         <p className="animate-fade-up [animation-delay:400ms] text-lg md:text-2xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
           Rescata excedentes de tus restaurantes favoritos y ahorra hasta un 
-          <span className="text-brand-green-700 font-bold"> 70%</span> mientras cuidas el planeta. 🌱
+          <span className="text-brand-green font-bold"> 70%</span> mientras cuidas el planeta. 🌱
         </p>
 
         {/* Botones de acción limpia */}
@@ -56,7 +56,7 @@ export default function HeroSection() {
           
           <button
             onClick={() => scrollToSection('#problema')}
-            className="w-full sm:w-auto px-10 py-5 bg-white text-brand-green-700 font-bold text-lg rounded-2xl border-2 border-brand-green/20 hover:bg-brand-green-light hover:border-brand-green/40 active:scale-95 transition-all"
+            className="w-full sm:w-auto px-10 py-5 bg-white text-brand-green font-bold text-lg rounded-2xl border-2 border-brand-green/20 hover:bg-brand-green-light hover:border-brand-green/40 active:scale-95 transition-all"
           >
             ¿Cómo funciona?
           </button>
