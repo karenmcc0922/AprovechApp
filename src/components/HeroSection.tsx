@@ -32,7 +32,7 @@ export default function HeroSection() {
         {/* Título de alto impacto */}
         <h1 className="animate-fade-up [animation-delay:200ms] text-5xl md:text-7xl font-black text-gray-900 tracking-tight mb-8 leading-[1.1]">
           Comida deliciosa, <br />
-          <span className="bg-gradient-to-r from-green-700 to-teal-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent">
             a mitad de precio.
           </span>
         </h1>
