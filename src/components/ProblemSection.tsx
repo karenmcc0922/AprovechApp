@@ -53,7 +53,7 @@ export default function ProblemSection() {
       className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
       /* Degradado de verde vibrante a verde marca */
       style={{ 
-        background: "linear-gradient(135deg, #059669 0%, #064e3b 100%)" 
+        background: "linear-gradient(135deg, #00da00 0%, #30f100 100%)" 
       }}
     >
       {/* Círculos decorativos para dar textura al fondo */}
