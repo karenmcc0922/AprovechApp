@@ -65,7 +65,7 @@ export default function ProblemSection() {
 
         <h2 className="text-3xl md:text-5xl font-black text-white mb-8 leading-tight">
           Colombia desperdicia <br className="hidden md:block" />
-          <span className="text-brand-orange">
+          <span className="text-[#FFA500]">
             {counts.desperdiciadas.toFixed(1)} Millones de toneladas
           </span>{" "}
           de alimentos al año
