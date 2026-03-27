@@ -1,82 +1,123 @@
 import { useState, useEffect, useRef } from "react";
+import { AlertTriangle, TrendingDown, DollarSign } from "lucide-react";
 
 export default function ProblemSection() {
   const [counts, setCounts] = useState({ desperdiciadas: 0, perdidos: 0, perdidas: 0 });
   const sectionRef = useRef(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          // Iniciar animación de contadores
-          const desperdiciadasInterval = setInterval(() => {
-            setCounts((prev) => ({
-              ...prev,
-              desperdiciadas: Math.min(prev.desperdiciadas + 0.1, 9.7),
-            }));
-          }, 50);
-
-          const perdidosInterval = setInterval(() => {
-            setCounts((prev) => ({
-              ...prev,
-              perdidos: Math.min(prev.perdidos + 1, 34),
-            }));
-          }, 50);
-
-          const perdidasInterval = setInterval(() => {
-            setCounts((prev) => ({
-              ...prev,
-              perdidas: Math.min(prev.perdidas + 0.2, 8),
-            }));
-          }, 50);
-
-          // Limpiar intervalos
-          return () => {
-            clearInterval(desperdiciadasInterval);
-            clearInterval(perdidosInterval);
-            clearInterval(perdidasInterval);
-          };
+        if (entries[0].isIntersecting && !hasStarted) {
+          setHasStarted(true);
         }
       },
-      { threshold: 0.5 } // Se activa cuando el 50% de la sección es visible
+      { threshold: 0.3 }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [hasStarted]);
 
-    return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const duration = 2000;
+    const frameRate = 1000 / 60;
+    const totalFrames = duration / frameRate;
+
+    let frame = 0;
+    const timer = setInterval(() => {
+      frame++;
+      const progress = frame / totalFrames;
+      const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+      const currentProgress = easeOut(progress);
+
+      setCounts({
+        desperdiciadas: currentProgress * 9.7,
+        perdidos: Math.round(currentProgress * 34),
+        perdidas: currentProgress * 8,
+      });
+
+      if (frame >= totalFrames) clearInterval(timer);
+    }, frameRate);
+
+    return () => clearInterval(timer);
+  }, [hasStarted]);
 
   return (
-    <section id="problema" ref={sectionRef} className="bg-emerald-900 py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-          Colombia desperdicia <span className="text-amber-400">{counts.desperdiciadas.toFixed(1)}M toneladas</span> de alimentos al año
+    <section 
+      id="problema" 
+      ref={sectionRef} 
+      className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
+      /* Degradado de verde vibrante a verde marca */
+      style={{ 
+        background: "linear-gradient(135deg, #059669 0%, #064e3b 100%)" 
+      }}
+    >
+      {/* Círculos decorativos para dar textura al fondo */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-[100px]"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-brand-orange/10 rounded-full blur-[80px]"></div>
+
+      <div className="max-w-6xl mx-auto text-center relative z-10">
+        <div className="inline-flex items-center gap-2 px-5 py-2 bg-white/10 text-white text-sm font-black rounded-full border border-white/20 mb-8 backdrop-blur-md">
+          <AlertTriangle className="w-4 h-4 text-brand-orange" />
+          <span className="uppercase tracking-wider">La realidad en Colombia</span>
+        </div>
+
+        <h2 className="text-4xl md:text-6xl font-black text-white mb-8 leading-tight drop-shadow-sm">
+          Desperdiciamos <br className="hidden md:block" />
+          <span className="text-brand-orange drop-shadow-md">
+            {counts.desperdiciadas.toFixed(1)}M de toneladas
+          </span>
         </h2>
 
-        <p className="text-emerald-100 max-w-3xl mx-auto text-lg mb-12">
-          Mientras millones de personas pasan hambre, toneladas de comida en buen estado terminan en la basura. Es una crisis silenciosa con impacto económico, social y ambiental.
+        <p className="text-emerald-50 max-w-3xl mx-auto text-xl md:text-2xl mb-16 leading-relaxed opacity-90">
+          Mientras millones pasan hambre, comida en buen estado termina en la basura. 
+          <span className="block mt-4 font-black text-white italic underline decoration-brand-orange decoration-4 underline-offset-8">
+            ¡Esto tiene que parar!
+          </span>
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
-            <h3 className="text-4xl font-extrabold text-amber-400 mb-2">{counts.desperdiciadas.toFixed(1)}M</h3>
-            <p className="text-emerald-50 font-medium">Toneladas desperdiciadas</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Card 1 */}
+          <div className="group bg-white/15 backdrop-blur-xl p-10 rounded-[3rem] border border-white/20 hover:bg-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-emerald-900/20">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg group-hover:rotate-6 transition-transform">
+              <TrendingDown className="w-8 h-8 text-brand-green" />
+            </div>
+            <h3 className="text-5xl font-black text-white mb-3 tracking-tighter">
+              {counts.desperdiciadas.toFixed(1)}M
+            </h3>
+            <p className="text-emerald-100 font-bold uppercase tracking-widest text-xs opacity-80">
+              Toneladas al año
+            </p>
           </div>
 
-          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
-            <h3 className="text-4xl font-extrabold text-red-400 mb-2">{counts.perdidos}%</h3>
-            <p className="text-emerald-50 font-medium">Alimentos perdidos</p>
+          {/* Card 2 */}
+          <div className="group bg-white/15 backdrop-blur-xl p-10 rounded-[3rem] border border-white/20 hover:bg-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-emerald-900/20">
+            <div className="w-16 h-16 bg-brand-orange rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg group-hover:-rotate-6 transition-transform">
+              <AlertTriangle className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-5xl font-black text-white mb-3 tracking-tighter">
+              {counts.perdidos}%
+            </h3>
+            <p className="text-emerald-100 font-bold uppercase tracking-widest text-xs opacity-80">
+              Producción total
+            </p>
           </div>
 
-          <div className="bg-emerald-800/50 backdrop-blur-sm p-8 rounded-2xl border border-emerald-700 hover:border-emerald-500 transition-colors">
-            <h3 className="text-4xl font-extrabold text-emerald-400 mb-2">${counts.perdidas.toFixed(1)}B</h3>
-            <p className="text-emerald-50 font-medium">Pérdidas económicas</p>
+          {/* Card 3 */}
+          <div className="group bg-white/15 backdrop-blur-xl p-10 rounded-[3rem] border border-white/20 hover:bg-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-emerald-900/20">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg group-hover:rotate-6 transition-transform">
+              <DollarSign className="w-8 h-8 text-brand-green" />
+            </div>
+            <h3 className="text-5xl font-black text-white mb-3 tracking-tighter">
+              ${counts.perdidas.toFixed(1)}B
+            </h3>
+            <p className="text-emerald-100 font-bold uppercase tracking-widest text-xs opacity-80">
+              Pérdidas económicas
+            </p>
           </div>
         </div>
       </div>
