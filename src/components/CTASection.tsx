@@ -51,7 +51,7 @@ export default function CTASection() {
         </div>
 
         {!submitted ? (
-          <div className="bg-white/5 p-2 rounded-2xl backdrop-blur-sm border border-white/10 max-w-2xl mx-auto">
+          <div className="bg-white/5 p-2 rounded-2xl backdrop-blur-sm border-2 border-white/10 max-w-2xl mx-auto">
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row justify-center gap-3 p-4">
               <input
                 type="text"
@@ -59,7 +59,7 @@ export default function CTASection() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-2 border-white/10 focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
               />
               <input
                 type="email"
@@ -67,7 +67,7 @@ export default function CTASection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-2 border-white/10 focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
               />
               <button
                 type="submit"
