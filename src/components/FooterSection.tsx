@@ -20,7 +20,7 @@ export default function FooterSection() {
               className="h-12 w-auto object-contain transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3" 
             />
             <span className="text-2xl font-black text-white tracking-tighter">
-              Aprovech<span className="text-brand-green">App</span>
+              Aprovech<span className="text-green-700">App</span>
             </span>
           </a>
           
@@ -37,7 +37,7 @@ export default function FooterSection() {
         {/* Columna 2: Enlaces Rápidos */}
         <div className="col-span-1 md:col-span-3">
           <h4 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-brand-green rounded-full"></span>
+            <span className="w-1.5 h-6 bg-green-700 rounded-full"></span>
             Nuestra App
           </h4>
           <ul className="space-y-4">
