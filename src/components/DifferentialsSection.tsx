@@ -7,7 +7,7 @@ const differentials = [
     title: "Domicilios integrados",
     description: "No necesitas salir de casa. Solicita domicilio directamente desde la app y recibe tus alimentos con descuento en la puerta.",
     tag: "Exclusivo",
-    tagColor: "bg-emerald-100 text-emerald-700",
+    tagColor: "bg-green-600 text-emerald-700",
     iconBg: "bg-green-700",
     highlight: true,
   },

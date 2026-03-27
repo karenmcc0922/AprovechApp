@@ -14,7 +14,7 @@ export default function CTASection() {
   };
 
   return (
-    <section id="registro" className="bg-emerald-900 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section id="registro" className="bg-green-700 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Círculos decorativos de fondo */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-1/2 translate-y-1/2"></div>
@@ -59,7 +59,7 @@ export default function CTASection() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-emerald-500/50 outline-none transition-all text-gray-900 font-medium"
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
               />
               <input
                 type="email"
@@ -67,29 +67,29 @@ export default function CTASection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-emerald-500/50 outline-none transition-all text-gray-900 font-medium"
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
               />
               <button
                 type="submit"
-                className="w-full sm:w-auto px-8 py-4 bg-amber-500 text-emerald-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl hover:shadow-amber-500/40"
+                className="w-full sm:w-auto px-8 py-4 bg-amber-500 text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl hover:shadow-amber-500/40"
               >
                 ¡Lo quiero!
               </button>
             </form>
           </div>
         ) : (
-          <div className="bg-emerald-800/50 backdrop-blur-md p-10 rounded-3xl border-2 border-emerald-400/30 max-w-md mx-auto shadow-2xl animate-in zoom-in duration-300">
-            <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto mb-6" />
+          <div className="bg-green-800/50 backdrop-blur-md p-10 rounded-3xl border-2 border-green-400/30 max-w-md mx-auto shadow-2xl animate-in zoom-in duration-300">
+            <CheckCircle2 className="w-20 h-20 text-green-400 mx-auto mb-6" />
             <p className="text-3xl font-black text-white mb-2">
               ¡Bienvenido, {name}!
             </p>
-            <p className="text-emerald-100 text-lg">
+            <p className="text-green-100 text-lg">
               Revisa tu correo. Te enviamos tu cupón de descuento y activamos tus domicilios gratis. ✨
             </p>
           </div>
         )}
         
-        <p className="mt-8 text-emerald-400/60 text-xs uppercase tracking-widest font-bold">
+        <p className="mt-8 text-green-400/60 text-xs uppercase tracking-widest font-bold">
           Oferta limitada para los primeros 500 usuarios
         </p>
       </div>
