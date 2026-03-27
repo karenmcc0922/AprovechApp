@@ -8,7 +8,7 @@ const differentials = [
     description: "No necesitas salir de casa. Solicita domicilio directamente desde la app y recibe tus alimentos con descuento en la puerta.",
     tag: "Exclusivo",
     tagColor: "bg-emerald-100 text-emerald-700",
-    iconBg: "bg-emerald-600",
+    iconBg: "bg-green-700",
     highlight: true,
   },
   {
@@ -75,7 +75,7 @@ export default function DifferentialsSection() {
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
             ¿Por qué elegir{" "}
-            <span className="bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
               AprovechApp?
             </span>
           </h2>
