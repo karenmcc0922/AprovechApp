@@ -15,7 +15,7 @@ export default function CTASection() {
 
     try {
       // 🚀 CONEXIÓN REAL CON TU SERVIDOR NODE.JS
-      const response = await fetch("http://localhost:3306/api/registro", {
+      const response = await fetch("http://localhost:5000/api/registro", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
