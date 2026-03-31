@@ -1,21 +1,45 @@
 import { useState } from "react";
-import { CheckCircle2, Gift, Truck } from "lucide-react";
+import { CheckCircle2, Gift, Truck, Loader2 } from "lucide-react"; // Añadí Loader2 para el efecto de carga
 
 export default function CTASection() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false); // Nuevo estado para saber si se está enviando
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return;
-    // Aquí podrías conectar con una base de datos
-    setSubmitted(true);
+
+    setLoading(true); // Empezamos a cargar
+
+    try {
+      // 🚀 CONEXIÓN REAL CON TU SERVIDOR NODE.JS
+      const response = await fetch("http://localhost:5000/api/registro", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nombre: name, correo: email }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        const errorData = await response.json();
+        alert("Error: " + errorData.error);
+      }
+    } catch (error) {
+      console.error("Error al conectar con el servidor:", error);
+      alert("No se pudo conectar con el servidor. ¿Olvidaste encenderlo con 'node index.js'?");
+    } finally {
+      setLoading(false); // Terminamos de cargar
+    }
   };
 
   return (
     <section id="registro" className="bg-green-700 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Círculos decorativos de fondo */}
+      {/* Decoración de fondo */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-1/2 translate-y-1/2"></div>
 
@@ -27,10 +51,10 @@ export default function CTASection() {
           Regístrate hoy en AprovechApp y empieza a ahorrar con estas ventajas exclusivas de bienvenida:
         </p>
 
-        {/* Tarjetas de Beneficios (Descuento y Domicilio) */}
+        {/* Tarjetas de Beneficios */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12 max-w-2xl mx-auto">
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl flex items-center gap-4 text-left">
-            <div className="w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center shrink-0 shadow-lg">
+            <div className="w-12 h-12 bg-[#FFA832] rounded-full flex items-center justify-center shrink-0 shadow-lg">
               <Gift className="text-emerald-900 w-6 h-6" />
             </div>
             <div>
@@ -59,7 +83,8 @@ export default function CTASection() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
+                /* Clases actualizadas para ver el BORDE */
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl bg-black/20 border-2 border-white/40 text-white placeholder:text-white/60 outline-none focus:border-[#FFA832] transition-all font-medium"
               />
               <input
                 type="email"
@@ -67,24 +92,27 @@ export default function CTASection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full sm:w-1/3 px-5 py-4 rounded-xl border-none focus:ring-4 focus:ring-green-500/50 outline-none transition-all text-gray-900 font-medium"
+                /* Clases actualizadas para ver el BORDE */
+                className="w-full sm:w-1/3 px-5 py-4 rounded-xl bg-black/20 border-2 border-white/40 text-white placeholder:text-white/60 outline-none focus:border-[#FFA832] transition-all font-medium"
               />
               <button
                 type="submit"
-                className="w-full sm:w-auto px-8 py-4 bg-amber-500 text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl hover:shadow-amber-500/40"
+                disabled={loading}
+                className="w-full sm:w-auto px-8 py-4 bg-[#FFA832] text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                ¡Lo quiero!
+                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "¡Lo quiero!"}
               </button>
             </form>
           </div>
         ) : (
+          /* Mensaje de éxito */
           <div className="bg-green-800/50 backdrop-blur-md p-10 rounded-3xl border-2 border-green-400/30 max-w-md mx-auto shadow-2xl animate-in zoom-in duration-300">
             <CheckCircle2 className="w-20 h-20 text-green-400 mx-auto mb-6" />
             <p className="text-3xl font-black text-white mb-2">
               ¡Bienvenido, {name}!
             </p>
             <p className="text-green-100 text-lg">
-              Revisa tu correo. Te enviamos tu cupón de descuento y activamos tus domicilios gratis. ✨
+              Te hemos registrado con éxito en nuestra base de datos. ✨
             </p>
           </div>
         )}
