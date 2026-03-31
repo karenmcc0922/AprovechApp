@@ -5,7 +5,7 @@ import ProblemSection from "./components/ProblemSection";
 import SolutionSection from "./components/SolutionSection";
 import BenefitSection from "./components/BenefitSection";
 import DifferentialsSection from "./components/DifferentialsSection";
-import MarketSection from "./components/MarketSection"; // <-- El nuevo integrante
+import MarketSection from "./components/MarketSection";
 import CTASection from "./components/CTASection";
 import FooterSection from "./components/FooterSection"; 
 
@@ -17,29 +17,29 @@ function App() {
 
       <main>
         {/* 2. Impacto visual y propuesta de valor */}
-        <HeroSection />
+        <HeroSection/>
 
         {/* 3. Empatía con el problema del desperdicio */}
-        <ProblemSection />
+        <ProblemSection/>
 
         {/* 4. Presentación de la App como solución */}
-        <SolutionSection />
+        <SolutionSection/>
 
         {/* 5. Ventajas para el usuario final */}
-        <BenefitSection />
+        <BenefitSection/>
 
         {/* 6. Lo que nos hace únicos frente a otros */}
-        <DifferentialsSection />
+        <DifferentialsSection/>
 
         {/* 7. Datos de mercado: Por qué es el momento de LATAM */}
-        <MarketSection />
+        <MarketSection/>
 
         {/* 8. Cierre con registro y beneficios (Regalo/Envío gratis) */}
-        <CTASection />
+        <CTASection/>
       </main>
 
       {/* 9. Información final */}
-      <FooterSection />
+      <FooterSection/>
     </div>
   );
 }
