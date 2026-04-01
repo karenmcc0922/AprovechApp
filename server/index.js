@@ -1,13 +1,18 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-const nodemailer = require('nodemailer'); // <-- 1. Importamos Nodemailer
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
 
-// Configuraciones
-app.use(cors()); 
+// --- CONFIGURACIÓN DE SEGURIDAD (CORS) ---
+app.use(cors({
+  origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
+  methods: ['GET', 'POST'],
+  credentials: true
+})); 
+
 app.use(express.json()); 
 
 // Conexión a MariaDB
@@ -26,12 +31,12 @@ db.connect((err) => {
   console.log('✅ Conectado a MariaDB con éxito.');
 });
 
-// --- 2. CONFIGURACIÓN DEL "CARTERO" (GMAIL) ---
+// --- CONFIGURACIÓN DEL "CARTERO" (GMAIL) ---
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, // Tu correo en el .env
-    pass: process.env.EMAIL_PASS  // Tus 16 letras de aplicación en el .env
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS 
   }
 });
 
@@ -39,7 +44,6 @@ const transporter = nodemailer.createTransport({
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
 
-  // Primero guardamos en la base de datos
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
   
   db.query(sql, [nombre, correo], (err, result) => {
@@ -48,7 +52,11 @@ app.post('/api/registro', (req, res) => {
       return res.status(500).json({ error: "Error al guardar el usuario" });
     }
 
-    // --- 3. PREPARAR Y ENVIAR EL CORREO ---
+    // --- CAMBIO CLAVE: URL DE VERCEL ---
+    const urlFrontend = "https://aprovechapp.vercel.app";
+    const enlaceCompletar = `${urlFrontend}/completar-perfil?email=${correo}`;
+
+    // --- PREPARAR Y ENVIAR EL CORREO ---
     const mailOptions = {
       from: `"AprovechApp 🥑" <${process.env.EMAIL_USER}>`,
       to: correo,
@@ -57,30 +65,37 @@ app.post('/api/registro', (req, res) => {
         <div style="font-family: sans-serif; max-width: 500px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 15px; text-align: center;">
           <h2 style="color: #15803d;">¡Hola, ${nombre}! 🥑</h2>
           <p>Gracias por unirte a la comunidad que rescata comida deliciosa.</p>
+          
           <div style="background-color: #fff7ed; padding: 15px; border-radius: 10px; border-left: 5px solid #ffa832; margin: 20px 0;">
             <p style="margin: 0; color: #9a3412;"><strong>🎁 Tu Regalo:</strong> 15% DTO con el código <strong>SOYAPROVECHADOR</strong></p>
           </div>
-          <p>Para ver las ofertas de hoy y completar tu perfil, haz clic abajo:</p>
-          <a href="http://localhost:5173/completar-perfil?email=${correo}" 
-             style="display: inline-block; padding: 12px 25px; background-color: #15803d; color: white; text-decoration: none; font-weight: bold; border-radius: 10px;">
+
+          <p>Para crear tu contraseña y empezar a salvar comida, haz clic abajo:</p>
+          
+          <a href="${enlaceCompletar}" 
+             style="display: inline-block; padding: 14px 30px; background-color: #15803d; color: white; text-decoration: none; font-weight: bold; border-radius: 10px; margin: 10px 0;">
              Completar mi Registro
           </a>
-          <p style="font-size: 11px; color: #999; margin-top: 25px;">AprovechApp 2026 - Pereira, Risaralda</p>
+
+          <p style="font-size: 12px; color: #666; margin-top: 20px;">
+            Si el botón no funciona, copia este enlace: <br>
+            <span style="color: #15803d;">${enlaceCompletar}</span>
+          </p>
+          
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+          <p style="font-size: 11px; color: #999;">AprovechApp 2026 - Pereira, Risaralda 🇨🇴</p>
         </div>
       `
     };
 
-    // Enviamos el correo de forma asíncrona
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.log("❌ Error enviando mail:", error);
-        // Aunque el mail falle, el usuario ya se registró en la DB
       } else {
         console.log("📧 Correo enviado con éxito a: " + correo);
       }
     });
 
-    // Respuesta final al Frontend de React
     res.status(201).json({ 
       mensaje: "¡Usuario registrado y correo enviado!", 
       id: result.insertId 
@@ -90,5 +105,5 @@ app.post('/api/registro', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor listo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
 });
