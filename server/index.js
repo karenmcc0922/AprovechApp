@@ -15,7 +15,7 @@ app.use(cors({
 
 app.use(express.json()); 
 
-// Conexión a MariaDB
+// --- CONEXIÓN A MARIADB ---
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -31,7 +31,7 @@ db.connect((err) => {
   console.log('✅ Conectado a MariaDB con éxito.');
 });
 
-// --- CONFIGURACIÓN DEL "CARTERO" (GMAIL) ---
+// --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -40,7 +40,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// RUTA: Recibir datos y enviar correo
+// --- RUTA 1: REGISTRO INICIAL Y ENVÍO DE CORREO ---
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
 
@@ -48,15 +48,13 @@ app.post('/api/registro', (req, res) => {
   
   db.query(sql, [nombre, correo], (err, result) => {
     if (err) {
-      console.error("Error al insertar:", err);
+      console.error("❌ Error al insertar:", err);
       return res.status(500).json({ error: "Error al guardar el usuario" });
     }
 
-    // --- CAMBIO CLAVE: URL DE VERCEL ---
     const urlFrontend = "https://aprovechapp.vercel.app";
     const enlaceCompletar = `${urlFrontend}/completar-perfil?email=${correo}`;
 
-    // --- PREPARAR Y ENVIAR EL CORREO ---
     const mailOptions = {
       from: `"AprovechApp 🥑" <${process.env.EMAIL_USER}>`,
       to: correo,
@@ -70,7 +68,7 @@ app.post('/api/registro', (req, res) => {
             <p style="margin: 0; color: #9a3412;"><strong>🎁 Tu Regalo:</strong> 15% DTO con el código <strong>SOYAPROVECHADOR</strong></p>
           </div>
 
-          <p>Para crear tu contraseña y empezar a salvar comida, haz clic abajo:</p>
+          <p>Para crear tu contraseña y completar tu perfil, haz clic abajo:</p>
           
           <a href="${enlaceCompletar}" 
              style="display: inline-block; padding: 14px 30px; background-color: #15803d; color: white; text-decoration: none; font-weight: bold; border-radius: 10px; margin: 10px 0;">
@@ -103,6 +101,47 @@ app.post('/api/registro', (req, res) => {
   });
 });
 
+// --- RUTA 2: ACTUALIZAR PERFIL CON DATOS ADICIONALES ---
+app.post('/api/completar-perfil', (req, res) => {
+  const { 
+    email, 
+    password, 
+    direccion, 
+    municipio, 
+    departamento, 
+    pais, 
+    fechaNacimiento 
+  } = req.body;
+
+  const sql = `
+    UPDATE usuarios 
+    SET password = ?, 
+        direccion = ?, 
+        municipio = ?, 
+        departamento = ?, 
+        pais = ?, 
+        fecha_nacimiento = ? 
+    WHERE correo = ?
+  `;
+
+  const values = [password, direccion, municipio, departamento, pais, fechaNacimiento, email];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("❌ Error al actualizar perfil:", err);
+      return res.status(500).json({ error: "Error al guardar los datos" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    console.log(`✅ Datos guardados para: ${email}`);
+    res.status(200).json({ mensaje: "Perfil completado con éxito" });
+  });
+});
+
+// --- INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
