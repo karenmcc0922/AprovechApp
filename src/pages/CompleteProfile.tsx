@@ -6,7 +6,7 @@ import { Button } from "../components/ui/button";
 import { Leaf, Lock, User, CheckCircle } from "lucide-react";
 
 export default function CompleteProfile() {
-  const [location, setLocation] = useLocation();
+  const [_, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
