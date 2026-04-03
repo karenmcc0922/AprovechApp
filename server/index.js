@@ -38,20 +38,25 @@ db.connect((err) => {
 
 // --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Usar el servicio directo es más fácil para Render
+  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Debe ser false para el puerto 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS 
+  },
+  tls: {
+    rejectUnauthorized: false // Ayuda a que la conexión no se caiga por certificados
   }
 });
 
-// Verificación inicial del servidor de correo
-// Esto es VITAL para diagnosticar:
+// Verificación detallada
 transporter.verify((error, success) => {
   if (error) {
-    console.log("❌ FALLO GMAIL:", error);
+    console.error("❌ ERROR CRÍTICO GMAIL:", error.message);
   } else {
-    console.log("📧 GMAIL LISTO PARA ENVIAR");
+    console.log("📧 ✅ GMAIL CONECTADO Y LISTO");
   }
 });
 
