@@ -30,18 +30,26 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
-// --- CONFIGURACIÓN DE NODEMAILER ---
+// --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS 
-  }
+  },
+  pool: true, // Mantiene la conexión abierta para evitar timeouts
+  maxConnections: 3,
+  maxMessages: 100,
+  connectionTimeout: 20000 // Le damos 20 segundos para conectar antes de rendirse
 });
 
-transporter.verify((error) => {
-  if (error) console.error("❌ ERROR GMAIL:", error.message);
-  else console.log("📧 ✅ GMAIL CONECTADO");
+// Verificación con log de error detallado
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ ERROR GMAIL DETALLADO:", error);
+  } else {
+    console.log("📧 ✅ GMAIL CONECTADO Y LISTO.");
+  }
 });
 
 // --- RUTA 1: REGISTRO INICIAL ---
