@@ -28,7 +28,7 @@ export default function CompleteProfile() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://aprovechapp-api.onrender.com', {
+      const response = await fetch("https://aprovechapp-api.onrender.com/api/completar-perfil", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
