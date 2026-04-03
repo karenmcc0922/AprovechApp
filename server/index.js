@@ -15,20 +15,26 @@ app.use(cors({
 
 app.use(express.json()); 
 
-// --- CONEXIÓN A MARIADB ---
+// --- CONEXIÓN A TiDB CLOUD (MySQL) ---
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 4000, // TiDB usa el 4000 por defecto
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
+  database: process.env.DB_NAME,
+  ssl: {
+    // TiDB requiere SSL para conexiones externas
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true 
+  }
 });
 
 db.connect((err) => {
   if (err) {
-    console.error('❌ Error conectando a MariaDB:', err.message);
+    console.error('❌ Error conectando a la base de datos:', err.message);
     return;
   }
-  console.log('✅ Conectado a MariaDB con éxito.');
+  console.log('✅ Conectado a TiDB Cloud con éxito.');
 });
 
 // --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
