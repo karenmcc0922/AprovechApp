@@ -15,22 +15,23 @@ app.use(cors({
 
 app.use(express.json()); 
 
-// --- CONEXIÓN A TiDB CLOUD (MySQL) ---
+// --- CONEXIÓN A TiDB CLOUD ---
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 4000, // TiDB usa el 4000 por defecto
+  port: process.env.DB_PORT || 4000,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  // ESTA ES LA PARTE QUE FALTA:
   ssl: {
-    // TiDB requiere SSL para conexiones externas
     minVersion: 'TLSv1.2',
-    rejectUnauthorized: true 
+    rejectUnauthorized: true
   }
 });
 
 db.connect((err) => {
   if (err) {
+    // Si sale error aquí, revisa las variables en Render
     console.error('❌ Error conectando a la base de datos:', err.message);
     return;
   }
