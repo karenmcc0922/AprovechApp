@@ -47,24 +47,18 @@ pool.getConnection((err, connection) => {
 // --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // false para puerto 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS 
-  },
-  tls: {
-    rejectUnauthorized: false
   }
 });
 
-// Verificación de Gmail al arrancar
+// Verificación detallada
 transporter.verify((error, success) => {
   if (error) {
-    console.error("❌ Error en la configuración de correo:", error.message);
+    console.error("❌ ERROR GMAIL:", error.message);
   } else {
-    console.log("📧 ✅ GMAIL CONECTADO Y LISTO.");
+    console.log("📧 ✅ GMAIL CONECTADO");
   }
 });
 
