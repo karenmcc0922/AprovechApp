@@ -15,14 +15,13 @@ app.use(cors({
 
 app.use(express.json()); 
 
-// --- CONEXIÓN A TiDB CLOUD ---
+// --- CONEXIÓN A TiDB CLOUD (MySQL) ---
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  // ESTA ES LA PARTE QUE FALTA:
   ssl: {
     minVersion: 'TLSv1.2',
     rejectUnauthorized: true
@@ -31,8 +30,7 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    // Si sale error aquí, revisa las variables en Render
-    console.error('❌ Error conectando a la base de datos:', err.message);
+    console.error('❌ Error conectando a TiDB Cloud:', err.message);
     return;
   }
   console.log('✅ Conectado a TiDB Cloud con éxito.');
@@ -40,10 +38,24 @@ db.connect((err) => {
 
 // --- CONFIGURACIÓN DE NODEMAILER (GMAIL) ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Usa SSL para el puerto 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS 
+  },
+  tls: {
+    rejectUnauthorized: false // Evita bloqueos de certificados en entornos de nube
+  }
+});
+
+// Verificación inicial del servidor de correo
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Error en la configuración de correo:", error.message);
+  } else {
+    console.log("📧 Servidor de correo listo para enviar mensajes.");
   }
 });
 
@@ -55,8 +67,8 @@ app.post('/api/registro', (req, res) => {
   
   db.query(sql, [nombre, correo], (err, result) => {
     if (err) {
-      console.error("❌ Error al insertar:", err);
-      return res.status(500).json({ error: "Error al guardar el usuario" });
+      console.error("❌ Error al insertar en la DB:", err);
+      return res.status(500).json({ error: "Error al guardar el usuario en la base de datos." });
     }
 
     const urlFrontend = "https://aprovechapp.vercel.app";
@@ -93,17 +105,22 @@ app.post('/api/registro', (req, res) => {
       `
     };
 
+    // Intentamos enviar el correo
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.log("❌ Error enviando mail:", error);
+        console.error("❌ Error enviando mail:", error.message);
+        // Respondemos 201 porque el registro en DB fue exitoso, pero avisamos del fallo del mail
+        return res.status(201).json({ 
+          mensaje: "Usuario registrado, pero hubo un problema al enviar el correo.",
+          id: result.insertId
+        });
       } else {
         console.log("📧 Correo enviado con éxito a: " + correo);
+        return res.status(201).json({ 
+          mensaje: "¡Usuario registrado y correo enviado con éxito!", 
+          id: result.insertId 
+        });
       }
-    });
-
-    res.status(201).json({ 
-      mensaje: "¡Usuario registrado y correo enviado!", 
-      id: result.insertId 
     });
   });
 });
@@ -136,20 +153,20 @@ app.post('/api/completar-perfil', (req, res) => {
   db.query(sql, values, (err, result) => {
     if (err) {
       console.error("❌ Error al actualizar perfil:", err);
-      return res.status(500).json({ error: "Error al guardar los datos" });
+      return res.status(500).json({ error: "Error al guardar los datos del perfil." });
     }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+      return res.status(404).json({ error: "Usuario no encontrado." });
     }
 
-    console.log(`✅ Datos guardados para: ${email}`);
-    res.status(200).json({ mensaje: "Perfil completado con éxito" });
+    console.log(`✅ Datos de perfil guardados para: ${email}`);
+    res.status(200).json({ mensaje: "Perfil completado con éxito." });
   });
 });
 
 // --- INICIO DEL SERVIDOR ---
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000; // Render usa el puerto 10000 por defecto internamente
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
