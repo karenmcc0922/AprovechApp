@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { CheckCircle2, Gift, Truck, Loader2 } from "lucide-react"; // Añadí Loader2 para el efecto de carga
+import { CheckCircle2, Gift, Truck, Loader2 } from "lucide-react";
+import emailjs from '@emailjs/browser'; // Asegúrate de haber ejecutado: npm install @emailjs/browser
 
 export default function CTASection() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false); // Nuevo estado para saber si se está enviando
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return;
 
-    setLoading(true); // Empezamos a cargar
+    setLoading(true);
 
     try {
-      // 🚀 CONEXIÓN REAL CON TU SERVIDOR NODE.JS
+      // 1. REGISTRO EN TU API (RENDER + TiDB)
       const response = await fetch("https://aprovechapp-api.onrender.com/api/registro", {
         method: "POST",
         headers: {
@@ -24,16 +25,30 @@ export default function CTASection() {
       });
 
       if (response.ok) {
+        // 2. ENVÍO DE CORREO CON EMAILJS (Solo si el registro en DB fue exitoso)
+        const templateParams = {
+          user_name: name,    // Coincide con {{user_name}} en tu plantilla
+          user_email: email,   // Coincide con {{user_email}} en tu plantilla
+        };
+
+        // REEMPLAZA ESTOS TRES VALORES CON LOS DE TU PANEL DE EMAILJS
+        await emailjs.send(
+          'TU_SERVICE_ID',   // Ej: 'service_8n3f9v'
+          'TU_TEMPLATE_ID',  // Ej: 'template_q8w2e1'
+          templateParams,
+          'TU_PUBLIC_KEY'    // La encuentras en Account > API Keys
+        );
+
         setSubmitted(true);
       } else {
         const errorData = await response.json();
-        alert("Error: " + errorData.error);
+        alert("Error en el registro: " + (errorData.error || "Intenta de nuevo"));
       }
     } catch (error) {
-      console.error("Error al conectar con el servidor:", error);
-      alert("No se pudo conectar con el servidor. ¿Olvidaste encenderlo con 'node index.js'?");
+      console.error("Error al procesar el registro:", error);
+      alert("No se pudo completar el registro. Revisa tu conexión.");
     } finally {
-      setLoading(false); // Terminamos de cargar
+      setLoading(false);
     }
   };
 
@@ -83,7 +98,6 @@ export default function CTASection() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                /* Clases actualizadas para ver el BORDE */
                 className="w-full sm:w-1/3 px-5 py-4 rounded-xl bg-black/20 border-2 border-white/40 text-white placeholder:text-white/60 outline-none focus:border-[#FFA832] transition-all font-medium"
               />
               <input
@@ -92,27 +106,25 @@ export default function CTASection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                /* Clases actualizadas para ver el BORDE */
                 className="w-full sm:w-1/3 px-5 py-4 rounded-xl bg-black/20 border-2 border-white/40 text-white placeholder:text-white/60 outline-none focus:border-[#FFA832] transition-all font-medium"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-8 py-4 bg-[#FFA832] text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-[#FFA832] text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "¡Lo quiero!"}
               </button>
             </form>
           </div>
         ) : (
-          /* Mensaje de éxito */
           <div className="bg-green-800/50 backdrop-blur-md p-10 rounded-3xl border-2 border-green-400/30 max-w-md mx-auto shadow-2xl animate-in zoom-in duration-300">
             <CheckCircle2 className="w-20 h-20 text-green-400 mx-auto mb-6" />
             <p className="text-3xl font-black text-white mb-2">
               ¡Bienvenido, {name}!
             </p>
             <p className="text-green-100 text-lg">
-              Te hemos registrado con éxito en nuestra base de datos. ✨
+              Te hemos registrado con éxito. ✨ Revisa tu correo para completar tu perfil.
             </p>
           </div>
         )}
