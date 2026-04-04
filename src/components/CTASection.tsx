@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, Gift, Truck, Loader2 } from "lucide-react";
-import emailjs from '@emailjs/browser'; // Asegúrate de haber ejecutado: npm install @emailjs/browser
+import emailjs from '@emailjs/browser';
 
 export default function CTASection() {
   const [name, setName] = useState("");
@@ -27,16 +27,15 @@ export default function CTASection() {
       if (response.ok) {
         // 2. ENVÍO DE CORREO CON EMAILJS (Solo si el registro en DB fue exitoso)
         const templateParams = {
-          user_name: name,    // Coincide con {{user_name}} en tu plantilla
-          user_email: email,   // Coincide con {{user_email}} en tu plantilla
+          user_name: name,    
+          user_email: email,   
         };
 
-        // REEMPLAZA ESTOS TRES VALORES CON LOS DE TU PANEL DE EMAILJS
         await emailjs.send(
-          'service_8g5r5ic',   // Ej: 'service_8n3f9v'
-          'template_hhrqvw9',  // Ej: 'template_q8w2e1'
+          'service_8g5r5ic',
+          'template_hhrqvw9',
           templateParams,
-          '2t5mcRkogdohBXqe9'    // La encuentras en Account > API Keys
+          '2t5mcRkogdohBXqe9'
         );
 
         setSubmitted(true);

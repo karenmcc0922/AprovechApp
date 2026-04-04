@@ -17,7 +17,7 @@ import { Search, SlidersHorizontal, Gift, Store, X } from "lucide-react";
 // --- DATOS DE PRUEBA (MOCK DATA) ---
 const PRODUCTOS_PRUEBA = [
   { id: 1, nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true },
-  { id: 2, nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=500", esSorpresa: false },
+  { id: 2, nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://previews.123rf.com/images/olegdoroshin/olegdoroshin1703/olegdoroshin170300232/74045287-cardboard-box-with-freshly-baked-donuts-with-stuffing.jpg", esSorpresa: false },
   { id: 3, nombre: "Combo Almuerzo Rescatado", tienda: "Restaurante Central", precioOriginal: 18000, precioOferta: 9000, descuento: 50, categoria: "Restaurantes", imagen: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500", esSorpresa: false },
   { id: 4, nombre: "Pack Frutas de Temporada", tienda: "Frubana", precioOriginal: 40000, precioOferta: 10000, descuento: 75, categoria: "Frutas", imagen: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500", esSorpresa: true },
 ];
