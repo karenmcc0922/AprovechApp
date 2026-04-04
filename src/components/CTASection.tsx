@@ -33,10 +33,10 @@ export default function CTASection() {
 
         // REEMPLAZA ESTOS TRES VALORES CON LOS DE TU PANEL DE EMAILJS
         await emailjs.send(
-          'TU_SERVICE_ID',   // Ej: 'service_8n3f9v'
-          'TU_TEMPLATE_ID',  // Ej: 'template_q8w2e1'
+          'service_8g5r5ic',   // Ej: 'service_8n3f9v'
+          'template_hhrqvw9',  // Ej: 'template_q8w2e1'
           templateParams,
-          'TU_PUBLIC_KEY'    // La encuentras en Account > API Keys
+          '2t5mcRkogdohBXqe9'    // La encuentras en Account > API Keys
         );
 
         setSubmitted(true);
