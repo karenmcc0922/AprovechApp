@@ -1,9 +1,7 @@
-import { useState } from "react";
 import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
   BadgeCheck, 
@@ -14,7 +12,6 @@ import {
   Settings,
   MapPin,
   Calendar,
-  Bell,
   ShieldCheck 
 } from "lucide-react";
 
@@ -31,13 +28,9 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <AppNavbar />
-
-      {/* pt-28 es la clave para que el contenido no quede detrás del navbar fixed */}
       <main className="flex-grow container mx-auto px-4 pt-28 pb-12 max-w-6xl">
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* COLUMNA IZQUIERDA */}
+          {/* Columna Usuario */}
           <div className="space-y-6">
             <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white">
               <CardContent className="p-8 text-center">
@@ -49,14 +42,11 @@ export default function Profile() {
                     <ShieldCheck className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
-                
                 <h2 className="text-2xl font-black text-slate-900 leading-tight">{userName}</h2>
                 <p className="text-slate-500 font-medium mb-6 truncate">{userEmail}</p>
-                
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-sm font-bold mb-8">
                   <MapPin className="w-4 h-4" /> Pereira, Risaralda
                 </div>
-
                 <Button className="w-full rounded-2xl py-6 font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border-none transition-all">
                   <Settings className="w-4 h-4 mr-2" /> Configurar Cuenta
                 </Button>
@@ -68,25 +58,22 @@ export default function Profile() {
                 <div className="bg-white p-4 rounded-[32px] mb-6">
                   <QrCode className="w-32 h-32 text-slate-900" />
                 </div>
-                <h3 className="font-bold text-lg mb-2 text-white">Tu ID de Rescate</h3>
-                <p className="text-slate-400 text-xs px-4">
-                  Muestra este código en tienda para reclamar tus productos.
-                </p>
+                <h3 className="font-bold text-lg mb-2">Tu ID de Rescate</h3>
+                <p className="text-slate-400 text-xs px-4">Muestra este código en tienda para reclamar.</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* COLUMNA DERECHA */}
+          {/* Columna Datos */}
           <div className="lg:col-span-2 space-y-8">
-            
-            <Card className="border-none shadow-md rounded-[40px] bg-gradient-to-br from-green-600 to-emerald-800 text-white overflow-hidden relative">
+            <Card className="border-none shadow-md rounded-[40px] bg-gradient-to-br from-green-600 to-emerald-800 text-white overflow-hidden">
               <CardContent className="p-8 relative z-10">
                 <div className="space-y-4">
                   <Badge className="bg-white/20 text-white border-none px-3 py-1 font-bold">NIVEL 4: ELITE</Badge>
                   <h2 className="text-3xl font-black tracking-tight">¡Impacto Positivo! 🌍</h2>
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs font-black uppercase opacity-80">
-                      <span>Progreso de Nivel</span>
+                      <span>Progreso</span>
                       <span>750 / 1000 pts</span>
                     </div>
                     <Progress value={75} className="h-3 bg-white/20 shadow-none" />
@@ -117,19 +104,19 @@ export default function Profile() {
               </h3>
               <div className="space-y-4">
                 {historial.map((item) => (
-                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between hover:border-green-200 transition-all group">
+                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between hover:border-green-200 transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-green-50 transition-colors">
-                        <Calendar className="w-6 h-6 text-slate-400 group-hover:text-green-600" />
+                      <div className="bg-slate-50 p-4 rounded-2xl">
+                        <Calendar className="w-6 h-6 text-slate-400" />
                       </div>
                       <div>
                         <h4 className="font-bold text-slate-900">{item.producto}</h4>
-                        <p className="text-sm text-slate-500 font-medium">{item.local} • {item.fecha}</p>
+                        <p className="text-sm text-slate-500">{item.local} • {item.fecha}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black text-slate-900">${item.precio.toLocaleString()}</p>
-                      <Badge className={item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700 border-none'}>
+                      <Badge className={item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}>
                         {item.estado}
                       </Badge>
                     </div>
