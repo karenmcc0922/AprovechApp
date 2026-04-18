@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, UserCircle } from "lucide-react";
+import { Link } from "wouter"; // Importamos Link para la navegación SPA
 
 const navLinks = [
   { label: "El Problema", href: "#problema" },
@@ -44,47 +45,51 @@ export default function Navbar() {
       <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           
-          {/* Logo con Naranja y Verde */}
-          <a
-            href="#"
-            className="flex items-center gap-2 group"
-            onClick={(e) => { 
-              e.preventDefault(); 
-              window.scrollTo({ top: 0, behavior: "smooth" }); 
-            }}
-          >
-            <div className="relative">
-              <img 
-                src="/logo.png" 
-                alt="Logo" 
-                className="h-10 w-auto transition-transform duration-500 group-hover:rotate-12" 
-              />
-            </div>
-            <span className="text-2xl font-black text-gray-900 tracking-tighter">
-              Aprovech<span className="text-green-700 font-extrabold">App</span>
-            </span>
-          </a>
+          {/* Logo */}
+          <Link href="/">
+            <a className="flex items-center gap-2 group cursor-pointer">
+              <div className="relative">
+                <img 
+                  src="/logo.png" 
+                  alt="Logo" 
+                  className="h-10 w-auto transition-transform duration-500 group-hover:rotate-12" 
+                />
+              </div>
+              <span className="text-2xl font-black text-gray-900 tracking-tighter">
+                Aprovech<span className="text-green-700 font-extrabold">App</span>
+              </span>
+            </a>
+          </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-2 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200/50">
+          <div className="hidden lg:flex items-center gap-2 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-200/50">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }}
-                className="px-5 py-2 text-sm font-bold text-gray-600 hover:text-brand-green hover:bg-white rounded-xl transition-all duration-300 hover:shadow-sm"
+                className="px-5 py-2 text-sm font-bold text-gray-600 hover:text-green-700 hover:bg-white rounded-xl transition-all duration-300 hover:shadow-sm"
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          {/* Botón de Registro - NARANJA para destacar */}
-          <div className="hidden md:block">
+          {/* Acciones: Login y Registro */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* BOTÓN INICIAR SESIÓN */}
+            <Link href="/login">
+              <a className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 hover:text-green-700 transition-colors cursor-pointer">
+                <UserCircle className="w-5 h-5 opacity-70" />
+                Iniciar Sesión
+              </a>
+            </Link>
+
+            {/* BOTÓN REGISTRO */}
             <a
               href="#registro"
               onClick={(e) => { e.preventDefault(); handleNavClick("#registro"); }}
-              className="group flex items-center gap-2 px-6 py-3 bg-brand-orange text-white text-sm font-black rounded-xl hover:bg-brand-orange-dark active:scale-95 transition-all shadow-lg shadow-brand-orange/20"
+              className="group flex items-center gap-2 px-6 py-3 bg-[#FFA832] text-white text-sm font-black rounded-xl hover:bg-amber-500 active:scale-95 transition-all shadow-lg shadow-amber-200"
             >
               Registrarme
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -94,7 +99,7 @@ export default function Navbar() {
           {/* Menú móvil */}
           <button
             className={`md:hidden p-3 rounded-xl transition-all ${
-              isOpen ? "bg-brand-orange text-white" : "bg-brand-green-light text-brand-green"
+              isOpen ? "bg-[#FFA832] text-white" : "bg-green-50 text-green-700"
             }`}
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -105,7 +110,7 @@ export default function Navbar() {
         {/* Menú móvil desplegable */}
         <div
           className={`md:hidden absolute left-4 right-4 mt-4 overflow-hidden transition-all duration-500 ease-in-out bg-white rounded-3xl shadow-2xl border border-gray-100 ${
-            isOpen ? "max-h-[450px] opacity-100 p-6" : "max-h-0 opacity-0"
+            isOpen ? "max-h-[500px] opacity-100 p-6" : "max-h-0 opacity-0 invisible"
           }`}
         >
           <div className="flex flex-col gap-3">
@@ -114,16 +119,25 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }}
-                className="px-6 py-4 text-lg font-bold text-gray-700 hover:text-brand-green hover:bg-brand-green-light rounded-2xl transition-all"
+                className="px-6 py-4 text-lg font-bold text-gray-700 hover:text-green-700 hover:bg-green-50 rounded-2xl transition-all"
               >
                 {link.label}
               </a>
             ))}
             <div className="h-px bg-gray-100 my-2" />
+            
+            {/* Login Móvil */}
+            <Link href="/login">
+              <a className="px-6 py-4 text-lg font-bold text-center text-gray-600 border-2 border-gray-100 rounded-2xl">
+                Ya tengo cuenta
+              </a>
+            </Link>
+
+            {/* Registro Móvil */}
             <a
               href="#registro"
               onClick={(e) => { e.preventDefault(); handleNavClick("#registro"); }}
-              className="px-6 py-5 bg-brand-orange text-white font-black rounded-2xl text-center shadow-xl shadow-brand-orange/20 flex items-center justify-center gap-3"
+              className="px-6 py-5 bg-[#FFA832] text-white font-black rounded-2xl text-center shadow-xl shadow-amber-200 flex items-center justify-center gap-3"
             >
               Comenzar ahora
               <ArrowRight className="w-5 h-5" />

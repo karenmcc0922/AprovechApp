@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AppNavbar from "../components/AppNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, SlidersHorizontal, Gift, Store, X } from "lucide-react";
+import { Search, SlidersHorizontal, Gift, Store, X, Utensils } from "lucide-react";
 
 // --- DATOS DE PRUEBA (MOCK DATA) ---
 const PRODUCTOS_PRUEBA = [
   { id: 1, nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true },
-  { id: 2, nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://previews.123rf.com/images/olegdoroshin/olegdoroshin1703/olegdoroshin170300232/74045287-cardboard-box-with-freshly-baked-donuts-with-stuffing.jpg", esSorpresa: false },
+  { id: 2, nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false },
   { id: 3, nombre: "Combo Almuerzo Rescatado", tienda: "Restaurante Central", precioOriginal: 18000, precioOferta: 9000, descuento: 50, categoria: "Restaurantes", imagen: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500", esSorpresa: false },
   { id: 4, nombre: "Pack Frutas de Temporada", tienda: "Frubana", precioOriginal: 40000, precioOferta: 10000, descuento: 75, categoria: "Frutas", imagen: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500", esSorpresa: true },
 ];
@@ -26,6 +26,23 @@ export default function Catalog() {
   const [search, setSearch] = useState("");
   const [maxPrice, setMaxPrice] = useState<number>(50000);
   const [sortBy, setSortBy] = useState("discount");
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
+
+  // --- LÓGICA DE FILTRADO Y ORDENAMIENTO ---
+  const productosFiltrados = useMemo(() => {
+    return PRODUCTOS_PRUEBA.filter((prod) => {
+      const coincideNombre = prod.nombre.toLowerCase().includes(search.toLowerCase()) || 
+                             prod.tienda.toLowerCase().includes(search.toLowerCase());
+      const coincidePrecio = prod.precioOferta <= maxPrice;
+      const coincideCategoria = selectedCategory === "Todas" || prod.categoria === selectedCategory;
+      
+      return coincideNombre && coincidePrecio && coincideCategoria;
+    }).sort((a, b) => {
+      if (sortBy === "discount") return b.descuento - a.descuento;
+      if (sortBy === "price_asc") return a.precioOferta - b.precioOferta;
+      return 0;
+    });
+  }, [search, maxPrice, sortBy, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -35,7 +52,7 @@ export default function Catalog() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Explorar Ofertas 🥑</h1>
-          <p className="text-slate-500 font-medium">Pereira, Risaralda - Hay {PRODUCTOS_PRUEBA.length} ofertas esperándote</p>
+          <p className="text-slate-500 font-medium">Pereira, Risaralda - {productosFiltrados.length} oportunidades de rescate</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -54,8 +71,9 @@ export default function Catalog() {
                   <Slider 
                     value={[maxPrice]} 
                     onValueChange={([v]) => setMaxPrice(v)} 
-                    max={100000} 
+                    max={50000} 
                     step={1000} 
+                    className="cursor-pointer"
                   />
                 </div>
 
@@ -65,7 +83,12 @@ export default function Catalog() {
                   {["Todas", "Panadería", "Restaurantes", "Postres", "Frutas"].map((cat) => (
                     <button 
                       key={cat} 
-                      className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors text-slate-600"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        selectedCategory === cat 
+                        ? "bg-green-50 text-green-700 border-l-4 border-green-600 pl-4" 
+                        : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       {cat}
                     </button>
@@ -82,8 +105,8 @@ export default function Catalog() {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input 
-                  placeholder="¿Qué quieres rescatar hoy?" 
-                  className="pl-12 pr-10 py-6 rounded-2xl border-none shadow-sm focus-visible:ring-green-500"
+                  placeholder="Busca comida o locales en Pereira..." 
+                  className="pl-12 pr-10 py-6 rounded-2xl border-none shadow-sm focus-visible:ring-green-500 bg-white"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -97,7 +120,7 @@ export default function Catalog() {
                 )}
               </div>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[200px] py-6 rounded-2xl border-none shadow-sm bg-white">
+                <SelectTrigger className="w-full md:w-[200px] py-6 rounded-2xl border-none shadow-sm bg-white font-medium">
                   <SelectValue placeholder="Ordenar por" />
                 </SelectTrigger>
                 <SelectContent>
@@ -107,46 +130,70 @@ export default function Catalog() {
               </Select>
             </div>
 
-            {/* Listado */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {PRODUCTOS_PRUEBA.map((prod) => (
-                <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
-                  <div className="relative h-48 overflow-hidden">
-                    <img 
-                      src={prod.imagen} 
-                      alt={prod.nombre} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                    />
-                    <Badge className="absolute top-4 left-4 bg-green-600 text-white border-none px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                      -{prod.descuento}%
-                    </Badge>
-                    {prod.esSorpresa && (
-                      <div className="absolute top-4 right-4 bg-purple-500 p-2 rounded-full shadow-lg">
-                        <Gift className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
-                      <Store className="w-3 h-3" />
-                      {prod.tienda}
+            {/* Listado de Productos */}
+            {productosFiltrados.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                {productosFiltrados.map((prod) => (
+                  <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
+                    <div className="relative h-48 overflow-hidden">
+                      <img 
+                        src={prod.imagen} 
+                        alt={prod.nombre} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      />
+                      <Badge className="absolute top-4 left-4 bg-green-600 text-white border-none px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                        -{prod.descuento}%
+                      </Badge>
+                      {prod.esSorpresa && (
+                        <div className="absolute top-4 right-4 bg-amber-400 p-2 rounded-full shadow-lg">
+                          <Gift className="w-4 h-4 text-amber-900" />
+                        </div>
+                      )}
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 line-clamp-1">{prod.nombre}</h3>
                     
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-slate-400 text-xs line-through font-medium">${prod.precioOriginal.toLocaleString()}</p>
-                        <p className="text-2xl font-black text-green-700">${prod.precioOferta.toLocaleString()}</p>
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
+                        <Store className="w-3 h-3" />
+                        {prod.tienda}
                       </div>
-                      <Button className="bg-slate-900 hover:bg-green-700 text-white rounded-xl px-5 font-bold transition-colors">
-                        Rescatar
-                      </Button>
+                      <h3 className="text-lg font-bold text-slate-800 mb-4 line-clamp-1 group-hover:text-green-700 transition-colors">
+                        {prod.nombre}
+                      </h3>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-slate-400 text-xs line-through font-medium">
+                            ${prod.precioOriginal.toLocaleString()}
+                          </p>
+                          <p className="text-2xl font-black text-green-700">
+                            ${prod.precioOferta.toLocaleString()}
+                          </p>
+                        </div>
+                        <Button className="bg-slate-900 hover:bg-green-700 text-white rounded-xl px-5 font-bold transition-all active:scale-95 shadow-lg shadow-slate-200 cursor-pointer">
+                          Rescatar
+                        </Button>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              /* Estado Vacío */
+              <div className="text-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
+                <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Utensils className="w-8 h-8 text-slate-300" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-xl font-bold text-slate-800">No hay ofertas así...</h3>
+                <p className="text-slate-500">Prueba ajustando el precio o buscando otra categoría.</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => {setSearch(""); setMaxPrice(50000); setSelectedCategory("Todas");}}
+                  className="text-green-600 font-bold mt-2"
+                >
+                  Limpiar todos los filtros
+                </Button>
+              </div>
+            )}
           </main>
         </div>
       </div>

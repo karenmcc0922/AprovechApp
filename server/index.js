@@ -91,3 +91,30 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor de AprovechApp corriendo en el puerto ${PORT}`);
 });
+
+// --- RUTA DE LOGIN ---
+app.post('/api/login', (req, res) => {
+  const { correo, password } = req.body;
+
+  const sql = "SELECT * FROM usuarios WHERE correo = ? AND password = ?";
+  
+  pool.query(sql, [correo, password], (err, results) => {
+    if (err) {
+      console.error("❌ Error en el login:", err);
+      return res.status(500).json({ error: "Error en el servidor" });
+    }
+
+    if (results.length > 0) {
+      // Usuario encontrado y contraseña coincide
+      const usuario = results[0];
+      console.log(`🔑 Sesión iniciada: ${correo}`);
+      res.status(200).json({ 
+        mensaje: "Login exitoso", 
+        usuario: { nombre: usuario.nombre, correo: usuario.correo } 
+      });
+    } else {
+      // No coincide el correo o la contraseña
+      res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+  });
+});
