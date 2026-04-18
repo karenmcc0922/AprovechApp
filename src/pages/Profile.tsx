@@ -15,19 +15,12 @@ import {
   MapPin,
   Calendar,
   Bell,
-  LogOut,
-  ShieldCheck
+  ShieldCheck 
 } from "lucide-react";
 
 export default function Profile() {
-  // Datos del Usuario desde localStorage
   const userName = localStorage.getItem("user_name") || "Rescatista";
   const userEmail = localStorage.getItem("user_email") || "usuario@ejemplo.com";
-
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/";
-  };
 
   const historial = [
     { id: 1, local: "Pan del Sol", producto: "Bolsa Sorpresa Panadería", fecha: "Hoy, 4:30 PM", precio: 12000, estado: "Pendiente" },
@@ -37,15 +30,14 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Navbar específico de la app */}
       <AppNavbar />
 
-      {/* Contenido principal con padding superior para evitar que el navbar lo tape */}
-      <main className="flex-grow container mx-auto px-4 py-12 mt-4 max-w-6xl">
+      {/* pt-28 es la clave para que el contenido no quede detrás del navbar fixed */}
+      <main className="flex-grow container mx-auto px-4 pt-28 pb-12 max-w-6xl">
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* COLUMNA IZQUIERDA: PERFIL */}
+          {/* COLUMNA IZQUIERDA */}
           <div className="space-y-6">
             <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white">
               <CardContent className="p-8 text-center">
@@ -53,7 +45,7 @@ export default function Profile() {
                   <div className="w-full h-full bg-green-700 rounded-full flex items-center justify-center text-white text-5xl font-black shadow-inner">
                     {userName.charAt(0)}
                   </div>
-                  <div className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg">
+                  <div className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg border border-slate-100">
                     <ShieldCheck className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
@@ -65,65 +57,51 @@ export default function Profile() {
                   <MapPin className="w-4 h-4" /> Pereira, Risaralda
                 </div>
 
-                <div className="space-y-3">
-                  <Button className="w-full rounded-2xl py-6 font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border-none transition-all">
-                    <Settings className="w-4 h-4 mr-2" /> Editar Perfil
-                  </Button>
-                  <Button 
-                    onClick={handleLogout}
-                    variant="ghost" 
-                    className="w-full rounded-2xl py-6 font-bold text-red-500 hover:text-red-600 hover:bg-red-50 transition-all"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
-                  </Button>
-                </div>
+                <Button className="w-full rounded-2xl py-6 font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border-none transition-all">
+                  <Settings className="w-4 h-4 mr-2" /> Configurar Cuenta
+                </Button>
               </CardContent>
             </Card>
 
             <Card className="border-none shadow-xl bg-slate-900 rounded-[40px] text-white overflow-hidden">
               <CardContent className="p-8 flex flex-col items-center text-center">
-                <div className="bg-white p-4 rounded-[32px] mb-6 shadow-2xl shadow-white/10">
+                <div className="bg-white p-4 rounded-[32px] mb-6">
                   <QrCode className="w-32 h-32 text-slate-900" />
                 </div>
-                <h3 className="font-bold text-lg mb-2">Tu ID de Rescate</h3>
-                <p className="text-slate-400 text-xs px-4 leading-relaxed">
-                  Muestra este código en el local para confirmar la entrega de tu pedido.
+                <h3 className="font-bold text-lg mb-2 text-white">Tu ID de Rescate</h3>
+                <p className="text-slate-400 text-xs px-4">
+                  Muestra este código en tienda para reclamar tus productos.
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* COLUMNA DERECHA: DASHBOARD */}
+          {/* COLUMNA DERECHA */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* GAMIFICACIÓN */}
             <Card className="border-none shadow-md rounded-[40px] bg-gradient-to-br from-green-600 to-emerald-800 text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
               <CardContent className="p-8 relative z-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="flex-1 space-y-4 w-full">
-                    <Badge className="bg-white/20 text-white border-none px-3 py-1 font-bold">NIVEL 4: RESCATISTA ELITE</Badge>
-                    <h2 className="text-3xl font-black tracking-tight">¡Estás salvando el planeta! 🌍</h2>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-black uppercase tracking-widest opacity-80">
-                        <span>Progreo de Nivel</span>
-                        <span>750 / 1000 pts</span>
-                      </div>
-                      <Progress value={75} className="h-3 bg-white/20 shadow-none" />
+                <div className="space-y-4">
+                  <Badge className="bg-white/20 text-white border-none px-3 py-1 font-bold">NIVEL 4: ELITE</Badge>
+                  <h2 className="text-3xl font-black tracking-tight">¡Impacto Positivo! 🌍</h2>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-black uppercase opacity-80">
+                      <span>Progreso de Nivel</span>
+                      <span>750 / 1000 pts</span>
                     </div>
+                    <Progress value={75} className="h-3 bg-white/20 shadow-none" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
                 { label: "Comida Salvada", value: "8.2 kg", icon: BadgeCheck, color: "text-green-600", bg: "bg-green-100" },
                 { label: "Dinero Ahorrado", value: "$125k", icon: TrendingDown, color: "text-blue-600", bg: "bg-blue-100" },
                 { label: "CO2 Evitado", value: "24.5 kg", icon: Leaf, color: "text-emerald-600", bg: "bg-emerald-100" },
               ].map((stat, i) => (
-                <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:translate-y-[-4px] transition-transform duration-300">
+                <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                   <div className={`${stat.bg} w-12 h-12 rounded-2xl flex items-center justify-center mb-4`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
@@ -133,17 +111,13 @@ export default function Profile() {
               ))}
             </div>
 
-            {/* HISTORIAL */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                  <History className="w-6 h-6 text-green-600" /> Historial de Rescates
-                </h3>
-              </div>
-
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2 px-2">
+                <History className="w-6 h-6 text-green-600" /> Rescates Recientes
+              </h3>
               <div className="space-y-4">
                 {historial.map((item) => (
-                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all group border-l-4 border-l-transparent hover:border-l-green-600">
+                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between hover:border-green-200 transition-all group">
                     <div className="flex items-center gap-4">
                       <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-green-50 transition-colors">
                         <Calendar className="w-6 h-6 text-slate-400 group-hover:text-green-600" />
@@ -155,9 +129,7 @@ export default function Profile() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black text-slate-900">${item.precio.toLocaleString()}</p>
-                      <Badge variant="secondary" className={`border-none rounded-lg ${
-                        item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-                      }`}>
+                      <Badge className={item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700 border-none'}>
                         {item.estado}
                       </Badge>
                     </div>
