@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Lock, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Lock, Mail, Eye, EyeOff, Loader2, User, Store } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -10,6 +10,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // NUEVO: Estado para el tipo de usuario
+  const [role, setRole] = useState<"user" | "vendor">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,15 +22,21 @@ export default function Login() {
       const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo: email, password }),
+        body: JSON.stringify({ correo: email, password, role }), // Enviamos el rol al backend si es necesario
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Guardar nombre del usuario para mostrarlo en el catálogo
         localStorage.setItem("user_name", data.usuario.nombre);
-        setLocation("/catalog");
+        localStorage.setItem("user_role", role); // Guardamos el rol para futuras validaciones
+
+        // REDIRECCIÓN INTELIGENTE
+        if (role === "vendor") {
+          setLocation("/aliado"); // Página que crearemos después
+        } else {
+          setLocation("/catalog");
+        }
       } else {
         alert(data.error || "Error al iniciar sesión");
       }
@@ -45,18 +54,39 @@ export default function Login() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
             Aprovech<span className="text-[#FFA832]">App</span>
           </h1>
-          <p className="text-slate-500 font-medium mt-2">¡Qué bueno verte de nuevo! 🥑</p>
+          <p className="text-slate-500 font-medium mt-2">Bienvenido a la revolución del rescate 🥑</p>
         </div>
 
         <Card className="border-none shadow-2xl rounded-[32px] overflow-hidden bg-white">
           <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-2xl font-bold text-slate-800">Iniciar Sesión</CardTitle>
+            <CardTitle className="text-2xl font-bold text-slate-800 text-center">Iniciar Sesión</CardTitle>
           </CardHeader>
 
           <CardContent className="p-8">
+            {/* SELECTOR DE ROL ESTILO TOGGLE */}
+            <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-8">
+              <button
+                type="button"
+                onClick={() => setRole("user")}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+                  role === "user" ? "bg-white shadow-sm text-green-700" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <User size={18} /> Rescatista
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("vendor")}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+                  role === "vendor" ? "bg-white shadow-sm text-green-700" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Store size={18} /> Comercio
+              </button>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
-                {/* Correo */}
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
                   <input
@@ -69,7 +99,6 @@ export default function Login() {
                   />
                 </div>
 
-                {/* Contraseña */}
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
                   <input
@@ -95,11 +124,11 @@ export default function Login() {
                 disabled={loading}
                 className="w-full py-7 rounded-2xl bg-slate-900 hover:bg-green-700 text-white text-lg font-black transition-all shadow-xl border-none cursor-pointer"
               >
-                {loading ? <Loader2 className="animate-spin" /> : "Entrar a mi cuenta 🚀"}
+                {loading ? <Loader2 className="animate-spin" /> : `Entrar como ${role === 'user' ? 'Rescatista' : 'Comercio'} 🚀`}
               </Button>
 
               <p className="text-center text-sm text-slate-500 font-medium mt-4">
-                ¿No tienes cuenta?{" "}
+                ¿Aún no te has unido?{" "}
                 <Link href="/" className="text-green-600 font-bold hover:underline cursor-pointer">
                   Regístrate aquí
                 </Link>

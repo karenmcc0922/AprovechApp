@@ -4,6 +4,8 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Catalog from "./pages/Catalog";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import RegistroAliado from "./pages/RegistroAliado";
+import Aliado from "./pages/Aliado";
 
 function App() {
   return (
@@ -11,19 +13,19 @@ function App() {
       {/* 1. Landing Page */}
       <Route path="/" component={Home} />
       
-      {/* 2. Login */}
+      {/* 2. Login Centralizado */}
       <Route path="/login" component={Login} />
       
-      {/* 3. Registro Final */}
+      {/* 3. Flujo Comercio (Aliado) */}
+      <Route path="/registro-aliado" component={RegistroAliado} />
+      <Route path="/aliado" component={Aliado} />
+      
+      {/* 4. Flujo Usuario (Rescatista) */}
       <Route path="/completar-perfil" component={CompleteProfile} />
-      
-      {/* 4. Catálogo Principal */}
       <Route path="/catalog" component={Catalog} />
-
-      {/* 5. Perfil de Usuario y Dashboard */}
       <Route path="/perfil" component={Profile} />
-      
-      {/* 6. Error 404 */}
+
+      {/* 5. Error 404 */}
       <Route>
         <div className="flex flex-col items-center justify-center min-h-screen font-bold text-slate-400 gap-4 bg-slate-50">
           <span className="text-6xl animate-bounce">🥑</span>
