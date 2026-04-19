@@ -10,8 +10,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // NUEVO: Estado para el tipo de usuario
   const [role, setRole] = useState<"user" | "vendor">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,18 +20,24 @@ export default function Login() {
       const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo: email, password, role }), // Enviamos el rol al backend si es necesario
+        body: JSON.stringify({ correo: email, password, role }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        // GUARDAMOS DATOS ESCENCIALES
         localStorage.setItem("user_name", data.usuario.nombre);
-        localStorage.setItem("user_role", role); // Guardamos el rol para futuras validaciones
+        localStorage.setItem("user_role", role);
+        
+        // CORRECCIÓN: Guardamos el ID específico del usuario/aliado
+        if (data.usuario.id) {
+          localStorage.setItem("aliado_id", data.usuario.id.toString());
+        }
 
         // REDIRECCIÓN INTELIGENTE
         if (role === "vendor") {
-          setLocation("/aliado"); // Página que crearemos después
+          setLocation("/aliado");
         } else {
           setLocation("/catalog");
         }
@@ -63,7 +67,6 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="p-8">
-            {/* SELECTOR DE ROL ESTILO TOGGLE */}
             <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-8">
               <button
                 type="button"

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Plus, Package, Trash2, Tag, Loader2 } from "lucide-react";
 
 export default function Aliado() {
-  const aliadoId = localStorage.getItem("aliado_id");
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState([]);
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -17,34 +16,62 @@ export default function Aliado() {
     descripcion: "Pack sorpresa de productos frescos"
   });
 
-  // 1. Cargar productos del aliado
+  // 1. CARGAR PRODUCTOS DEL ALIADO
   const cargarProductos = async () => {
+    const aliadoId = localStorage.getItem("aliado_id");
+    if (!aliadoId) return;
+
     try {
       const res = await fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`);
-      const data = await res.json();
-      setProductos(data);
+      if (res.ok) {
+        const data = await res.json();
+        setProductos(data);
+      }
     } catch (error) {
-      console.error("Error cargando productos");
+      console.error("Error cargando productos:", error);
     }
   };
 
-  useEffect(() => { if (aliadoId) cargarProductos(); }, []);
+  useEffect(() => {
+    cargarProductos();
+  }, []);
 
-  // 2. Manejar publicación
+  // 2. MANEJAR PUBLICACIÓN
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const aliadoId = localStorage.getItem("aliado_id");
+
+    if (!aliadoId) {
+      alert("Sesión expirada. Por favor inicia sesión de nuevo.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("https://aprovechapp-api.onrender.com/api/productos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...nuevoProducto, aliado_id: aliadoId })
+        body: JSON.stringify({ 
+          ...nuevoProducto, 
+          aliado_id: parseInt(aliadoId) // Aseguramos que sea número
+        })
       });
+
       if (res.ok) {
-        alert("¡Producto publicado!");
-        setNuevoProducto({ nombre: "", precio_original: "", precio_rescate: "", stock: "", descripcion: "Pack sorpresa" });
-        cargarProductos(); // Recargamos la lista
+        alert("¡Producto publicado con éxito! 🚀");
+        setNuevoProducto({ 
+          nombre: "", 
+          precio_original: "", 
+          precio_rescate: "", 
+          stock: "", 
+          descripcion: "Pack sorpresa de productos frescos" 
+        });
+        cargarProductos(); // Recargamos la lista automáticamente
+      } else {
+        alert("Hubo un error al publicar.");
       }
+    } catch (error) {
+      alert("Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -89,7 +116,7 @@ export default function Aliado() {
                   onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})}
                   required 
                 />
-                <Button disabled={loading} className="w-full bg-green-700 py-6 rounded-2xl font-black uppercase tracking-tighter">
+                <Button disabled={loading} className="w-full bg-green-700 py-6 rounded-2xl font-black uppercase tracking-tighter hover:bg-green-800 transition-colors">
                   {loading ? <Loader2 className="animate-spin" /> : "Subir a Catálogo 🚀"}
                 </Button>
               </form>
@@ -101,13 +128,14 @@ export default function Aliado() {
             <h2 className="text-2xl font-black flex items-center gap-2 mb-6">
               <Package className="text-slate-400" /> Tu Inventario Activo
             </h2>
+            
             {productos.length === 0 ? (
               <div className="bg-white rounded-[32px] p-12 text-center border-2 border-dashed border-slate-200">
                 <p className="text-slate-400 font-bold">No tienes productos publicados todavía.</p>
               </div>
             ) : (
               productos.map((prod: any) => (
-                <div key={prod.id} className="bg-white p-6 rounded-[24px] shadow-sm flex items-center justify-between border border-slate-100">
+                <div key={prod.id} className="bg-white p-6 rounded-[24px] shadow-sm flex items-center justify-between border border-slate-100 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
                     <div className="bg-green-50 p-3 rounded-2xl">
                       <Tag className="text-green-600 w-6 h-6" />
