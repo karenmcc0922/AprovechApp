@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import RegistroAliado from "./pages/RegistroAliado";
 import Aliado from "./pages/Aliado";
+import PerfilAliado from "./pages/PerfilAliado"; // <--- Importamos el nuevo componente
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       {/* 3. Flujo Comercio (Aliado) */}
       <Route path="/registro-aliado" component={RegistroAliado} />
       <Route path="/aliado" component={Aliado} />
+      <Route path="/perfil-aliado" component={PerfilAliado} /> {/* <--- Ruta conectada con la Navbar */}
       
       {/* 4. Flujo Usuario (Rescatista) */}
       <Route path="/completar-perfil" component={CompleteProfile} />
