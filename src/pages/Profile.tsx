@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import AppNavbar from "../components/AppNavbar";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -18,82 +19,82 @@ import {
 export default function Profile() {
   const userName = localStorage.getItem("user_name") || "Rescatista";
   const userEmail = localStorage.getItem("user_email") || "usuario@ejemplo.com";
+  const [historial, setHistorial] = useState<any[]>([]);
 
-  const historial = [
-    { id: 1, local: "Pan del Sol", producto: "Bolsa Sorpresa Panadería", fecha: "Hoy, 4:30 PM", precio: 12000, estado: "Pendiente" },
-    { id: 2, local: "Frubana", producto: "Pack Frutas de Temporada", fecha: "15 Oct 2023", precio: 10000, estado: "Completado" },
-    { id: 3, local: "Dunkin Local", producto: "Caja de Donas x6", fecha: "10 Oct 2023", precio: 15000, estado: "Completado" },
-  ];
+  useEffect(() => {
+    const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
+    if (guardados.length === 0) {
+      setHistorial([
+        { id: 1, local: "Pan del Sol", producto: "Bolsa Sorpresa", fecha: "Ayer", precio: 12000, estado: "Completado" }
+      ]);
+    } else {
+      setHistorial(guardados);
+    }
+  }, []);
+
+  const totalGastado = historial.reduce((acc, curr) => acc + curr.precio, 0);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <AppNavbar />
       <main className="flex-grow container mx-auto px-4 pt-28 pb-12 max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Columna Usuario */}
+          
           <div className="space-y-6">
-            <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white">
-              <CardContent className="p-8 text-center">
-                <div className="relative w-32 h-32 mx-auto mb-6">
-                  <div className="w-full h-full bg-green-700 rounded-full flex items-center justify-center text-white text-5xl font-black shadow-inner">
-                    {userName.charAt(0)}
-                  </div>
-                  <div className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg border border-slate-100">
-                    <ShieldCheck className="w-6 h-6 text-green-600" />
-                  </div>
+            <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white p-8 text-center">
+              <div className="relative w-32 h-32 mx-auto mb-6">
+                <div className="w-full h-full bg-slate-900 rounded-[32px] flex items-center justify-center text-white text-5xl font-black rotate-3 shadow-xl">
+                  <span className="-rotate-3">{userName.charAt(0)}</span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 leading-tight">{userName}</h2>
-                <p className="text-slate-500 font-medium mb-6 truncate">{userEmail}</p>
-                <div className="flex items-center justify-center gap-2 text-slate-400 text-sm font-bold mb-8">
-                  <MapPin className="w-4 h-4" /> Pereira, Risaralda
+                <div className="absolute -bottom-2 -right-2 bg-green-500 p-2 rounded-2xl shadow-lg border-4 border-white">
+                  <ShieldCheck className="w-6 h-6 text-white" />
                 </div>
-                <Button className="w-full rounded-2xl py-6 font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border-none transition-all">
-                  <Settings className="w-4 h-4 mr-2" /> Configurar Cuenta
-                </Button>
-              </CardContent>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{userName}</h2>
+              <p className="text-slate-400 font-medium mb-6 text-sm">{userEmail}</p>
+              <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">
+                <MapPin className="w-4 h-4 text-green-600" /> Pereira, Risaralda
+              </div>
+              <Button variant="outline" className="w-full rounded-2xl py-6 font-black border-slate-100 text-slate-500">
+                <Settings className="w-4 h-4 mr-2" /> Ajustes
+              </Button>
             </Card>
 
-            <Card className="border-none shadow-xl bg-slate-900 rounded-[40px] text-white overflow-hidden">
-              <CardContent className="p-8 flex flex-col items-center text-center">
-                <div className="bg-white p-4 rounded-[32px] mb-6">
-                  <QrCode className="w-32 h-32 text-slate-900" />
-                </div>
-                <h3 className="font-bold text-lg mb-2">Tu ID de Rescate</h3>
-                <p className="text-slate-400 text-xs px-4">Muestra este código en tienda para reclamar.</p>
-              </CardContent>
+            <Card className="border-none shadow-2xl bg-green-700 rounded-[40px] text-white p-8 flex flex-col items-center text-center group">
+              <div className="bg-white p-4 rounded-[32px] mb-6 shadow-xl group-hover:scale-105 transition-transform">
+                <QrCode className="w-24 h-24 text-slate-900" />
+              </div>
+              <h3 className="font-black text-lg">TU ID DE RESCATE</h3>
+              <p className="text-green-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">Escanea en el local</p>
             </Card>
           </div>
 
-          {/* Columna Datos */}
           <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-md rounded-[40px] bg-gradient-to-br from-green-600 to-emerald-800 text-white overflow-hidden">
-              <CardContent className="p-8 relative z-10">
-                <div className="space-y-4">
-                  <Badge className="bg-white/20 text-white border-none px-3 py-1 font-bold">NIVEL 4: ELITE</Badge>
-                  <h2 className="text-3xl font-black tracking-tight">¡Impacto Positivo! 🌍</h2>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs font-black uppercase opacity-80">
-                      <span>Progreso</span>
-                      <span>750 / 1000 pts</span>
-                    </div>
-                    <Progress value={75} className="h-3 bg-white/20 shadow-none" />
-                  </div>
+            <Card className="border-none shadow-md rounded-[40px] bg-white p-10">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="space-y-2 text-center md:text-left">
+                  <Badge className="bg-green-100 text-green-700 border-none px-3 py-1 font-black text-[10px]">NIVEL 4: ELITE</Badge>
+                  <h2 className="text-3xl font-black text-slate-900">Héroe de la Comida 🌍</h2>
                 </div>
-              </CardContent>
+                <div className="w-full md:w-64 space-y-2 text-right">
+                  <Progress value={75} className="h-3 bg-slate-100" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">750 / 1000 Puntos XP</p>
+                </div>
+              </div>
             </Card>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
-                { label: "Comida Salvada", value: "8.2 kg", icon: BadgeCheck, color: "text-green-600", bg: "bg-green-100" },
-                { label: "Dinero Ahorrado", value: "$125k", icon: TrendingDown, color: "text-blue-600", bg: "bg-blue-100" },
-                { label: "CO2 Evitado", value: "24.5 kg", icon: Leaf, color: "text-emerald-600", bg: "bg-emerald-100" },
+                { label: "Packs Salvados", value: `${historial.length}`, icon: BadgeCheck, color: "text-green-600", bg: "bg-green-100" },
+                { label: "Ahorro Estimado", value: `$${(totalGastado * 1.5).toLocaleString()}`, icon: TrendingDown, color: "text-blue-600", bg: "bg-blue-100" },
+                { label: "CO2 Reducido", value: `${(historial.length * 2.5).toFixed(1)} kg`, icon: Leaf, color: "text-emerald-600", bg: "bg-emerald-100" },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                   <div className={`${stat.bg} w-12 h-12 rounded-2xl flex items-center justify-center mb-4`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                  <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</p>
                 </div>
               ))}
             </div>
@@ -104,19 +105,19 @@ export default function Profile() {
               </h3>
               <div className="space-y-4">
                 {historial.map((item) => (
-                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between hover:border-green-200 transition-all">
+                  <div key={item.id} className="bg-white p-6 rounded-[32px] border border-slate-50 flex items-center justify-between group hover:border-green-200 transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="bg-slate-50 p-4 rounded-2xl">
-                        <Calendar className="w-6 h-6 text-slate-400" />
+                      <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-green-50">
+                        <Calendar className="w-6 h-6 text-slate-400 group-hover:text-green-600" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-slate-900">{item.producto}</h4>
-                        <p className="text-sm text-slate-500">{item.local} • {item.fecha}</p>
+                        <h4 className="font-black text-slate-800 uppercase text-sm">{item.producto}</h4>
+                        <p className="text-xs font-bold text-slate-400">{item.local} • {item.fecha}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black text-slate-900">${item.precio.toLocaleString()}</p>
-                      <Badge className={item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}>
+                      <Badge className={`rounded-lg font-black text-[10px] uppercase ${item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
                         {item.estado}
                       </Badge>
                     </div>
