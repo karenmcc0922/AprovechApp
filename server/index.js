@@ -27,65 +27,40 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
-// --- RUTA 3: REGISTRO DE ALIADOS (CORREGIDA) ---
+// --- REGISTRO DE ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
-
-  // CORRECCIÓN: Usamos 'password_hash' que es como aparece en tu imagen
-  const sql = `
-    INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) 
-    VALUES (?, ?, ?, ?, ?)
-  `;
-  
+  const sql = `INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) VALUES (?, ?, ?, ?, ?)`;
   const values = [nombre_local, nit, correo, direccion, password];
 
   pool.query(sql, values, (err, result) => {
     if (err) {
-      console.error("❌ Error al registrar aliado:", err);
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ error: "El NIT o el correo ya están registrados." });
-      }
-      return res.status(500).json({ error: "Error en la base de datos: " + err.sqlMessage });
+      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: "NIT o correo ya registrados." });
+      return res.status(500).json({ error: err.sqlMessage });
     }
-    
-    res.status(201).json({ 
-      mensaje: "Comercio registrado con éxito.",
-      aliado: { id: result.insertId, nombre_local } 
-    });
+    res.status(201).json({ mensaje: "Éxito", aliado: { id: result.insertId, nombre_local } });
   });
 });
 
-// --- RUTA LOGIN (ÚNICA Y CORREGIDA) ---
+// --- LOGIN MULTI-ROL ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
-
   if (role === 'vendor') {
-    // CORRECCIÓN: Buscamos en 'password_hash'
     const sql = "SELECT * FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({ error: "Error en el servidor" });
-      
+      if (err) return res.status(500).json({ error: "Error servidor" });
       if (results.length > 0) {
-        const aliado = results[0];
-        res.status(200).json({ 
-          mensaje: "Login exitoso", 
-          usuario: { id: aliado.id, nombre: aliado.nombre_local, role: 'vendor' } 
-        });
+        res.status(200).json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre_local, role: 'vendor' } });
       } else {
-        res.status(401).json({ error: "Credenciales de comercio incorrectas" });
+        res.status(401).json({ error: "Credenciales incorrectas" });
       }
     });
   } else {
     const sql = "SELECT * FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({ error: "Error en el servidor" });
-      
+      if (err) return res.status(500).json({ error: "Error" });
       if (results.length > 0) {
-        const usuario = results[0];
-        res.status(200).json({ 
-          mensaje: "Login exitoso", 
-          usuario: { nombre: usuario.nombre, correo: usuario.correo, role: 'user' } 
-        });
+        res.status(200).json({ mensaje: "OK", usuario: { nombre: results[0].nombre, correo: results[0].correo, role: 'user' } });
       } else {
         res.status(401).json({ error: "Credenciales incorrectas" });
       }
@@ -93,7 +68,7 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// Rutas de productos (Se mantienen igual ya que parecen correctas)
+// --- GESTIÓN DE PRODUCTOS (DASHBOARD) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock } = req.body;
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock) VALUES (?, ?, ?, ?, ?)";
@@ -112,22 +87,31 @@ app.get('/api/mis-productos/:aliado_id', (req, res) => {
   });
 });
 
-// OBTENER PERFIL DEL ALIADO
+// --- CATÁLOGO PÚBLICO (NUEVO: Importante para el cliente) ---
+app.get('/api/productos-todos', (req, res) => {
+  const sql = `
+    SELECT p.*, a.nombre_local, a.direccion 
+    FROM productos_rescate p 
+    JOIN aliados a ON p.aliado_id = a.id 
+    WHERE p.stock > 0 
+    ORDER BY p.id DESC
+  `;
+  pool.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: "Error al cargar catálogo" });
+    res.status(200).json(results);
+  });
+});
+
+// --- PERFIL ALIADO ---
 app.get('/api/perfil-aliado/:id', (req, res) => {
-  const { id } = req.params;
   const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
-  
-  pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error al obtener perfil" });
-    if (results.length > 0) {
-      res.status(200).json(results[0]);
-    } else {
-      res.status(404).json({ error: "Aliado no encontrado" });
-    }
+  pool.query(sql, [req.params.id], (err, results) => {
+    if (err) return res.status(500).json({ error: "Error" });
+    res.status(results.length > 0 ? 200 : 404).json(results[0] || { error: "No existe" });
   });
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
+  console.log(`🚀 Servidor en puerto ${PORT}`);
 });

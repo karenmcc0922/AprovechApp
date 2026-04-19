@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import RegistroAliado from "./pages/RegistroAliado";
 import Aliado from "./pages/Aliado";
-import PerfilAliado from "./pages/PerfilAliado"; // <--- Importamos el nuevo componente
+import PerfilAliado from "./pages/PerfilAliado"; 
 
 function App() {
   return (
