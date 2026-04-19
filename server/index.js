@@ -112,6 +112,21 @@ app.get('/api/mis-productos/:aliado_id', (req, res) => {
   });
 });
 
+// OBTENER PERFIL DEL ALIADO
+app.get('/api/perfil-aliado/:id', (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
+  
+  pool.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json({ error: "Error al obtener perfil" });
+    if (results.length > 0) {
+      res.status(200).json(results[0]);
+    } else {
+      res.status(404).json({ error: "Aliado no encontrado" });
+    }
+  });
+});
+
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
