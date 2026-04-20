@@ -31,9 +31,9 @@ import {
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
+// Productos de ejemplo por si la DB está vacía
 const PRODUCTOS_PRUEBA = [
-  { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12", stock: 4, aliado_id: 999 },
-  { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05", stock: 2, aliado_id: 998 },
+  { id: "mock-1", idReal: 0, nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12", stock: 4, aliado_id: 1 },
 ];
 
 export default function Catalog() {
@@ -81,7 +81,7 @@ export default function Catalog() {
       esSorpresa: false,
       direccion: p.direccion || "Dirección no disponible",
       stock: p.stock,
-      aliado_id: p.aliado_id // IMPORTANTE: Para que el aliado lo reconozca
+      aliado_id: p.aliado_id
     }));
 
     const todos = [...dbNormalizados, ...PRODUCTOS_PRUEBA];
@@ -105,23 +105,22 @@ export default function Catalog() {
     setIsModalOpen(true);
   };
 
-  // Dentro de Catalog.tsx, reemplazar la función confirmarRescate:
-
-const confirmarRescate = async () => {
+  const confirmarRescate = async () => {
     if (!selectedProduct) return;
     setIsProcessing(true);
     
-    const user = JSON.parse(localStorage.getItem("usuario") || "{}");
+    // Obtenemos el usuario del localStorage
+    const userStr = localStorage.getItem("usuario");
+    const user = userStr ? JSON.parse(userStr) : null;
     
-    // Si no hay ID de usuario, no podemos crear el pedido en BD
-    if (!user.id) {
-        alert("Debes iniciar sesión nuevamente.");
+    // VALIDACIÓN CRÍTICA: Si no hay ID, no puede comprar
+    if (!user || !user.id) {
+        alert("Tu sesión no es válida o ha expirado. Por favor, cierra sesión e ingresa de nuevo.");
         setIsProcessing(false);
         return;
     }
 
     try {
-        // LLAMADA AL BACKEND PARA CREAR PEDIDO Y RESTAR STOCK
         const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -137,9 +136,12 @@ const confirmarRescate = async () => {
 
         const data = await response.json();
 
-        if (!response.ok) throw new Error(data.error || "Error al crear pedido");
+        if (!response.ok) throw new Error(data.error || "Error al procesar el rescate");
 
-        // Guardar copia local para historial rápido
+        // Actualizamos el producto seleccionado con el código QR generado por el servidor
+        setSelectedProduct({ ...selectedProduct, codigoGenerado: data.codigo });
+
+        // Guardar en historial local para persistencia rápida
         const nuevoRescateLocal = {
             id: data.pedidoId,
             codigo: data.codigo,
@@ -154,25 +156,26 @@ const confirmarRescate = async () => {
         localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescateLocal, ...historial]));
 
         setStep("success");
-        fetchProductos(); // Recargar stock en la UI
+        fetchProductos(); // Refrescar stock en la lista
     } catch (error: any) {
         alert(error.message);
         setIsModalOpen(false);
     } finally {
         setIsProcessing(false);
     }
-};
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AppNavbar /> 
       <div className="container mx-auto px-4 py-8 pt-24 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight text-center md:text-left">Explorar Ofertas 🥑</h1>
-          <p className="text-slate-500 font-medium text-center md:text-left">Pereira - {productosFinales.length} oportunidades de rescate</p>
+        <div className="mb-8 text-center md:text-left">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Explorar Ofertas 🥑</h1>
+          <p className="text-slate-500 font-medium">Pereira - {productosFinales.length} productos disponibles</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar de Filtros */}
           <aside className="w-full lg:w-64 space-y-8 bg-white p-6 rounded-[24px] shadow-sm h-fit border border-slate-100">
             <div className="flex items-center gap-2 mb-4 text-slate-900 font-bold">
               <SlidersHorizontal className="w-4 h-4 text-green-600" /> Filtros
@@ -185,7 +188,11 @@ const confirmarRescate = async () => {
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-slate-400">Categorías</Label>
                 {["Todas", "Panadería", "Restaurantes", "Postres", "Frutas"].map((cat) => (
-                  <button key={cat} onClick={() => setSelectedCategory(cat)} className={`block w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat ? "bg-green-50 text-green-700" : "text-slate-500 hover:bg-slate-50"}`}>
+                  <button 
+                    key={cat} 
+                    onClick={() => setSelectedCategory(cat)} 
+                    className={`block w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat ? "bg-green-50 text-green-700" : "text-slate-500 hover:bg-slate-50"}`}
+                  >
                     {cat}
                   </button>
                 ))}
@@ -193,11 +200,17 @@ const confirmarRescate = async () => {
             </div>
           </aside>
 
+          {/* Listado Principal */}
           <main className="flex-1">
             <div className="flex flex-col md:flex-row gap-4 mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input placeholder="Busca comida..." className="pl-12 py-7 rounded-2xl border-none shadow-sm bg-white font-medium" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input 
+                  placeholder="Busca comida o locales..." 
+                  className="pl-12 py-7 rounded-2xl border-none shadow-sm bg-white font-medium" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
               </div>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full md:w-[200px] py-7 rounded-2xl border-none shadow-sm bg-white font-bold">
@@ -214,7 +227,7 @@ const confirmarRescate = async () => {
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-green-600 w-10 h-10" /></div>
             ) : productosFinales.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-slate-200">
-                  <p className="font-bold text-slate-400">No hay productos disponibles por ahora.</p>
+                  <p className="font-bold text-slate-400">No hay rescates disponibles con estos filtros.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -246,7 +259,7 @@ const confirmarRescate = async () => {
                           <div className="flex items-center gap-1 mt-1">
                             <Package2 className={`w-3 h-3 ${prod.stock <= 2 ? 'text-red-500' : 'text-orange-500'}`} />
                             <span className={`text-[10px] font-black uppercase ${prod.stock <= 2 ? 'text-red-500' : 'text-orange-500'}`}>
-                              {prod.stock} disponibles
+                              {prod.stock} unidades
                             </span>
                           </div>
                         </div>
@@ -263,6 +276,7 @@ const confirmarRescate = async () => {
         </div>
       </div>
 
+      {/* Modal de Confirmación y Éxito */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[40px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           {step === "confirm" ? (
@@ -270,16 +284,16 @@ const confirmarRescate = async () => {
               <DialogHeader className="mb-6 text-left">
                 <DialogTitle className="text-2xl font-black">Confirmar Rescate</DialogTitle>
                 <DialogDescription className="font-medium text-slate-500">
-                    El pago se realiza directamente en el local al retirar.
+                    Pagarás al retirar en el local.
                 </DialogDescription>
               </DialogHeader>
               <div className="bg-slate-50 p-6 rounded-[28px] mb-8 space-y-3">
                 <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Local:</span><span className="font-black text-slate-900 uppercase">{selectedProduct?.tienda}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Unidades:</span><span className="font-black text-slate-900">1 unidad</span></div>
-                <div className="flex justify-between text-sm border-t border-slate-200 pt-3"><span className="text-slate-400 font-bold">Total a pagar:</span><span className="text-green-700 font-black text-lg">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Producto:</span><span className="font-black text-slate-900 uppercase">{selectedProduct?.nombre}</span></div>
+                <div className="flex justify-between text-sm border-t border-slate-200 pt-3"><span className="text-slate-400 font-bold">Total:</span><span className="text-green-700 font-black text-lg">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
               </div>
               <Button onClick={confirmarRescate} disabled={isProcessing} className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all">
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "¡Confirmar! 🥑"}
+                  {isProcessing ? <Loader2 className="animate-spin" /> : "¡Rescatar Ahora! 🥑"}
               </Button>
             </div>
           ) : (
@@ -287,16 +301,16 @@ const confirmarRescate = async () => {
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
-              <h2 className="text-3xl font-black mb-2 tracking-tight">¡Éxito!</h2>
-              <p className="text-slate-500 mb-8 text-sm px-4">Presenta este código al llegar a <b>{selectedProduct?.tienda}</b></p>
+              <h2 className="text-3xl font-black mb-2 tracking-tight">¡RESERVADO!</h2>
+              <p className="text-slate-500 mb-8 text-sm px-4">Enseña este código en <b>{selectedProduct?.tienda}</b> para completar tu compra.</p>
               <div className="bg-slate-900 p-8 rounded-[32px] mb-8 flex flex-col items-center shadow-xl">
                 <QrCode className="w-32 h-32 text-white mb-4" />
-                <p className="text-white font-mono font-bold tracking-widest uppercase text-sm">
-                    ID: {String(selectedProduct?.id || "").slice(-4)}
+                <p className="text-white font-mono font-black tracking-widest uppercase text-2xl">
+                    {selectedProduct?.codigoGenerado}
                 </p>
               </div>
               <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black hover:bg-slate-200">
-                  Cerrar y Volver
+                  Listo, volver al catálogo
               </Button>
             </div>
           )}
