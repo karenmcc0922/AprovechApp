@@ -35,7 +35,8 @@ app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
 
   if (role === 'vendor') {
-    const sql = "SELECT id, nombre_local, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
+    // Agregamos "AS nombre" para que el frontend reciba siempre la misma clave
+    const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
     pool.query(sql, [correo, password], (err, results) => {
       if (err) return res.status(500).json({ error: "Error en el servidor" });
       if (results.length > 0) {
@@ -43,7 +44,7 @@ app.post('/api/login', (req, res) => {
           mensaje: "OK", 
           usuario: { 
             id: results[0].id, 
-            nombre: results[0].nombre_local, 
+            nombre: results[0].nombre, // Ahora coincide
             role: 'vendor' 
           } 
         });
