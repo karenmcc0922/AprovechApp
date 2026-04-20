@@ -13,7 +13,7 @@ import {
   Gift, 
   CheckCircle2, 
   Plus
-} from "lucide-react";
+} from "lucide-react"; // Nota: Asegúrate que sea 'lucide-react'
 
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,8 @@ export default function Aliado() {
     precio_rescate: "",
     stock: "",
     descripcion: "Pack sorpresa de productos frescos",
-    esSorpresa: true
+    esSorpresa: true,
+    imagen_url: "" // Agregamos este campo al estado
   });
 
   const [descuentoManual, setDescuentoManual] = useState("");
@@ -38,8 +39,14 @@ export default function Aliado() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setNuevoProducto(prev => ({ ...prev, esSorpresa: false }));
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        // Actualizamos el estado para indicar que NO es sorpresa y guardar el Base64
+        setNuevoProducto(prev => ({ 
+          ...prev, 
+          esSorpresa: false, 
+          imagen_url: base64String 
+        }));
       };
       reader.readAsDataURL(file);
     }
@@ -47,9 +54,11 @@ export default function Aliado() {
 
   const removeImage = () => {
     setImagePreview(null);
-    if (!nuevoProducto.esSorpresa) {
-        setNuevoProducto(prev => ({ ...prev, esSorpresa: true }));
-    }
+    setNuevoProducto(prev => ({ 
+      ...prev, 
+      esSorpresa: true, 
+      imagen_url: "" 
+    }));
   };
 
   // --- LÓGICA DE PRECIOS ---
@@ -112,8 +121,8 @@ export default function Aliado() {
     setLoading(true);
 
     try {
-      // Si es sorpresa enviamos link, si no, el string Base64 de la foto
-      const imagenFinal = nuevoProducto.esSorpresa ? IMG_SORPRESA : (imagePreview || IMG_SORPRESA);
+      // Determinamos la imagen final
+      const imagenFinal = nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url;
 
       const payload = {
         aliado_id: parseInt(aliadoId),
@@ -134,7 +143,8 @@ export default function Aliado() {
         alert("¡Oferta publicada! 🚀");
         setNuevoProducto({ 
           nombre: "", precio_original: "", precio_rescate: "", 
-          stock: "", descripcion: "Pack sorpresa de productos frescos", esSorpresa: true 
+          stock: "", descripcion: "Pack sorpresa de productos frescos", 
+          esSorpresa: true, imagen_url: ""
         });
         setImagePreview(null);
         setDescuentoManual("");
@@ -177,7 +187,13 @@ export default function Aliado() {
               <CardContent className="p-8 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div 
-                    onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
+                    onClick={() => {
+                        if(nuevoProducto.esSorpresa && imagePreview) {
+                            setNuevoProducto({...nuevoProducto, esSorpresa: false});
+                        } else {
+                            setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa});
+                        }
+                    }}
                     className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-100"}`}
                   >
                     <div className="flex gap-3 items-center">
@@ -187,7 +203,7 @@ export default function Aliado() {
                       <div>
                         <p className="font-black text-sm text-slate-800">Pack Sorpresa</p>
                         <p className="text-[9px] font-bold text-slate-400 uppercase">
-                          {nuevoProducto.esSorpresa ? "Imagen de regalo" : "Imagen personalizada"}
+                          {nuevoProducto.esSorpresa ? "Imagen por defecto" : "Imagen real activa"}
                         </p>
                       </div>
                     </div>
@@ -200,14 +216,14 @@ export default function Aliado() {
                     <Label>Foto del Producto</Label>
                     <div className="relative">
                       {imagePreview ? (
-                        <div className="relative w-full h-44 rounded-[28px] overflow-hidden border-2 border-green-500">
+                        <div className="relative w-full h-44 rounded-[28px] overflow-hidden border-2 border-green-500 shadow-inner">
                           <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                          <button type="button" onClick={removeImage} className="absolute top-3 right-3 bg-red-500 text-white p-1.5 rounded-full shadow-lg">
+                          <button type="button" onClick={removeImage} className="absolute top-3 right-3 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
-                        <label className={`w-full h-36 border-2 border-dashed rounded-[28px] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all ${nuevoProducto.esSorpresa ? 'opacity-50 border-slate-200' : 'border-slate-300'}`}>
+                        <label className="w-full h-36 border-2 border-dashed rounded-[28px] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all border-slate-300">
                           <ImageIcon className="w-8 h-8 text-slate-300 mb-2" />
                           <span className="text-[10px] font-black text-slate-400 uppercase text-center px-4">
                             Subir foto real
@@ -275,7 +291,7 @@ export default function Aliado() {
                   <Card key={prod.id} className="border-none shadow-sm rounded-[32px] bg-white overflow-hidden p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-5">
-                        <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[20px] object-cover bg-slate-100 flex-shrink-0" alt="Producto" />
+                        <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[20px] object-cover bg-slate-100 flex-shrink-0 shadow-sm" alt="Producto" />
                         <div>
                           <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
                           <p className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-md inline-block mt-1">STOCK: {prod.stock}</p>
