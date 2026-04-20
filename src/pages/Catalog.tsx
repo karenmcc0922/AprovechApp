@@ -105,46 +105,63 @@ export default function Catalog() {
     setIsModalOpen(true);
   };
 
-  const confirmarRescate = async () => {
+  // Dentro de Catalog.tsx, reemplazar la función confirmarRescate:
+
+const confirmarRescate = async () => {
+    if (!selectedProduct) return;
     setIsProcessing(true);
-    // Obtenemos el usuario actual para "marcar" la reserva
+    
     const user = JSON.parse(localStorage.getItem("usuario") || "{}");
     
-    try {
-      if (selectedProduct.idReal && !selectedProduct.id.toString().startsWith('mock')) {
-        const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/restar-stock/${selectedProduct.idReal}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (!res.ok) throw new Error("Producto agotado");
-      }
-
-      const nuevoRescate = {
-        id: Date.now(),
-        usuario_correo: user.correo || "invitado", // Se queda grabado quién lo hizo
-        usuario_nombre: user.nombre || "Usuario Aprovecha",
-        aliado_id: selectedProduct.aliado_id, // Para que el panel de aliado lo filtre
-        productoId: selectedProduct.id,
-        local: selectedProduct.tienda,
-        producto: selectedProduct.nombre,
-        direccion: selectedProduct.direccion,
-        fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
-        precio: selectedProduct.precioOferta,
-        estado: "Pendiente"
-      };
-
-      const historialPrevio = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-      localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescate, ...historialPrevio]));
-      
-      setStep("success");
-      fetchProductos();
-    } catch (error) {
-      alert("Error al procesar el rescate.");
-      setIsModalOpen(false);
-    } finally {
-      setIsProcessing(false);
+    // Si no hay ID de usuario, no podemos crear el pedido en BD
+    if (!user.id) {
+        alert("Debes iniciar sesión nuevamente.");
+        setIsProcessing(false);
+        return;
     }
-  };
+
+    try {
+        // LLAMADA AL BACKEND PARA CREAR PEDIDO Y RESTAR STOCK
+        const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuario_id: user.id,
+                producto_id: selectedProduct.idReal,
+                aliado_id: selectedProduct.aliado_id,
+                nombre_usuario: user.nombre,
+                nombre_producto: selectedProduct.nombre,
+                precio_final: selectedProduct.precioOferta
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || "Error al crear pedido");
+
+        // Guardar copia local para historial rápido
+        const nuevoRescateLocal = {
+            id: data.pedidoId,
+            codigo: data.codigo,
+            local: selectedProduct.tienda,
+            producto: selectedProduct.nombre,
+            precio: selectedProduct.precioOferta,
+            estado: "Pendiente",
+            fecha: new Date().toLocaleDateString()
+        };
+        
+        const historial = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
+        localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescateLocal, ...historial]));
+
+        setStep("success");
+        fetchProductos(); // Recargar stock en la UI
+    } catch (error: any) {
+        alert(error.message);
+        setIsModalOpen(false);
+    } finally {
+        setIsProcessing(false);
+    }
+};
 
   return (
     <div className="min-h-screen bg-slate-50">
