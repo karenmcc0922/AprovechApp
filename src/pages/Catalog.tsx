@@ -24,13 +24,16 @@ import {
   SlidersHorizontal, 
   CheckCircle2, 
   QrCode,
-  Loader2
+  Loader2,
+  MapPin
 } from "lucide-react";
+
+// Imagen por defecto si el producto no tiene una
+const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
 const PRODUCTOS_PRUEBA = [
   { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12" },
   { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05" },
-  { id: "mock-4", nombre: "Pack Frutas de Temporada", tienda: "Frubana", precioOriginal: 40000, precioOferta: 10000, descuento: 75, categoria: "Frutas", imagen: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500", esSorpresa: true, direccion: "Zona Industrial" },
 ];
 
 export default function Catalog() {
@@ -71,7 +74,8 @@ export default function Catalog() {
       precioOferta: p.precio_rescate,
       descuento: Math.round(((p.precio_original - p.precio_rescate) / p.precio_original) * 100),
       categoria: "General", 
-      imagen: `https://loremflickr.com/500/400/food,${p.nombre.split(' ')[0]}`,
+      // CLAVE: Usamos la imagen real de la base de datos
+      imagen: p.imagen_url || IMG_FALLBACK, 
       esSorpresa: false,
       direccion: p.direccion
     }));
@@ -121,6 +125,7 @@ export default function Catalog() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filtros */}
           <aside className="w-full lg:w-64 space-y-8 bg-white p-6 rounded-[24px] shadow-sm h-fit border border-slate-100">
             <div className="flex items-center gap-2 mb-4 text-slate-900 font-bold">
               <SlidersHorizontal className="w-4 h-4 text-green-600" /> Filtros
@@ -142,6 +147,7 @@ export default function Catalog() {
           </aside>
 
           <main className="flex-1">
+            {/* Buscador y Ordenar */}
             <div className="flex flex-col md:flex-row gap-4 mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -158,25 +164,40 @@ export default function Catalog() {
               </Select>
             </div>
 
-            {loading && productosDB.length === 0 ? (
+            {loading ? (
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-green-600 w-10 h-10" /></div>
+            ) : productosFinales.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-slate-200">
+                  <p className="font-bold text-slate-400">No encontramos ofertas con esos filtros.</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {productosFinales.map((prod) => (
                   <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-                    <div className="relative h-44 overflow-hidden">
-                      <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover group-hover:scale-110 transition-duration-500" />
-                      <Badge className="absolute top-4 left-4 bg-green-600 border-none font-black">-{prod.descuento}%</Badge>
+                    <div className="relative h-48 overflow-hidden">
+                      <img 
+                        src={prod.imagen} 
+                        alt={prod.nombre} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      <Badge className="absolute top-4 left-4 bg-green-600 border-none font-black text-white px-3 py-1">
+                        -{prod.descuento}%
+                      </Badge>
                     </div>
                     <div className="p-6">
-                      <p className="text-[10px] font-black text-green-600 uppercase mb-1">{prod.tienda}</p>
-                      <h3 className="text-lg font-black text-slate-800 mb-4 line-clamp-1">{prod.nombre}</h3>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 mb-1 text-slate-400">
+                        <MapPin className="w-3 h-3" />
+                        <p className="text-[10px] font-black uppercase tracking-tight">{prod.tienda}</p>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-800 mb-4 line-clamp-1 uppercase">{prod.nombre}</h3>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                         <div>
-                          <p className="text-slate-400 text-xs line-through font-bold">${prod.precioOriginal.toLocaleString()}</p>
+                          <p className="text-slate-300 text-xs line-through font-bold">${prod.precioOriginal.toLocaleString()}</p>
                           <p className="text-xl font-black text-slate-900">${prod.precioOferta.toLocaleString()}</p>
                         </div>
-                        <Button onClick={() => openRescate(prod)} className="bg-slate-900 hover:bg-green-700 rounded-xl font-black px-6">Rescatar</Button>
+                        <Button onClick={() => openRescate(prod)} className="bg-slate-900 hover:bg-green-700 rounded-xl font-black px-6 shadow-md transition-colors">
+                            Rescatar
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -187,30 +208,41 @@ export default function Catalog() {
         </div>
       </div>
 
+      {/* Modal de Confirmación / Éxito */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[40px] border-none p-0 overflow-hidden bg-white">
+        <DialogContent className="sm:max-w-[400px] rounded-[40px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           {step === "confirm" ? (
             <div className="p-8">
-              <DialogHeader className="mb-6">
+              <DialogHeader className="mb-6 text-left">
                 <DialogTitle className="text-2xl font-black">Confirmar Rescate</DialogTitle>
-                <DialogDescription className="font-medium">El pago se realiza directamente en el local.</DialogDescription>
+                <DialogDescription className="font-medium text-slate-500">
+                    El pago se realiza directamente en el local al retirar.
+                </DialogDescription>
               </DialogHeader>
               <div className="bg-slate-50 p-6 rounded-[28px] mb-8 space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Local:</span><span className="font-black">{selectedProduct?.tienda}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Total a pagar:</span><span className="text-green-700 font-black">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Local:</span><span className="font-black text-slate-900 uppercase">{selectedProduct?.tienda}</span></div>
+                <div className="flex justify-between text-sm border-t border-slate-200 pt-3"><span className="text-slate-400 font-bold">Total a pagar:</span><span className="text-green-700 font-black text-lg">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
               </div>
-              <Button onClick={confirmarRescate} className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700">¡Confirmar! 🥑</Button>
+              <Button onClick={confirmarRescate} className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all active:scale-95">
+                  ¡Confirmar! 🥑
+              </Button>
             </div>
           ) : (
             <div className="p-10 text-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 className="w-10 h-10 text-green-600" /></div>
-              <h2 className="text-3xl font-black mb-2">¡Rescate Exitoso!</h2>
-              <p className="text-slate-500 mb-8">Muestra este código al llegar a <b>{selectedProduct?.tienda}</b></p>
-              <div className="bg-slate-900 p-8 rounded-[32px] mb-8 flex flex-col items-center">
-                <QrCode className="w-32 h-32 text-white mb-4" />
-                <p className="text-white font-mono font-bold tracking-widest uppercase">ID: {Math.floor(1000 + Math.random() * 9000)}</p>
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
-              <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black">Cerrar y Volver</Button>
+              <h2 className="text-3xl font-black mb-2 tracking-tight">¡Éxito!</h2>
+              <p className="text-slate-500 mb-8 text-sm px-4">Presenta este código al llegar a <b>{selectedProduct?.tienda}</b></p>
+              <div className="bg-slate-900 p-8 rounded-[32px] mb-8 flex flex-col items-center shadow-xl">
+                <QrCode className="w-32 h-32 text-white mb-4" />
+                <p className="text-white font-mono font-bold tracking-widest uppercase text-sm">
+                    ID: {Math.floor(1000 + Math.random() * 9000)}
+                </p>
+              </div>
+              <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black hover:bg-slate-200 transition-colors">
+                  Cerrar y Volver
+              </Button>
             </div>
           )}
         </DialogContent>
