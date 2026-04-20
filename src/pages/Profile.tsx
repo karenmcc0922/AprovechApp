@@ -27,20 +27,33 @@ export default function Profile() {
   const [historial, setHistorial] = useState<any[]>([]);
 
   useEffect(() => {
-    // Intentar obtener pedidos reales de la base de datos o local
-    const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-    
-    // Filtrar historial si es usuario (para no ver lo de otros)
-    const misRescates = guardados.filter((r: any) => r.usuario_id === storedUser.id);
+  const fetchPedidos = async () => {
+    if (!storedUser.id) return;
 
-    if (misRescates.length === 0) {
-      setHistorial([
-        { id: 1, local: "Cargando...", producto: "Primer Rescate", fecha: "Próximamente", precio: 0, estado: "Nuev@" }
-      ]);
-    } else {
-      setHistorial(misRescates);
+    try {
+      // Usamos el endpoint que ya tienes en tu index.js
+      const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${storedUser.id}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Mapeamos los datos del backend para que coincidan con tus tarjetas de historial
+        const pedidosFormateados = data.map((p: any) => ({
+          id: p.id,
+          producto: p.nombre_producto,
+          local: "Comercio Aliado", // Podrías traer el nombre del local con un JOIN en el backend
+          fecha: new Date(p.fecha_pedido).toLocaleDateString(),
+          precio: p.precio_final,
+          estado: p.estado || "Completado"
+        }));
+        setHistorial(pedidosFormateados);
+      }
+    } catch (error) {
+      console.error("Error cargando historial real:", error);
     }
-  }, [storedUser.id]);
+  };
+
+  fetchPedidos();
+}, [storedUser.id]);
 
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio) || 0), 0);
 

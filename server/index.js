@@ -159,7 +159,14 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
 });
 
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-    const sql = "SELECT * FROM pedidos WHERE usuario_id = ? ORDER BY id DESC";
+    // Agregamos un JOIN para traer el nombre del aliado
+    const sql = `
+        尊SELECT p.*, a.nombre_local 
+        FROM pedidos p
+        JOIN aliados a ON p.aliado_id = a.id
+        WHERE p.usuario_id = ? 
+        ORDER BY p.id DESC`;
+    
     pool.query(sql, [req.params.id], (err, results) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json(results);
