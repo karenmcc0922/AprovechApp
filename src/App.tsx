@@ -7,6 +7,7 @@ import Profile from "./pages/Profile";
 import RegistroAliado from "./pages/RegistroAliado";
 import Aliado from "./pages/Aliado";
 import PerfilAliado from "./pages/PerfilAliado"; 
+import MisRescates from "./pages/MisRescates"; // <--- 1. IMPORTANTE: Importamos la nueva página
 
 function App() {
   return (
@@ -20,14 +21,17 @@ function App() {
       {/* 3. Flujo Comercio (Aliado) */}
       <Route path="/registro-aliado" component={RegistroAliado} />
       <Route path="/aliado" component={Aliado} />
-      <Route path="/perfil-aliado" component={PerfilAliado} /> {/* <--- Ruta conectada con la Navbar */}
+      <Route path="/perfil-aliado" component={PerfilAliado} />
       
       {/* 4. Flujo Usuario (Rescatista) */}
       <Route path="/completar-perfil" component={CompleteProfile} />
       <Route path="/catalog" component={Catalog} />
       <Route path="/perfil" component={Profile} />
+      
+      {/* 5. Nueva Ruta de Mis Compras */}
+      <Route path="/mis-rescates" component={MisRescates} /> {/* <--- 2. CLAVE: Definimos la ruta */}
 
-      {/* 5. Error 404 */}
+      {/* 6. Error 404 */}
       <Route>
         <div className="flex flex-col items-center justify-center min-h-screen font-bold text-slate-400 gap-4 bg-slate-50">
           <span className="text-6xl animate-bounce">🥑</span>
