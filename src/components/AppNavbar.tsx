@@ -89,7 +89,7 @@ export default function AppNavbar() {
               </Link>
               <Link href="/mis-rescates">
                 <a className="relative text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
-                  Mis Compras
+                  Mis Rescates
                   {pendientesCount > 0 && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-lg shadow-red-200">
                       {pendientesCount}

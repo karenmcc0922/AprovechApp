@@ -40,7 +40,7 @@ export default function MisRescates() {
       <main className="container mx-auto px-4 pt-28 pb-12 max-w-4xl">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Mis Compras 🛍️</h1>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Mis Rescates 🛍️</h1>
             <p className="text-slate-500 font-medium mt-1">Gestiona tus rescates y códigos de recogida.</p>
           </div>
           
