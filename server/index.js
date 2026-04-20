@@ -11,7 +11,11 @@ app.use(cors({
   credentials: true
 })); 
 
-app.use(express.json()); 
+// --- CORRECCIÓN AQUÍ ---
+// Aumentamos el límite para recibir imágenes en Base64
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// -----------------------
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -68,18 +72,16 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// --- GESTIÓN DE PRODUCTOS (OPTIMIZADO) ---
+// --- GESTIÓN DE PRODUCTOS (CON IMAGEN BASE64) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
 
-  // Validación rápida para evitar errores de inserción
   if (!aliado_id || !nombre) {
     return res.status(400).json({ error: "Faltan campos obligatorios" });
   }
 
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
   
-  // Usamos Number() para asegurar que los precios y el stock entren como valores numéricos a la DB
   pool.query(sql, [
     aliado_id, 
     nombre, 
@@ -90,6 +92,7 @@ app.post('/api/productos', (req, res) => {
   ], (err, result) => {
     if (err) {
       console.error("❌ Error SQL:", err);
+      // Si sale error aquí, verifica que la columna sea LONGTEXT
       return res.status(500).json({ error: "No se pudo guardar en la base de datos" });
     }
     res.status(201).json({ mensaje: "Publicado con éxito", id: result.insertId });
@@ -105,7 +108,6 @@ app.get('/api/mis-productos/:aliado_id', (req, res) => {
   });
 });
 
-// --- CATÁLOGO PÚBLICO (NUEVO: Importante para el cliente) ---
 app.get('/api/productos-todos', (req, res) => {
   const sql = `
     SELECT p.*, a.nombre_local, a.direccion 
@@ -120,7 +122,6 @@ app.get('/api/productos-todos', (req, res) => {
   });
 });
 
-// --- PERFIL ALIADO ---
 app.get('/api/perfil-aliado/:id', (req, res) => {
   const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
   pool.query(sql, [req.params.id], (err, results) => {
