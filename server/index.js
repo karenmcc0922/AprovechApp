@@ -159,18 +159,18 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
 });
 
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-    // Agregamos un JOIN para traer el nombre del aliado
-    const sql = `
-        尊SELECT p.*, a.nombre_local 
-        FROM pedidos p
-        JOIN aliados a ON p.aliado_id = a.id
-        WHERE p.usuario_id = ? 
-        ORDER BY p.id DESC`;
+  // JOIN para traer el nombre del local del aliado
+  const sql = `
+    SELECT p.*, a.nombre_local 
+    FROM pedidos p
+    JOIN aliados a ON p.aliado_id = a.id
+    WHERE p.usuario_id = ? 
+    ORDER BY p.id DESC`;
     
-    pool.query(sql, [req.params.id], (err, results) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
-        res.json(results);
-    });
+  pool.query(sql, [req.params.id], (err, results) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+    res.status(200).json(results);
+  });
 });
 
 // --- RESTAR STOCK INDEPENDIENTE (PATCH) ---
