@@ -68,13 +68,31 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// --- GESTIÓN DE PRODUCTOS (DASHBOARD) ---
+// --- GESTIÓN DE PRODUCTOS (OPTIMIZADO) ---
 app.post('/api/productos', (req, res) => {
-  const { aliado_id, nombre, precio_original, precio_rescate, stock } = req.body;
-  const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock) VALUES (?, ?, ?, ?, ?)";
-  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock], (err, result) => {
-    if (err) return res.status(500).json({ error: "Error al publicar" });
-    res.status(201).json({ mensaje: "Publicado", id: result.insertId });
+  const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
+
+  // Validación rápida para evitar errores de inserción
+  if (!aliado_id || !nombre) {
+    return res.status(400).json({ error: "Faltan campos obligatorios" });
+  }
+
+  const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
+  
+  // Usamos Number() para asegurar que los precios y el stock entren como valores numéricos a la DB
+  pool.query(sql, [
+    aliado_id, 
+    nombre, 
+    Number(precio_original), 
+    Number(precio_rescate), 
+    Number(stock), 
+    imagen_url
+  ], (err, result) => {
+    if (err) {
+      console.error("❌ Error SQL:", err);
+      return res.status(500).json({ error: "No se pudo guardar en la base de datos" });
+    }
+    res.status(201).json({ mensaje: "Publicado con éxito", id: result.insertId });
   });
 });
 

@@ -18,8 +18,6 @@ import {
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState([]);
-  
-  // Estados para la imagen y previsualización
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -38,17 +36,23 @@ export default function Aliado() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Como el servidor no acepta archivos reales aún, usamos la URL local solo para verla
-      setImagePreview(URL.createObjectURL(file));
-      setNuevoProducto({ ...nuevoProducto, esSorpresa: false });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setNuevoProducto(prev => ({ ...prev, esSorpresa: false }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const removeImage = () => {
     setImagePreview(null);
+    if (!nuevoProducto.esSorpresa) {
+        setNuevoProducto(prev => ({ ...prev, esSorpresa: true }));
+    }
   };
 
-  // --- LÓGICA DE PRECIOS INTELIGENTES ---
+  // --- LÓGICA DE PRECIOS ---
   const handlePrecioOriginalChange = (val: string) => {
     const original = Number(val);
     const desc = Number(descuentoManual);
@@ -79,7 +83,6 @@ export default function Aliado() {
     }
   };
 
-  // --- API: CARGAR PRODUCTOS ---
   const cargarProductos = async () => {
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
@@ -98,45 +101,37 @@ export default function Aliado() {
     cargarProductos();
   }, []);
 
-  // --- API: ENVIAR PRODUCTO (CORREGIDO A JSON) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Intentando publicar vía JSON...");
-
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) {
-      alert("No se encontró ID de aliado. Por favor inicia sesión.");
+      alert("Sesión expirada");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Determinamos qué imagen enviar
+      // Si es sorpresa enviamos link, si no, el string Base64 de la foto
       const imagenFinal = nuevoProducto.esSorpresa ? IMG_SORPRESA : (imagePreview || IMG_SORPRESA);
 
-      // Creamos el objeto exactamente como lo espera el servidor
       const payload = {
+        aliado_id: parseInt(aliadoId),
         nombre: nuevoProducto.nombre,
         precio_original: parseFloat(nuevoProducto.precio_original),
         precio_rescate: parseFloat(nuevoProducto.precio_rescate),
         stock: parseInt(nuevoProducto.stock),
-        descripcion: nuevoProducto.descripcion,
-        aliado_id: parseInt(aliadoId),
-        imagen_url: imagenFinal,
-        es_sorpresa: nuevoProducto.esSorpresa
+        imagen_url: imagenFinal
       };
 
       const res = await fetch("https://aprovechapp-api.onrender.com/api/productos", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        alert("¡Producto publicado con éxito! 🚀");
+        alert("¡Oferta publicada! 🚀");
         setNuevoProducto({ 
           nombre: "", precio_original: "", precio_rescate: "", 
           stock: "", descripcion: "Pack sorpresa de productos frescos", esSorpresa: true 
@@ -145,12 +140,10 @@ export default function Aliado() {
         setDescuentoManual("");
         cargarProductos();
       } else {
-        const errData = await res.json();
-        alert("Error: " + (errData.message || "No se pudo publicar"));
+        alert("Error al publicar");
       }
     } catch (error) {
-      console.error("Error de red:", error);
-      alert("Error de conexión con el servidor. Revisa tu consola.");
+      alert("Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -175,7 +168,6 @@ export default function Aliado() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Formulario */}
           <div className="space-y-6">
             <Card className="border-none shadow-xl rounded-[40px] bg-white overflow-hidden">
               <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
@@ -184,8 +176,6 @@ export default function Aliado() {
 
               <CardContent className="p-8 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  
-                  {/* Toggle Sorpresa */}
                   <div 
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
                     className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-100"}`}
@@ -206,7 +196,6 @@ export default function Aliado() {
                     </div>
                   </div>
 
-                  {/* Carga de Imagen */}
                   <div className="space-y-2">
                     <Label>Foto del Producto</Label>
                     <div className="relative">
@@ -221,9 +210,9 @@ export default function Aliado() {
                         <label className={`w-full h-36 border-2 border-dashed rounded-[28px] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all ${nuevoProducto.esSorpresa ? 'opacity-50 border-slate-200' : 'border-slate-300'}`}>
                           <ImageIcon className="w-8 h-8 text-slate-300 mb-2" />
                           <span className="text-[10px] font-black text-slate-400 uppercase text-center px-4">
-                            {nuevoProducto.esSorpresa ? "Opcional en modo sorpresa" : "Haz clic para subir foto"}
+                            Subir foto real
                           </span>
-                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                       )}
                     </div>
@@ -234,7 +223,6 @@ export default function Aliado() {
                     <Input placeholder="Ej: Bolsa de Panes" className="rounded-xl bg-slate-50 py-6 border-none" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
-                  {/* Precios */}
                   <div className="bg-green-50/50 p-5 rounded-[32px] border border-green-100/50 space-y-4">
                     <div className="space-y-1">
                       <Label className="text-green-700">Precio Original</Label>
@@ -272,7 +260,6 @@ export default function Aliado() {
             </Card>
           </div>
 
-          {/* Listado de Productos */}
           <div className="lg:col-span-2 space-y-5">
             <h2 className="text-2xl font-black text-slate-800 px-2 flex items-center gap-2">
               <Package className="text-slate-400" /> Inventario Activo
