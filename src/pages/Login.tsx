@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Lock, Mail, Eye, EyeOff, Loader2, User, Store } from "lucide-react";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const [,] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,26 +26,36 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        // GUARDAMOS DATOS ESCENCIALES
-        localStorage.setItem("user_name", data.usuario.nombre);
-        localStorage.setItem("user_role", role);
-        
-        // CORRECCIÓN: Guardamos el ID específico del usuario/aliado
-        if (data.usuario.id) {
-          localStorage.setItem("aliado_id", data.usuario.id.toString());
-        }
+        // --- CORRECCIÓN MAESTRA ---
+        // Creamos el objeto 'usuario' que el resto de la app (Navbar/Catalog) espera
+        const usuarioParaAlmacenar = {
+          id: data.usuario.id,
+          nombre: data.usuario.nombre,
+          role: data.usuario.role, // Usamos el rol que confirma el backend
+          correo: email
+        };
 
-        // REDIRECCIÓN INTELIGENTE
-        if (role === "vendor") {
-          setLocation("/aliado");
+        // Guardamos el objeto como string (JSON)
+        localStorage.setItem("usuario", JSON.stringify(usuarioParaAlmacenar));
+        
+        // Mantenemos estos por si los usas en otros componentes antiguos
+        localStorage.setItem("user_name", data.usuario.nombre);
+        localStorage.setItem("user_role", data.usuario.role);
+        localStorage.setItem("aliado_id", data.usuario.id.toString());
+
+        // Usamos window.location.href para limpiar la caché de React y forzar
+        // que el Navbar lea los nuevos datos del localStorage de inmediato.
+        if (data.usuario.role === "vendor") {
+          window.location.href = "/aliado";
         } else {
-          setLocation("/catalog");
+          window.location.href = "/catalog";
         }
       } else {
-        alert(data.error || "Error al iniciar sesión");
+        alert(data.error || "Credenciales incorrectas");
       }
     } catch (error) {
-      alert("Error de conexión con el servidor");
+      console.error("Error en login:", error);
+      alert("Error de conexión con el servidor. Revisa tu internet.");
     } finally {
       setLoading(false);
     }
@@ -55,24 +65,27 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-            Aprovech<span className="text-[#FFA832]">App</span>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic">
+            Aprovech<span className="text-green-600">App</span> 🥑
           </h1>
-          <p className="text-slate-500 font-medium mt-2">Bienvenido a la revolución del rescate 🥑</p>
+          <p className="text-slate-500 font-medium mt-2">Inicia sesión para empezar a rescatar</p>
         </div>
 
         <Card className="border-none shadow-2xl rounded-[32px] overflow-hidden bg-white">
           <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-2xl font-bold text-slate-800 text-center">Iniciar Sesión</CardTitle>
+            <CardTitle className="text-2xl font-bold text-slate-800 text-center uppercase tracking-tight">
+              Bienvenido de nuevo
+            </CardTitle>
           </CardHeader>
 
           <CardContent className="p-8">
+            {/* Selector de Rol */}
             <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-8">
               <button
                 type="button"
                 onClick={() => setRole("user")}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
-                  role === "user" ? "bg-white shadow-sm text-green-700" : "text-slate-500 hover:text-slate-700"
+                  role === "user" ? "bg-white shadow-sm text-green-700" : "text-slate-500"
                 }`}
               >
                 <User size={18} /> Rescatista
@@ -81,7 +94,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setRole("vendor")}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
-                  role === "vendor" ? "bg-white shadow-sm text-green-700" : "text-slate-500 hover:text-slate-700"
+                  role === "vendor" ? "bg-white shadow-sm text-green-700" : "text-slate-500"
                 }`}
               >
                 <Store size={18} /> Comercio
@@ -90,6 +103,7 @@ export default function Login() {
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
+                {/* Email */}
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
                   <input
@@ -102,6 +116,7 @@ export default function Login() {
                   />
                 </div>
 
+                {/* Password */}
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
                   <input

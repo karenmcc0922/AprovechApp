@@ -17,22 +17,32 @@ import {
 } from "lucide-react";
 
 export default function Profile() {
-  const userName = localStorage.getItem("user_name") || "Rescatista";
-  const userEmail = localStorage.getItem("user_email") || "usuario@ejemplo.com";
+  // --- CORRECCIÓN: Leer del objeto centralizado ---
+  const storedUser = JSON.parse(localStorage.getItem("usuario") || "{}");
+  
+  const userName = storedUser.nombre || "Usuario";
+  const userEmail = storedUser.correo || "Sin correo registrado";
+  const userRole = storedUser.role === 'vendor' ? 'Aliado Comercial' : 'Rescatista';
+
   const [historial, setHistorial] = useState<any[]>([]);
 
   useEffect(() => {
+    // Intentar obtener pedidos reales de la base de datos o local
     const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-    if (guardados.length === 0) {
+    
+    // Filtrar historial si es usuario (para no ver lo de otros)
+    const misRescates = guardados.filter((r: any) => r.usuario_id === storedUser.id);
+
+    if (misRescates.length === 0) {
       setHistorial([
-        { id: 1, local: "Pan del Sol", producto: "Bolsa Sorpresa", fecha: "Ayer", precio: 12000, estado: "Completado" }
+        { id: 1, local: "Cargando...", producto: "Primer Rescate", fecha: "Próximamente", precio: 0, estado: "Nuev@" }
       ]);
     } else {
-      setHistorial(guardados);
+      setHistorial(misRescates);
     }
-  }, []);
+  }, [storedUser.id]);
 
-  const totalGastado = historial.reduce((acc, curr) => acc + curr.precio, 0);
+  const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio) || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -41,22 +51,30 @@ export default function Profile() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           <div className="space-y-6">
-            <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white p-8 text-center">
+            <Card className="border-none shadow-sm rounded-[40px] overflow-hidden bg-white p-8 text-center border border-slate-100">
               <div className="relative w-32 h-32 mx-auto mb-6">
-                <div className="w-full h-full bg-slate-900 rounded-[32px] flex items-center justify-center text-white text-5xl font-black rotate-3 shadow-xl">
+                <div className="w-full h-full bg-slate-900 rounded-[32px] flex items-center justify-center text-white text-5xl font-black rotate-3 shadow-xl uppercase">
                   <span className="-rotate-3">{userName.charAt(0)}</span>
                 </div>
                 <div className="absolute -bottom-2 -right-2 bg-green-500 p-2 rounded-2xl shadow-lg border-4 border-white">
                   <ShieldCheck className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{userName}</h2>
-              <p className="text-slate-400 font-medium mb-6 text-sm">{userEmail}</p>
+              
+              {/* AQUÍ SE MUESTRA EL NOMBRE REAL */}
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
+                {userName}
+              </h2>
+              <p className="text-green-600 font-bold text-xs uppercase tracking-widest mt-1">
+                {userRole}
+              </p>
+              <p className="text-slate-400 font-medium mb-6 text-sm mt-2">{userEmail}</p>
+              
               <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">
                 <MapPin className="w-4 h-4 text-green-600" /> Pereira, Risaralda
               </div>
               <Button variant="outline" className="w-full rounded-2xl py-6 font-black border-slate-100 text-slate-500">
-                <Settings className="w-4 h-4 mr-2" /> Ajustes
+                <Settings className="w-4 h-4 mr-2" /> Ajustes de Cuenta
               </Button>
             </Card>
 
@@ -64,17 +82,18 @@ export default function Profile() {
               <div className="bg-white p-4 rounded-[32px] mb-6 shadow-xl group-hover:scale-105 transition-transform">
                 <QrCode className="w-24 h-24 text-slate-900" />
               </div>
-              <h3 className="font-black text-lg">TU ID DE RESCATE</h3>
-              <p className="text-green-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">Escanea en el local</p>
+              <h3 className="font-black text-lg uppercase">ID: RES-{storedUser.id || '000'}</h3>
+              <p className="text-green-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">Escanea para validar</p>
             </Card>
           </div>
 
           <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-md rounded-[40px] bg-white p-10">
+             {/* ... el resto de tu código de estadísticas queda igual ... */}
+             <Card className="border-none shadow-md rounded-[40px] bg-white p-10">
               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="space-y-2 text-center md:text-left">
                   <Badge className="bg-green-100 text-green-700 border-none px-3 py-1 font-black text-[10px]">NIVEL 4: ELITE</Badge>
-                  <h2 className="text-3xl font-black text-slate-900">Héroe de la Comida 🌍</h2>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase">Héroe de la Comida 🌍</h2>
                 </div>
                 <div className="w-full md:w-64 space-y-2 text-right">
                   <Progress value={75} className="h-3 bg-slate-100" />
@@ -101,7 +120,7 @@ export default function Profile() {
 
             <div className="space-y-6">
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-2 px-2">
-                <History className="w-6 h-6 text-green-600" /> Rescates Recientes
+                <History className="w-6 h-6 text-green-600" /> Historial de Rescates
               </h3>
               <div className="space-y-4">
                 {historial.map((item) => (
@@ -111,14 +130,14 @@ export default function Profile() {
                         <Calendar className="w-6 h-6 text-slate-400 group-hover:text-green-600" />
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-800 uppercase text-sm">{item.producto}</h4>
-                        <p className="text-xs font-bold text-slate-400">{item.local} • {item.fecha}</p>
+                        <h4 className="font-black text-slate-800 uppercase text-sm">{item.producto || item.nombre_producto}</h4>
+                        <p className="text-xs font-bold text-slate-400">{item.local || 'Local AprovechApp'} • {item.fecha || 'Reciente'}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-black text-slate-900">${item.precio.toLocaleString()}</p>
+                      <p className="text-lg font-black text-slate-900">${(item.precio || item.precio_final || 0).toLocaleString()}</p>
                       <Badge className={`rounded-lg font-black text-[10px] uppercase ${item.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                        {item.estado}
+                        {item.estado || 'Completado'}
                       </Badge>
                     </div>
                   </div>
