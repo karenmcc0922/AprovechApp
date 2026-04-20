@@ -31,10 +31,9 @@ import {
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
-// Productos de prueba con stock inicial simulado
 const PRODUCTOS_PRUEBA = [
-  { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12", stock: 4 },
-  { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05", stock: 2 },
+  { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12", stock: 4, aliado_id: 999 },
+  { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05", stock: 2, aliado_id: 998 },
 ];
 
 export default function Catalog() {
@@ -50,7 +49,6 @@ export default function Catalog() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Función para cargar productos desde tu API
   const fetchProductos = async () => {
     try {
       const response = await fetch("https://aprovechapp-api.onrender.com/api/productos-todos");
@@ -72,7 +70,7 @@ export default function Catalog() {
   const productosFinales = useMemo(() => {
     const dbNormalizados = productosDB.map(p => ({
       id: `db-${p.id}`,
-      idReal: p.id, // ID original para la base de datos
+      idReal: p.id,
       nombre: p.nombre,
       tienda: p.nombre_local,
       precioOriginal: p.precio_original,
@@ -82,7 +80,8 @@ export default function Catalog() {
       imagen: p.imagen_url || IMG_FALLBACK, 
       esSorpresa: false,
       direccion: p.direccion || "Dirección no disponible",
-      stock: p.stock
+      stock: p.stock,
+      aliado_id: p.aliado_id // IMPORTANTE: Para que el aliado lo reconozca
     }));
 
     const todos = [...dbNormalizados, ...PRODUCTOS_PRUEBA];
@@ -108,21 +107,23 @@ export default function Catalog() {
 
   const confirmarRescate = async () => {
     setIsProcessing(true);
+    // Obtenemos el usuario actual para "marcar" la reserva
+    const user = JSON.parse(localStorage.getItem("usuario") || "{}");
     
     try {
-      // 1. Si es un producto de la base de datos (no un mock), restamos stock real
       if (selectedProduct.idReal && !selectedProduct.id.toString().startsWith('mock')) {
         const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/restar-stock/${selectedProduct.idReal}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' }
         });
-
         if (!res.ok) throw new Error("Producto agotado");
       }
 
-      // 2. Registramos en el historial local del cliente
       const nuevoRescate = {
         id: Date.now(),
+        usuario_correo: user.correo || "invitado", // Se queda grabado quién lo hizo
+        usuario_nombre: user.nombre || "Usuario Aprovecha",
+        aliado_id: selectedProduct.aliado_id, // Para que el panel de aliado lo filtre
         productoId: selectedProduct.id,
         local: selectedProduct.tienda,
         producto: selectedProduct.nombre,
@@ -135,13 +136,11 @@ export default function Catalog() {
       const historialPrevio = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
       localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescate, ...historialPrevio]));
       
-      // 3. Actualizamos la vista
       setStep("success");
-      fetchProductos(); // Recargamos para que el stock se vea actualizado en el catálogo
-    } catch (error) {
-      alert("¡Lo sentimos! Alguien más rescató la última unidad justo ahora.");
-      setIsModalOpen(false);
       fetchProductos();
+    } catch (error) {
+      alert("Error al procesar el rescate.");
+      setIsModalOpen(false);
     } finally {
       setIsProcessing(false);
     }
@@ -157,7 +156,6 @@ export default function Catalog() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filtros */}
           <aside className="w-full lg:w-64 space-y-8 bg-white p-6 rounded-[24px] shadow-sm h-fit border border-slate-100">
             <div className="flex items-center gap-2 mb-4 text-slate-900 font-bold">
               <SlidersHorizontal className="w-4 h-4 text-green-600" /> Filtros
@@ -263,11 +261,7 @@ export default function Catalog() {
                 <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Unidades:</span><span className="font-black text-slate-900">1 unidad</span></div>
                 <div className="flex justify-between text-sm border-t border-slate-200 pt-3"><span className="text-slate-400 font-bold">Total a pagar:</span><span className="text-green-700 font-black text-lg">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
               </div>
-              <Button 
-                onClick={confirmarRescate} 
-                disabled={isProcessing}
-                className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all active:scale-95"
-              >
+              <Button onClick={confirmarRescate} disabled={isProcessing} className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all">
                   {isProcessing ? <Loader2 className="animate-spin" /> : "¡Confirmar! 🥑"}
               </Button>
             </div>
@@ -284,7 +278,7 @@ export default function Catalog() {
                     ID: {String(selectedProduct?.id || "").slice(-4)}
                 </p>
               </div>
-              <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black hover:bg-slate-200 transition-colors">
+              <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black hover:bg-slate-200">
                   Cerrar y Volver
               </Button>
             </div>
