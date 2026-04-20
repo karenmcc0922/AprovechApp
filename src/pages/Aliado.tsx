@@ -21,7 +21,6 @@ export default function Aliado() {
   
   // Estados para la imagen y previsualización
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: "",
@@ -39,15 +38,13 @@ export default function Aliado() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
+      // Como el servidor no acepta archivos reales aún, usamos la URL local solo para verla
       setImagePreview(URL.createObjectURL(file));
-      // Si sube foto, desactivamos "esSorpresa" para que se vea la foto real
       setNuevoProducto({ ...nuevoProducto, esSorpresa: false });
     }
   };
 
   const removeImage = () => {
-    setSelectedFile(null);
     setImagePreview(null);
   };
 
@@ -101,60 +98,59 @@ export default function Aliado() {
     cargarProductos();
   }, []);
 
-  // --- API: ENVIAR PRODUCTO ---
+  // --- API: ENVIAR PRODUCTO (CORREGIDO A JSON) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Formulario enviado..."); // Para debug en consola
+    console.log("Intentando publicar vía JSON...");
 
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) {
-      alert("No se encontró ID de aliado. Por favor, inicia sesión de nuevo.");
+      alert("No se encontró ID de aliado. Por favor inicia sesión.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("nombre", nuevoProducto.nombre);
-      formData.append("precio_original", nuevoProducto.precio_original);
-      formData.append("precio_rescate", nuevoProducto.precio_rescate);
-      formData.append("stock", nuevoProducto.stock);
-      formData.append("descripcion", nuevoProducto.descripcion);
-      formData.append("aliado_id", aliadoId);
-      formData.append("es_sorpresa", String(nuevoProducto.esSorpresa));
+      // Determinamos qué imagen enviar
+      const imagenFinal = nuevoProducto.esSorpresa ? IMG_SORPRESA : (imagePreview || IMG_SORPRESA);
 
-      // Si hay archivo y no es sorpresa, mandamos el archivo
-      if (selectedFile && !nuevoProducto.esSorpresa) {
-        formData.append("imagen", selectedFile);
-      } else {
-        // Si es sorpresa, mandamos la URL por defecto
-        formData.append("imagen_url_default", IMG_SORPRESA);
-      }
+      // Creamos el objeto exactamente como lo espera el servidor
+      const payload = {
+        nombre: nuevoProducto.nombre,
+        precio_original: parseFloat(nuevoProducto.precio_original),
+        precio_rescate: parseFloat(nuevoProducto.precio_rescate),
+        stock: parseInt(nuevoProducto.stock),
+        descripcion: nuevoProducto.descripcion,
+        aliado_id: parseInt(aliadoId),
+        imagen_url: imagenFinal,
+        es_sorpresa: nuevoProducto.esSorpresa
+      };
 
       const res = await fetch("https://aprovechapp-api.onrender.com/api/productos", {
         method: "POST",
-        body: formData, // Importante: FormData no lleva "Content-Type" manual
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         alert("¡Producto publicado con éxito! 🚀");
-        // Reset de estados
         setNuevoProducto({ 
           nombre: "", precio_original: "", precio_rescate: "", 
           stock: "", descripcion: "Pack sorpresa de productos frescos", esSorpresa: true 
         });
         setImagePreview(null);
-        setSelectedFile(null);
         setDescuentoManual("");
         cargarProductos();
       } else {
-        const err = await res.json();
-        alert("Error del servidor: " + (err.message || "No se pudo publicar"));
+        const errData = await res.json();
+        alert("Error: " + (errData.message || "No se pudo publicar"));
       }
     } catch (error) {
       console.error("Error de red:", error);
-      alert("Error de conexión con el servidor");
+      alert("Error de conexión con el servidor. Revisa tu consola.");
     } finally {
       setLoading(false);
     }
@@ -201,7 +197,7 @@ export default function Aliado() {
                       <div>
                         <p className="font-black text-sm text-slate-800">Pack Sorpresa</p>
                         <p className="text-[9px] font-bold text-slate-400 uppercase">
-                          {nuevoProducto.esSorpresa ? "Usa imagen de regalo" : "Sube una foto real"}
+                          {nuevoProducto.esSorpresa ? "Imagen de regalo" : "Imagen personalizada"}
                         </p>
                       </div>
                     </div>
@@ -267,7 +263,7 @@ export default function Aliado() {
                   <Button 
                     type="submit"
                     disabled={loading} 
-                    className="w-full bg-slate-900 py-8 rounded-3xl font-black text-lg hover:bg-green-600 shadow-xl transition-all"
+                    className="w-full bg-slate-900 py-8 rounded-3xl font-black text-lg hover:bg-green-600 shadow-xl transition-all active:scale-95"
                   >
                     {loading ? <Loader2 className="animate-spin" /> : "PUBLICAR RESCATE 🚀"}
                   </Button>
@@ -292,7 +288,7 @@ export default function Aliado() {
                   <Card key={prod.id} className="border-none shadow-sm rounded-[32px] bg-white overflow-hidden p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-5">
-                        <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[20px] object-cover bg-slate-100" alt="Producto" />
+                        <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[20px] object-cover bg-slate-100 flex-shrink-0" alt="Producto" />
                         <div>
                           <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
                           <p className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-md inline-block mt-1">STOCK: {prod.stock}</p>
