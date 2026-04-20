@@ -23,27 +23,43 @@ export default function AppNavbar() {
   const [, setLocation] = useLocation();
   const [pendientesCount, setPendientesCount] = useState(0);
   
-  // Detectamos el rol y el nombre desde el localStorage
-  const userRole = localStorage.getItem("user_role"); // 'vendor' o 'user'
-  const userName = localStorage.getItem("user_name") || "Usuario";
-  const isVendor = userRole === "vendor";
+  // LEER OBJETO USUARIO COMPLETO (Sincronizado con Login y Catalog)
+  const user = JSON.parse(localStorage.getItem("usuario") || "{}");
+  const isVendor = user.rol === "aliado" || localStorage.getItem("user_role") === "vendor";
+  const userName = user.nombre || localStorage.getItem("user_name") || "Usuario";
 
-  // Lógica para contar rescates pendientes (notificaciones)
   useEffect(() => {
     const checkRescates = () => {
       const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-      const count = guardados.filter((r: any) => r.estado === "Pendiente").length;
-      setPendientesCount(count);
+      
+      if (isVendor) {
+        // Si es aliado, cuenta los pendientes que son para SU local
+        const count = guardados.filter((r: any) => 
+          (r.aliado_id === user.id || r.local === user.nombre) && r.estado === "Pendiente"
+        ).length;
+        setPendientesCount(count);
+      } else {
+        // Si es cliente, cuenta sus propios rescates pendientes
+        const count = guardados.filter((r: any) => 
+          r.usuario_correo === user.correo && r.estado === "Pendiente"
+        ).length;
+        setPendientesCount(count);
+      }
     };
 
     checkRescates();
-    // Escuchamos cambios en el localStorage por si el usuario compra algo
     window.addEventListener('storage', checkRescates);
-    return () => window.removeEventListener('storage', checkRescates);
-  }, []);
+    const interval = setInterval(checkRescates, 2000);
+    return () => {
+      window.removeEventListener('storage', checkRescates);
+      clearInterval(interval);
+    };
+  }, [isVendor, user.id, user.nombre, user.correo]);
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("user_name");
     setLocation("/");
   };
 
@@ -68,7 +84,6 @@ export default function AppNavbar() {
         {/* MENÚ DE ESCRITORIO */}
         <div className="hidden md:flex items-center gap-6">
           {isVendor ? (
-            // Links para el Comercio (Aliado)
             <>
               <Link href="/aliado">
                 <a className="text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
@@ -76,13 +91,17 @@ export default function AppNavbar() {
                 </a>
               </Link>
               <Link href="/pedidos-recibir">
-                <a className="text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
+                <a className="relative text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4" /> Pedidos
+                  {pendientesCount > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white shadow-lg shadow-orange-200">
+                      {pendientesCount}
+                    </span>
+                  )}
                 </a>
               </Link>
             </>
           ) : (
-            // Links para el Cliente
             <>
               <Link href="/catalog">
                 <a className="text-sm font-bold text-slate-600 hover:text-green-600">Explorar</a>
@@ -137,16 +156,6 @@ export default function AppNavbar() {
 
         {/* MÓVIL */}
         <div className="md:hidden flex items-center gap-4">
-           {!isVendor && pendientesCount > 0 && (
-             <Link href="/mis-rescates">
-               <div className="relative">
-                 <ShoppingBag className="w-6 h-6 text-slate-600" />
-                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
-                    {pendientesCount}
-                 </span>
-               </div>
-             </Link>
-           )}
           <Button variant="ghost" size="icon">
             <Menu className="w-6 h-6" />
           </Button>

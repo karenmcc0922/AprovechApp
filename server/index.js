@@ -115,6 +115,48 @@ app.get('/api/productos-todos', (req, res) => {
   });
 });
 
+// --- NUEVO: CREAR PEDIDO Y RESTAR STOCK ---
+app.post('/api/pedidos/crear', (req, res) => {
+    const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
+    const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // 1. Verificamos y restamos stock
+    const sqlStock = "UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0";
+    
+    pool.query(sqlStock, [producto_id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        if (result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible" });
+
+        // 2. Si hay stock, creamos el pedido
+        const sqlPedido = `INSERT INTO pedidos 
+            (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        
+        pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err, row) => {
+            if (err) return res.status(500).json({ error: err.sqlMessage });
+            res.status(201).json({ mensaje: "Pedido creado", pedidoId: row.insertId, codigo: codigo_qr });
+        });
+    });
+});
+
+// --- NUEVO: OBTENER PEDIDOS PARA EL ALIADO ---
+app.get('/api/pedidos/aliado/:id', (req, res) => {
+    const sql = "SELECT * FROM pedidos WHERE aliado_id = ? ORDER BY fecha DESC";
+    pool.query(sql, [req.params.id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.json(results);
+    });
+});
+
+// --- NUEVO: OBTENER PEDIDOS PARA EL USUARIO ---
+app.get('/api/pedidos/usuario/:id', (req, res) => {
+    const sql = "SELECT * FROM pedidos WHERE usuario_id = ? ORDER BY fecha DESC";
+    pool.query(sql, [req.params.id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
+        res.json(results);
+    });
+});
+
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor en puerto ${PORT}`);
