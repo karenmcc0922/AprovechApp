@@ -7,15 +7,12 @@ const app = express();
 
 app.use(cors({
   origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'], // Añadido PATCH
   credentials: true
 })); 
 
-// --- CORRECCIÓN AQUÍ ---
-// Aumentamos el límite para recibir imágenes en Base64
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-// -----------------------
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -29,6 +26,19 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000
+});
+
+// --- NUEVO: RESTAR STOCK ---
+app.patch('/api/productos/restar-stock/:id', (req, res) => {
+  const { id } = req.params;
+  // Solo resta si el stock es mayor a 0
+  const sql = "UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0";
+  
+  pool.query(sql, [id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+    if (result.affectedRows === 0) return res.status(400).json({ error: "Sin stock o no encontrado" });
+    res.status(200).json({ mensaje: "Stock actualizado" });
+  });
 });
 
 // --- REGISTRO DE ALIADOS ---
@@ -72,30 +82,13 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// --- GESTIÓN DE PRODUCTOS (CON IMAGEN BASE64) ---
+// --- GESTIÓN DE PRODUCTOS ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
-
-  if (!aliado_id || !nombre) {
-    return res.status(400).json({ error: "Faltan campos obligatorios" });
-  }
-
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
-  
-  pool.query(sql, [
-    aliado_id, 
-    nombre, 
-    Number(precio_original), 
-    Number(precio_rescate), 
-    Number(stock), 
-    imagen_url
-  ], (err, result) => {
-    if (err) {
-      console.error("❌ Error SQL:", err);
-      // Si sale error aquí, verifica que la columna sea LONGTEXT
-      return res.status(500).json({ error: "No se pudo guardar en la base de datos" });
-    }
-    res.status(201).json({ mensaje: "Publicado con éxito", id: result.insertId });
+  pool.query(sql, [aliado_id, nombre, Number(precio_original), Number(precio_rescate), Number(stock), imagen_url], (err, result) => {
+    if (err) return res.status(500).json({ error: "Error al guardar" });
+    res.status(201).json({ mensaje: "Éxito", id: result.insertId });
   });
 });
 
@@ -117,16 +110,8 @@ app.get('/api/productos-todos', (req, res) => {
     ORDER BY p.id DESC
   `;
   pool.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: "Error al cargar catálogo" });
-    res.status(200).json(results);
-  });
-});
-
-app.get('/api/perfil-aliado/:id', (req, res) => {
-  const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
-  pool.query(sql, [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ error: "Error" });
-    res.status(results.length > 0 ? 200 : 404).json(results[0] || { error: "No existe" });
+    res.status(200).json(results);
   });
 });
 

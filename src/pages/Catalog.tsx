@@ -25,14 +25,16 @@ import {
   CheckCircle2, 
   QrCode,
   Loader2,
-  MapPin
+  MapPin,
+  Package2
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
+// Productos de prueba con stock inicial simulado
 const PRODUCTOS_PRUEBA = [
-  { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12" },
-  { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05" },
+  { id: "mock-1", nombre: "Bolsa Sorpresa Panadería", tienda: "Pan del Sol", precioOriginal: 30000, precioOferta: 12000, descuento: 60, categoria: "Panadería", imagen: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500", esSorpresa: true, direccion: "Calle 20 #5-12", stock: 4 },
+  { id: "mock-2", nombre: "Caja de Donas x6", tienda: "Dunkin Local", precioOriginal: 25000, precioOferta: 15000, descuento: 40, categoria: "Postres", imagen: "https://images.unsplash.com/photo-1527515545081-5db817172677?w=500", esSorpresa: false, direccion: "Av. Circunvalar #12-05", stock: 2 },
 ];
 
 export default function Catalog() {
@@ -46,27 +48,31 @@ export default function Catalog() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [step, setStep] = useState<"confirm" | "success">("confirm");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Función para cargar productos desde tu API
+  const fetchProductos = async () => {
+    try {
+      const response = await fetch("https://aprovechapp-api.onrender.com/api/productos-todos");
+      if (response.ok) {
+        const data = await response.json();
+        setProductosDB(data);
+      }
+    } catch (error) {
+      console.error("Error cargando DB:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const response = await fetch("https://aprovechapp-api.onrender.com/api/productos-todos");
-        if (response.ok) {
-          const data = await response.json();
-          setProductosDB(data);
-        }
-      } catch (error) {
-        console.error("Error cargando DB:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProductos();
   }, []);
 
   const productosFinales = useMemo(() => {
     const dbNormalizados = productosDB.map(p => ({
       id: `db-${p.id}`,
+      idReal: p.id, // ID original para la base de datos
       nombre: p.nombre,
       tienda: p.nombre_local,
       precioOriginal: p.precio_original,
@@ -75,7 +81,8 @@ export default function Catalog() {
       categoria: "General", 
       imagen: p.imagen_url || IMG_FALLBACK, 
       esSorpresa: false,
-      direccion: p.direccion || "Dirección no disponible"
+      direccion: p.direccion || "Dirección no disponible",
+      stock: p.stock
     }));
 
     const todos = [...dbNormalizados, ...PRODUCTOS_PRUEBA];
@@ -84,7 +91,8 @@ export default function Catalog() {
       const coincideNombre = prod.nombre.toLowerCase().includes(search.toLowerCase()) || prod.tienda.toLowerCase().includes(search.toLowerCase());
       const coincidePrecio = prod.precioOferta <= maxPrice;
       const coincideCategoria = selectedCategory === "Todas" || prod.categoria === selectedCategory;
-      return coincideNombre && coincidePrecio && coincideCategoria;
+      const tieneStock = prod.stock > 0;
+      return coincideNombre && coincidePrecio && coincideCategoria && tieneStock;
     }).sort((a, b) => {
       if (sortBy === "discount") return b.descuento - a.descuento;
       if (sortBy === "price_asc") return a.precioOferta - b.precioOferta;
@@ -98,22 +106,45 @@ export default function Catalog() {
     setIsModalOpen(true);
   };
 
-  const confirmarRescate = () => {
-    // SINCRONIZACIÓN CON MIS RESCATES
-    const nuevoRescate = {
-      id: Date.now(),
-      local: selectedProduct.tienda,
-      producto: selectedProduct.nombre,
-      direccion: selectedProduct.direccion,
-      fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
-      precio: selectedProduct.precioOferta,
-      estado: "Pendiente" // Estado inicial para que salga en "Activos"
-    };
-
-    const historialPrevio = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-    localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescate, ...historialPrevio]));
+  const confirmarRescate = async () => {
+    setIsProcessing(true);
     
-    setStep("success");
+    try {
+      // 1. Si es un producto de la base de datos (no un mock), restamos stock real
+      if (selectedProduct.idReal && !selectedProduct.id.toString().startsWith('mock')) {
+        const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/restar-stock/${selectedProduct.idReal}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!res.ok) throw new Error("Producto agotado");
+      }
+
+      // 2. Registramos en el historial local del cliente
+      const nuevoRescate = {
+        id: Date.now(),
+        productoId: selectedProduct.id,
+        local: selectedProduct.tienda,
+        producto: selectedProduct.nombre,
+        direccion: selectedProduct.direccion,
+        fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+        precio: selectedProduct.precioOferta,
+        estado: "Pendiente"
+      };
+
+      const historialPrevio = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
+      localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescate, ...historialPrevio]));
+      
+      // 3. Actualizamos la vista
+      setStep("success");
+      fetchProductos(); // Recargamos para que el stock se vea actualizado en el catálogo
+    } catch (error) {
+      alert("¡Lo sentimos! Alguien más rescató la última unidad justo ahora.");
+      setIsModalOpen(false);
+      fetchProductos();
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -168,7 +199,7 @@ export default function Catalog() {
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-green-600 w-10 h-10" /></div>
             ) : productosFinales.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-slate-200">
-                  <p className="font-bold text-slate-400">No encontramos ofertas con esos filtros.</p>
+                  <p className="font-bold text-slate-400">No hay productos disponibles por ahora.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -176,9 +207,16 @@ export default function Catalog() {
                   <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                     <div className="relative h-48 overflow-hidden">
                       <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <Badge className="absolute top-4 left-4 bg-green-600 border-none font-black text-white px-3 py-1">
-                        -{prod.descuento}%
-                      </Badge>
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <Badge className="bg-green-600 border-none font-black text-white px-3 py-1 shadow-lg">
+                          -{prod.descuento}%
+                        </Badge>
+                        {prod.stock <= 2 && (
+                          <Badge className="bg-red-500 border-none font-black text-white px-3 py-1 shadow-lg animate-pulse">
+                            ¡ÚLTIMOS!
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="p-6">
                       <div className="flex items-center gap-1 mb-1 text-slate-400">
@@ -186,10 +224,16 @@ export default function Catalog() {
                         <p className="text-[10px] font-black uppercase tracking-tight">{prod.tienda}</p>
                       </div>
                       <h3 className="text-lg font-black text-slate-800 mb-4 line-clamp-1 uppercase">{prod.nombre}</h3>
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                         <div>
                           <p className="text-slate-300 text-xs line-through font-bold">${prod.precioOriginal.toLocaleString()}</p>
                           <p className="text-xl font-black text-slate-900">${prod.precioOferta.toLocaleString()}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Package2 className={`w-3 h-3 ${prod.stock <= 2 ? 'text-red-500' : 'text-orange-500'}`} />
+                            <span className={`text-[10px] font-black uppercase ${prod.stock <= 2 ? 'text-red-500' : 'text-orange-500'}`}>
+                              {prod.stock} disponibles
+                            </span>
+                          </div>
                         </div>
                         <Button onClick={() => openRescate(prod)} className="bg-slate-900 hover:bg-green-700 rounded-xl font-black px-6 shadow-md transition-colors">
                             Rescatar
@@ -216,10 +260,15 @@ export default function Catalog() {
               </DialogHeader>
               <div className="bg-slate-50 p-6 rounded-[28px] mb-8 space-y-3">
                 <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Local:</span><span className="font-black text-slate-900 uppercase">{selectedProduct?.tienda}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400 font-bold">Unidades:</span><span className="font-black text-slate-900">1 unidad</span></div>
                 <div className="flex justify-between text-sm border-t border-slate-200 pt-3"><span className="text-slate-400 font-bold">Total a pagar:</span><span className="text-green-700 font-black text-lg">${selectedProduct?.precioOferta.toLocaleString()}</span></div>
               </div>
-              <Button onClick={confirmarRescate} className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all active:scale-95">
-                  ¡Confirmar! 🥑
+              <Button 
+                onClick={confirmarRescate} 
+                disabled={isProcessing}
+                className="w-full bg-green-600 py-7 rounded-2xl font-black text-lg shadow-lg hover:bg-green-700 transition-all active:scale-95"
+              >
+                  {isProcessing ? <Loader2 className="animate-spin" /> : "¡Confirmar! 🥑"}
               </Button>
             </div>
           ) : (
