@@ -28,7 +28,6 @@ import {
   MapPin
 } from "lucide-react";
 
-// Imagen por defecto si el producto no tiene una
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
 const PRODUCTOS_PRUEBA = [
@@ -74,10 +73,9 @@ export default function Catalog() {
       precioOferta: p.precio_rescate,
       descuento: Math.round(((p.precio_original - p.precio_rescate) / p.precio_original) * 100),
       categoria: "General", 
-      // CLAVE: Usamos la imagen real de la base de datos
       imagen: p.imagen_url || IMG_FALLBACK, 
       esSorpresa: false,
-      direccion: p.direccion
+      direccion: p.direccion || "Dirección no disponible"
     }));
 
     const todos = [...dbNormalizados, ...PRODUCTOS_PRUEBA];
@@ -101,17 +99,20 @@ export default function Catalog() {
   };
 
   const confirmarRescate = () => {
+    // SINCRONIZACIÓN CON MIS RESCATES
     const nuevoRescate = {
       id: Date.now(),
       local: selectedProduct.tienda,
       producto: selectedProduct.nombre,
-      fecha: "Hoy, " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      direccion: selectedProduct.direccion,
+      fecha: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
       precio: selectedProduct.precioOferta,
-      estado: "Pendiente"
+      estado: "Pendiente" // Estado inicial para que salga en "Activos"
     };
 
     const historialPrevio = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
     localStorage.setItem("historial_rescates", JSON.stringify([nuevoRescate, ...historialPrevio]));
+    
     setStep("success");
   };
 
@@ -147,7 +148,6 @@ export default function Catalog() {
           </aside>
 
           <main className="flex-1">
-            {/* Buscador y Ordenar */}
             <div className="flex flex-col md:flex-row gap-4 mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -175,11 +175,7 @@ export default function Catalog() {
                 {productosFinales.map((prod) => (
                   <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                     <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={prod.imagen} 
-                        alt={prod.nombre} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                      />
+                      <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       <Badge className="absolute top-4 left-4 bg-green-600 border-none font-black text-white px-3 py-1">
                         -{prod.descuento}%
                       </Badge>
@@ -208,7 +204,6 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal de Confirmación / Éxito */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[40px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           {step === "confirm" ? (
@@ -237,7 +232,7 @@ export default function Catalog() {
               <div className="bg-slate-900 p-8 rounded-[32px] mb-8 flex flex-col items-center shadow-xl">
                 <QrCode className="w-32 h-32 text-white mb-4" />
                 <p className="text-white font-mono font-bold tracking-widest uppercase text-sm">
-                    ID: {Math.floor(1000 + Math.random() * 9000)}
+                    ID: {String(selectedProduct?.id || "").slice(-4)}
                 </p>
               </div>
               <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-7 rounded-2xl font-black hover:bg-slate-200 transition-colors">

@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   MapPin, 
   ShoppingBag,
-  ArrowRight,
   History
 } from "lucide-react";
 
@@ -21,6 +20,15 @@ export default function MisRescates() {
     const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
     setRescates(guardados);
   }, []);
+
+  // Función para simular que el usuario ya recogió el producto
+  const completarRecogida = (id: number) => {
+    const actualizados = rescates.map(r => 
+      r.id === id ? { ...r, estado: "Completado" } : r
+    );
+    setRescates(actualizados);
+    localStorage.setItem("historial_rescates", JSON.stringify(actualizados));
+  };
 
   const pendientes = rescates.filter(r => r.estado === "Pendiente");
   const completados = rescates.filter(r => r.estado === "Completado");
@@ -59,7 +67,6 @@ export default function MisRescates() {
                 <Card key={rescate.id} className="border-none shadow-xl rounded-[40px] overflow-hidden bg-white">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
-                      {/* Lado del QR */}
                       <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-72">
                         <div className="bg-white p-4 rounded-[32px] mb-4 shadow-2xl">
                           <QrCode className="w-32 h-32 text-slate-900" />
@@ -72,7 +79,6 @@ export default function MisRescates() {
                         </Badge>
                       </div>
 
-                      {/* Lado de Info */}
                       <div className="p-8 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start mb-4">
@@ -86,7 +92,7 @@ export default function MisRescates() {
                           <div className="space-y-3 mb-8">
                             <div className="flex items-center gap-3 text-slate-500 font-medium">
                               <MapPin className="w-5 h-5 text-slate-300" />
-                              <span className="text-sm">Pereira, Risaralda (Ver en mapa)</span>
+                              <span className="text-sm">{rescate.direccion || "Pereira, Risaralda"}</span>
                             </div>
                             <div className="flex items-center gap-3 text-slate-500 font-medium">
                               <Clock className="w-5 h-5 text-slate-300" />
@@ -96,11 +102,11 @@ export default function MisRescates() {
                         </div>
 
                         <div className="flex gap-3">
-                          <Button className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-2xl py-6 font-black border-none">
-                            Ver Local
-                          </Button>
-                          <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-6 font-black shadow-lg shadow-green-100">
-                            ¿Cómo llegar?
+                          <Button 
+                            onClick={() => completarRecogida(rescate.id)}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-6 font-black shadow-lg shadow-green-100"
+                          >
+                            MARCAR RECOGIDO ✅
                           </Button>
                         </div>
                       </div>
@@ -129,15 +135,13 @@ export default function MisRescates() {
                   <p className="text-xs font-bold text-slate-400 mb-4">{rescate.local}</p>
                   <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                     <span className="font-black text-slate-900">${rescate.precio.toLocaleString()}</span>
-                    <Button variant="ghost" className="text-green-600 font-black text-xs p-0 h-auto hover:bg-transparent">
-                      VER DETALLE <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
+                    <Badge className="bg-slate-100 text-slate-500 border-none font-bold">ENTREGADO</Badge>
                   </div>
                 </Card>
               ))
             ) : (
               <div className="col-span-full">
-                <EmptyState icon={<History />} message="Aún no has completado ningún rescate." />
+                <EmptyState icon={<History />} message="Aún no tienes un historial de rescates." />
               </div>
             )}
           </div>
@@ -154,7 +158,7 @@ function EmptyState({ icon, message }: { icon: React.ReactNode, message: string 
         {icon}
       </div>
       <p className="text-slate-500 font-bold">{message}</p>
-      <Button variant="link" className="text-green-600 font-black mt-2">
+      <Button variant="link" className="text-green-600 font-black mt-2" onClick={() => window.location.href='/catalog'}>
         Ir al catálogo ahora
       </Button>
     </div>

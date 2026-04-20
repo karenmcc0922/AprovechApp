@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Store, 
@@ -20,24 +21,38 @@ import { Button } from "@/components/ui/button";
 
 export default function AppNavbar() {
   const [, setLocation] = useLocation();
+  const [pendientesCount, setPendientesCount] = useState(0);
   
   // Detectamos el rol y el nombre desde el localStorage
   const userRole = localStorage.getItem("user_role"); // 'vendor' o 'user'
   const userName = localStorage.getItem("user_name") || "Usuario";
+  const isVendor = userRole === "vendor";
+
+  // Lógica para contar rescates pendientes (notificaciones)
+  useEffect(() => {
+    const checkRescates = () => {
+      const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
+      const count = guardados.filter((r: any) => r.estado === "Pendiente").length;
+      setPendientesCount(count);
+    };
+
+    checkRescates();
+    // Escuchamos cambios en el localStorage por si el usuario compra algo
+    window.addEventListener('storage', checkRescates);
+    return () => window.removeEventListener('storage', checkRescates);
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
     setLocation("/");
   };
 
-  const isVendor = userRole === "vendor";
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         
-        {/* LOGO DINÁMICO: Si es Aliado, va a su Panel. Si es Cliente, al Catálogo. */}
-        <Link href={isVendor ? "/aliado" : "/catalogo"}>
+        {/* LOGO DINÁMICO */}
+        <Link href={isVendor ? "/aliado" : "/catalog"}>
           <div className="flex items-center gap-2 cursor-pointer group">
             <div className="bg-green-600 p-2 rounded-xl group-hover:rotate-12 transition-transform">
               <Store className="text-white w-6 h-6" />
@@ -53,7 +68,7 @@ export default function AppNavbar() {
         {/* MENÚ DE ESCRITORIO */}
         <div className="hidden md:flex items-center gap-6">
           {isVendor ? (
-            // Links para el Comercio
+            // Links para el Comercio (Aliado)
             <>
               <Link href="/aliado">
                 <a className="text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
@@ -69,11 +84,18 @@ export default function AppNavbar() {
           ) : (
             // Links para el Cliente
             <>
-              <Link href="/catalogo">
+              <Link href="/catalog">
                 <a className="text-sm font-bold text-slate-600 hover:text-green-600">Explorar</a>
               </Link>
-              <Link href="/mis-compras">
-                <a className="text-sm font-bold text-slate-600 hover:text-green-600">Mis Compras</a>
+              <Link href="/mis-rescates">
+                <a className="relative text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2">
+                  Mis Compras
+                  {pendientesCount > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-lg shadow-red-200">
+                      {pendientesCount}
+                    </span>
+                  )}
+                </a>
               </Link>
             </>
           )}
@@ -95,7 +117,6 @@ export default function AppNavbar() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
-              {/* REDIRECCIÓN DE PERFIL CORREGIDA */}
               <Link href={isVendor ? "/perfil-aliado" : "/perfil"}>
                 <DropdownMenuItem className="cursor-pointer rounded-lg font-bold">
                   <Settings className="mr-2 h-4 w-4" /> 
@@ -114,8 +135,18 @@ export default function AppNavbar() {
           </DropdownMenu>
         </div>
 
-        {/* MÓVIL (Simple para este ejemplo) */}
-        <div className="md:hidden">
+        {/* MÓVIL */}
+        <div className="md:hidden flex items-center gap-4">
+           {!isVendor && pendientesCount > 0 && (
+             <Link href="/mis-rescates">
+               <div className="relative">
+                 <ShoppingBag className="w-6 h-6 text-slate-600" />
+                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+                    {pendientesCount}
+                 </span>
+               </div>
+             </Link>
+           )}
           <Button variant="ghost" size="icon">
             <Menu className="w-6 h-6" />
           </Button>
