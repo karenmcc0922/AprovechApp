@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Store, User, LogOut, LayoutDashboard, ShoppingBag } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 
 export default function AppNavbar() {
-  const [, setLocation] = useLocation();
   const [pendientesCount, setPendientesCount] = useState(0);
   const [userData, setUserData] = useState<any>(null);
 
