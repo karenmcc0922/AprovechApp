@@ -18,6 +18,7 @@ import {
 export default function MisRescates() {
   const [rescates, setRescates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState<number | null>(null);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
 
   const fetchRescates = async () => {
@@ -31,9 +32,8 @@ export default function MisRescates() {
 
     try {
       const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${user.id}`);
-      const data = await response.json();
-      
       if (response.ok) {
+        const data = await response.json();
         const datosFormateados = data.map((r: any) => ({
           ...r,
           estado: r.estado || "Pendiente"
@@ -51,27 +51,30 @@ export default function MisRescates() {
     fetchRescates();
   }, []);
 
-  // FUNCIÓN CRÍTICA: Actualiza la DB y el estado local
   const completarRecogidaLocal = async (id: number) => {
+    setIsUpdating(id);
     try {
       const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${id}/estado`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: 'Completado' }),
       });
 
       if (response.ok) {
-        // Actualización optimista en la interfaz
+        // Actualizamos localmente para moverlo a historial
         setRescates(prev => 
           prev.map(r => r.id === id ? { ...r, estado: "Completado" } : r)
         );
+        // Pequeño delay para que el usuario vea el éxito antes de que se mueva
+        setTimeout(() => setFilter("completados"), 500);
       } else {
-        console.error("Error al actualizar en el servidor");
+        alert("No se pudo actualizar el estado en el servidor.");
       }
     } catch (error) {
-      console.error("Error de conexión:", error);
+      console.error("Error:", error);
+      alert("Error de conexión al confirmar.");
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -83,6 +86,7 @@ export default function MisRescates() {
       <AppNavbar />
       
       <main className="container mx-auto px-6 pt-32 pb-20 max-w-4xl">
+        {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -149,6 +153,7 @@ export default function MisRescates() {
                         </div>
                       </div>
 
+                      {/* Información */}
                       <div className="p-10 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start mb-6">
@@ -195,9 +200,14 @@ export default function MisRescates() {
 
                         <Button 
                           onClick={() => completarRecogidaLocal(rescate.id)}
+                          disabled={isUpdating === rescate.id}
                           className="w-full mt-8 bg-green-600 hover:bg-slate-900 text-white rounded-[25px] py-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 transition-all hover:scale-[1.02] active:scale-95"
                         >
-                          Confirmar que ya lo tengo ✅
+                          {isUpdating === rescate.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            "Confirmar que ya lo tengo ✅"
+                          )}
                         </Button>
                       </div>
                     </div>
