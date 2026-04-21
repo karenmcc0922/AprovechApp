@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-// Configuración de CORS - ACTUALIZADA para permitir DELETE y PUT
+// Configuración de CORS
 app.use(cors({
   origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -29,127 +29,39 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
-// --- REGISTRO DE USUARIOS (NUEVO) ---
+// --- REGISTRO DE USUARIOS ---
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
+  if (!nombre || !correo) return res.status(400).json({ error: "Nombre y correo son requeridos" });
 
-  // Validación mínima
-  if (!nombre || !correo) {
-    return res.status(400).json({ error: "Nombre y correo son requeridos" });
-  }
-
-  // Insertamos solo lo que tenemos. 
-  // Nota: Asegúrate que en TiDB los otros campos (password, telefono) sean NULLABLE
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
-  
   pool.query(sql, [nombre, correo], (err, result) => {
     if (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ error: "Este correo ya está registrado para recibir beneficios." });
-      }
-      console.error("Error DB:", err);
-      return res.status(500).json({ error: "Error al guardar el registro previo." });
+      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: "Este correo ya está registrado." });
+      return res.status(500).json({ error: "Error al guardar el registro." });
     }
-    
-    res.status(201).json({ 
-      mensaje: "Pre-registro exitoso", 
-      id: result.insertId 
-    });
+    res.status(201).json({ mensaje: "Pre-registro exitoso", id: result.insertId });
   });
 });
 
-// --- COMPLETAR REGISTRO ---
+// --- COMPLETAR PERFIL ---
 app.post('/api/completar-perfil', (req, res) => {
-  // Recibimos los nombres tal cual vienen del frontend (CompleteProfile.tsx)
-  const { 
-    email, 
-    password, 
-    telefono, 
-    direccion, 
-    municipio, 
-    departamento, 
-    pais, 
-    fechaNacimiento 
-  } = req.body;
-
-  // El SQL debe usar los nombres de tu tabla (los de la captura de pantalla)
-  const sql = `
-    UPDATE usuarios 
-    SET password = ?, 
-        telefono = ?, 
-        direccion = ?, 
-        municipio = ?, 
-        departamento = ?, 
-        pais = ?, 
-        fecha_nacimiento = ? 
-    WHERE correo = ?
-  `;
-  
-  // Mapeamos: fechaNacimiento (FE) -> fecha_nacimiento (DB)
-  // email (FE) -> correo (DB)
-  pool.query(
-    sql, 
-    [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], 
-    (err, result) => {
-      if (err) {
-        console.error("Error SQL:", err);
-        return res.status(500).json({ error: "Error al actualizar en TiDB" });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: "No se encontró el usuario con ese correo" });
-      }
-
-      res.status(200).json({ mensaje: "Perfil completado" });
-    }
-  );
+  const { email, password, telefono, direccion, municipio, departamento, pais, fechaNacimiento } = req.body;
+  const sql = `UPDATE usuarios SET password = ?, telefono = ?, direccion = ?, municipio = ?, departamento = ?, pais = ?, fecha_nacimiento = ? WHERE correo = ?`;
+  pool.query(sql, [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], (err, result) => {
+    if (err) return res.status(500).json({ error: "Error al actualizar perfil" });
+    res.status(200).json({ mensaje: "Perfil completado" });
+  });
 });
 
-// --- REGISTRO DE ALIADOS (Corregido para tu tabla 'aliados') ---
+// --- REGISTRO DE ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
-  // 1. Extraemos los datos que vienen del formulario (RegistroAliado.tsx)
   const { nombre_local, nit, correo, direccion, password } = req.body;
-
-  // Validación de seguridad básica
-  if (!nombre_local || !nit || !correo || !password) {
-    return res.status(400).json({ error: "Faltan datos obligatorios para el registro" });
-  }
-
-  // 2. SQL EXPLICITO: Definimos exactamente en qué columnas va cada valor
-  // Usamos los nombres reales de tu captura: nombre_local, nit, correo_corporativo, direccion, password_hash
-  const sql = `
-    INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) 
-    VALUES (?, ?, ?, ?, ?)
-  `;
-
-  // 3. Ejecutamos la consulta
-  pool.query(
-    sql, 
-    [nombre_local, nit, correo, direccion, password], 
-    (err, result) => {
-      if (err) {
-        console.error("DETALLE DEL ERROR SQL:", err); // Esto saldrá en los logs de Render
-        
-        if (err.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ error: "El NIT o Correo ya existen en nuestra base de datos." });
-        }
-        
-        // Si sale este error, revisa los logs de Render para ver si falta alguna columna
-        return res.status(500).json({ error: "Error interno al guardar. Revisa la estructura de la tabla." });
-      }
-
-      console.log("Aliado registrado con éxito:", result.insertId);
-
-      // 4. Respondemos al frontend con el formato que él espera
-      res.status(201).json({ 
-        mensaje: "Comercio registrado", 
-        aliado: { 
-          id: result.insertId, 
-          nombre_local: nombre_local 
-        } 
-      });
-    }
-  );
+  const sql = `INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) VALUES (?, ?, ?, ?, ?)`;
+  pool.query(sql, [nombre_local, nit, correo, direccion, password], (err, result) => {
+    if (err) return res.status(500).json({ error: "Error al registrar aliado" });
+    res.status(201).json({ mensaje: "Comercio registrado", aliado: { id: result.insertId, nombre_local } });
+  });
 });
 
 // --- LOGIN MULTI-ROL ---
@@ -158,179 +70,110 @@ app.post('/api/login', (req, res) => {
   if (role === 'vendor') {
     const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({ error: "Error en el servidor" });
-      if (results.length > 0) {
-        res.status(200).json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
-      } else {
-        res.status(401).json({ error: "Credenciales incorrectas" });
-      }
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
+      else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   } else {
     const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({ error: "Error en el servidor" });
-      if (results.length > 0) {
-        res.status(200).json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
-      } else {
-        res.status(401).json({ error: "Credenciales incorrectas" });
-      }
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
+      else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   }
 });
 
-// --- GESTIÓN DE PRODUCTOS (CRUD COMPLETO) ---
-
-// Crear
+// --- PRODUCTOS ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
-  pool.query(sql, [aliado_id, nombre, Number(precio_original), Number(precio_rescate), Number(stock), imagen_url], (err, result) => {
+  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url], (err, result) => {
     if (err) return res.status(500).json({ error: "Error al guardar" });
     res.status(201).json({ mensaje: "Éxito", id: result.insertId });
   });
 });
 
-// Editar Stock y Precio (NUEVO)
 app.put('/api/productos/:id', (req, res) => {
-  const { id } = req.params;
   const { nombre, precio_rescate, stock } = req.body;
   const sql = "UPDATE productos_rescate SET nombre = ?, precio_rescate = ?, stock = ? WHERE id = ?";
-  pool.query(sql, [nombre, precio_rescate, stock, id], (err, result) => {
-    if (err) return res.status(500).json({ error: err.sqlMessage });
+  pool.query(sql, [nombre, precio_rescate, stock, req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: "Error al actualizar" });
     res.json({ mensaje: "Producto actualizado" });
   });
 });
 
-// Eliminar (NUEVO)
 app.delete('/api/productos/:id', (req, res) => {
-  const { id } = req.params;
-  const sql = "DELETE FROM productos_rescate WHERE id = ?";
-  pool.query(sql, [id], (err, result) => {
-    if (err) return res.status(500).json({ error: "No se pudo eliminar" });
+  pool.query("DELETE FROM productos_rescate WHERE id = ?", [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: "Error al eliminar" });
     res.json({ mensaje: "Producto eliminado" });
   });
 });
 
-// Listar productos de un aliado
 app.get('/api/mis-productos/:aliado_id', (req, res) => {
-  const sql = "SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC";
-  pool.query(sql, [req.params.aliado_id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
-    res.json(results);
+  pool.query("SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC", [req.params.aliado_id], (err, results) => {
+    res.json(results || []);
   });
 });
 
-// Catálogo general
 app.get('/api/productos-todos', (req, res) => {
   const sql = "SELECT p.*, a.nombre_local, a.direccion FROM productos_rescate p JOIN aliados a ON p.aliado_id = a.id WHERE p.stock > 0 ORDER BY p.id DESC";
-  pool.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
-    res.json(results);
-  });
+  pool.query(sql, (err, results) => res.json(results || []));
 });
 
 // --- PEDIDOS ---
 app.post('/api/pedidos/crear', (req, res) => {
-    const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
-    const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const sqlStock = "UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0";
+  const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
+  const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
+  
+  // Forzamos que el stock baje y creamos el pedido con estado 'Pendiente'
+  pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
+    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
     
-    pool.query(sqlStock, [producto_id], (err, result) => {
-        if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
-        const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err, row) => {
-            if (err) return res.status(500).json({ error: "Error al crear pedido" });
-            res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
-        });
+    const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')";
+    pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err) => {
+      if (err) return res.status(500).json({ error: "Error al crear pedido" });
+      res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
     });
-});
-
-// Busca o reemplaza esta ruta en tu index.js
-app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const { id } = req.params;
-  // Traemos los pedidos uniendo con la tabla aliados para tener la dirección y el nombre del local
-  const sql = `
-    SELECT 
-      p.id, 
-      p.nombre_producto AS producto, 
-      p.precio_final AS precio, 
-      p.codigo_qr, 
-      p.estado, 
-      a.nombre_local AS local, 
-      a.direccion 
-    FROM pedidos p 
-    JOIN aliados a ON p.aliado_id = a.id 
-    WHERE p.usuario_id = ? 
-    ORDER BY p.id DESC
-  `;
-
-  pool.query(sql, [id], (err, results) => {
-    if (err) {
-      console.error("Error al obtener rescates:", err);
-      return res.status(500).json({ error: "Error al obtener el historial" });
-    }
-    res.json(results);
   });
 });
 
-// Añadir en index.js antes del PORT
-app.get('/api/pedidos/aliado/:id', (req, res) => {
-  const { id } = req.params;
-  const sql = `
-    SELECT 
-      p.*, 
-      u.telefono as usuario_telefono,
-      u.correo as usuario_correo
-    FROM pedidos p
-    JOIN usuarios u ON p.usuario_id = u.id
-    WHERE p.aliado_id = ?
-    ORDER BY p.id DESC
-  `;
+app.get('/api/pedidos/usuario/:id', (req, res) => {
+  const sql = `SELECT p.id, p.nombre_producto AS producto, p.precio_final AS precio, p.codigo_qr, p.estado, a.nombre_local AS local, a.direccion 
+               FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC`;
+  pool.query(sql, [req.params.id], (err, results) => res.json(results || []));
+});
 
-  pool.query(sql, [id], (err, results) => {
-    if (err) {
-      console.error("Error obteniendo pedidos aliado:", err);
-      return res.status(500).json({ error: "Error en el servidor" });
-    }
-    // Forzamos el estado a 'Pendiente' si es null
-    const pedidos = results.map(p => ({
-      ...p,
-      estado: p.estado || 'Pendiente'
-    }));
+app.get('/api/pedidos/aliado/:id', (req, res) => {
+  const sql = `SELECT p.*, u.telefono as usuario_telefono, u.correo as usuario_correo 
+               FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC`;
+  pool.query(sql, [req.params.id], (err, results) => {
+    const pedidos = (results || []).map(p => ({ ...p, estado: p.estado || 'Pendiente' }));
     res.json(pedidos);
   });
 });
 
-// Actualizar estado del pedido (Confirmar entrega)
-// Actualizar estado del pedido
+// --- LA RUTA DEL ERROR 500 (CORREGIDA) ---
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  // LOG DE DEPURACIÓN: Esto aparecerá en tu consola del servidor
-  console.log(`Intentando actualizar pedido ${id} a estado: ${estado}`);
+  if (!estado) return res.status(400).json({ error: "Estado es requerido" });
 
-  if (!estado) {
-    return res.status(400).json({ error: "El estado es requerido" });
-  }
+  // Agregamos logs para depurar en Render
+  console.log(`Actualizando pedido ${id} a ${estado}`);
 
-  // IMPORTANTE: Verifica que tu tabla se llame 'pedidos' y la columna 'estado'
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
-  
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("ERROR EN LA QUERY:", err);
-      return res.status(500).json({ error: "Error interno del servidor", detalle: err.message });
+      console.error("DATABASE ERROR:", err);
+      // Enviamos el sqlMessage para saber exactamente qué falló (ej. columna inexistente)
+      return res.status(500).json({ error: "Error interno", detalle: err.sqlMessage });
     }
     
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "No se encontró el pedido con ese ID" });
-    }
-
-    console.log("¡Actualización exitosa!");
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
+    
     res.json({ success: true, mensaje: "Estado actualizado" });
   });
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Puerto ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Servidor en puerto ${PORT}`));
