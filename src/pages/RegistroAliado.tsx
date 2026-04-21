@@ -21,7 +21,6 @@ export default function RegistroAliado() {
     e.preventDefault();
     setLoading(true);
 
-    // Limpieza básica de datos (trim)
     const datosAEnviar = {
       nombre_local: formData.nombre_local.trim(),
       nit: formData.nit.trim(),
@@ -43,16 +42,23 @@ export default function RegistroAliado() {
       const data = await response.json();
 
       if (response.ok && data.aliado) {
-        // --- SESIÓN ACTUALIZADA ---
-        // Guardamos el nombre real devuelto por la DB y el ID único
-        localStorage.setItem("user_name", data.aliado.nombre_local);
-        localStorage.setItem("user_role", "vendor");
-        localStorage.setItem("aliado_id", data.aliado.id.toString());
+        // --- SESIÓN UNIFICADA (Sincronizada con AppNavbar) ---
+        const sessionData = {
+          id: data.aliado.id,
+          nombre: data.aliado.nombre_local,
+          role: "vendor",
+          email: formData.correo
+        };
+
+        // Guardamos el objeto único
+        localStorage.setItem("usuario", JSON.stringify(sessionData));
         
-        // Redirigimos
+        // Notificamos a otros componentes (como la Navbar) que el storage cambió
+        window.dispatchEvent(new Event("storage"));
+        
+        // Redirigimos al Dashboard de aliado
         setLocation("/aliado");
       } else {
-        // Si el backend envió un error (ej: NIT duplicado)
         alert(data.error || "Error: No se pudo crear la cuenta del comercio.");
       }
     } catch (error) {
@@ -75,7 +81,7 @@ export default function RegistroAliado() {
         <Card className="border-none shadow-2xl rounded-[40px] bg-white overflow-hidden">
           <div className="bg-green-700 p-8 text-white text-center">
             <Store className="w-12 h-12 mx-auto mb-4 opacity-80" />
-            <h1 className="text-3xl font-black italic tracking-tighter">REGISTRO ALIADO</h1>
+            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registro Aliado</h1>
             <p className="text-green-100 mt-2 font-medium">Únete a la red de rescate de alimentos.</p>
           </div>
 
