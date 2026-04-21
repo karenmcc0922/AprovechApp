@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  Package, 
   Trash2, 
   Loader2, 
   DollarSign, 
@@ -13,7 +12,8 @@ import {
   Gift, 
   CheckCircle2, 
   Plus,
-  Pencil
+  Pencil,
+  BarChart3
 } from "lucide-react";
 
 export default function Aliado() {
@@ -48,7 +48,6 @@ export default function Aliado() {
 
   useEffect(() => { cargarProductos(); }, []);
 
-  // --- FUNCIONES DE ARCHIVOS (Recuperadas para limpiar errores) ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -67,7 +66,6 @@ export default function Aliado() {
     setNuevoProducto(prev => ({ ...prev, esSorpresa: true, imagen_url: "" }));
   };
 
-  // --- LÓGICA DE GESTIÓN (EDITAR Y ELIMINAR) ---
   const eliminarProducto = async (id: number) => {
     if (!confirm("¿Deseas eliminar esta oferta permanentemente?")) return;
     try {
@@ -93,7 +91,6 @@ export default function Aliado() {
     } catch (error) { alert("Error al editar"); }
   };
 
-  // --- LÓGICA DE PRECIOS ---
   const handlePrecioOriginalChange = (val: string) => {
     const original = Number(val);
     const desc = Number(descuentoManual);
@@ -140,60 +137,89 @@ export default function Aliado() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
-      <main className="container mx-auto px-4 pt-28 pb-12 max-w-7xl">
+      <main className="container mx-auto px-4 pt-32 pb-12 max-w-7xl">
         
-        {/* Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <Card className="border-none shadow-sm rounded-[32px] bg-white p-6 flex items-center gap-4">
-            <div className="bg-green-100 p-4 rounded-2xl"><DollarSign className="text-green-600" /></div>
+        {/* Header de Aliado */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Panel de Aliado</h1>
+            </div>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Gestiona tus excedentes y aumenta tus ventas</p>
+          </div>
+          <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+             <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Local Operativo</span>
+          </div>
+        </div>
+
+        {/* Métricas con diseño mejorado */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
+            <div className="bg-green-50 p-4 rounded-2xl"><DollarSign className="text-green-600 w-6 h-6" /></div>
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ingresos Proyectados</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ganancia Potencial</p>
               <h3 className="text-2xl font-black text-slate-900">
                 ${productos.reduce((acc, p) => acc + (Number(p.precio_rescate) * Number(p.stock)), 0).toLocaleString()}
               </h3>
             </div>
           </Card>
+          <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
+            <div className="bg-blue-50 p-4 rounded-2xl"><BarChart3 className="text-blue-600 w-6 h-6" /></div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ofertas Activas</p>
+              <h3 className="text-2xl font-black text-slate-900">{productos.length}</h3>
+            </div>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* FORMULARIO DE CREACIÓN */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* FORMULARIO DE CREACIÓN REDISEÑADO */}
           <div className="space-y-6">
-            <Card className="border-none shadow-xl rounded-[40px] bg-white overflow-hidden">
-              <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
-                <span className="font-bold flex items-center gap-2 text-sm"><Plus className="w-4 h-4 text-green-400"/> NUEVA OFERTA</span>
+            <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden">
+              <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Plus className="w-5 h-5 text-green-400"/>
+                  <span className="font-black text-sm uppercase tracking-widest">Crear Oferta</span>
+                </div>
               </div>
 
-              <CardContent className="p-8 space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-5">
+              <CardContent className="p-10 space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Selector Sorpresa / Real */}
                   <div 
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
-                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-100"}`}
+                    className={`cursor-pointer p-5 rounded-3xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500 shadow-inner" : "bg-slate-50 border-slate-100"}`}
                   >
-                    <div className="flex gap-3 items-center">
-                      <div className={`p-2 rounded-xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                        {nuevoProducto.esSorpresa ? <Gift className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+                    <div className="flex gap-4 items-center">
+                      <div className={`p-3 rounded-2xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white shadow-lg' : 'bg-slate-200 text-slate-400'}`}>
+                        {nuevoProducto.esSorpresa ? <Gift className="w-5 h-5" /> : <ImageIcon className="w-5 h-5" />}
                       </div>
-                      <p className="font-black text-xs text-slate-800 uppercase">Pack Sorpresa</p>
+                      <p className="font-black text-xs text-slate-800 uppercase tracking-tight">
+                        {nuevoProducto.esSorpresa ? "Pack Sorpresa" : "Producto Único"}
+                      </p>
                     </div>
-                    {nuevoProducto.esSorpresa && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                    {nuevoProducto.esSorpresa && <CheckCircle2 className="w-6 h-6 text-green-600" />}
                   </div>
 
                   {/* Subida de Imagen */}
                   {!nuevoProducto.esSorpresa && (
-                    <div className="space-y-2">
-                      <Label>Foto del Producto</Label>
+                    <div className="space-y-3">
+                      <Label>Imagen Real</Label>
                       {imagePreview ? (
-                        <div className="relative h-32 rounded-2xl overflow-hidden shadow-inner">
+                        <div className="relative h-40 rounded-[30px] overflow-hidden shadow-xl border-4 border-white">
                           <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                          <button onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"><X size={14}/></button>
+                          <button onClick={removeImage} className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
                         </div>
                       ) : (
-                        <label className="w-full h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer border-slate-300 hover:bg-slate-50">
-                          <ImageIcon className="w-6 h-6 text-slate-300 mb-1" />
-                          <span className="text-[9px] font-black text-slate-400 uppercase">Subir Foto Real</span>
+                        <label className="w-full h-40 border-2 border-dashed rounded-[30px] flex flex-col items-center justify-center cursor-pointer border-slate-200 hover:bg-slate-50 hover:border-green-400 transition-all group">
+                          <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-green-50 transition-colors">
+                            <ImageIcon className="w-6 h-6 text-slate-300 group-hover:text-green-500" />
+                          </div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase mt-3 tracking-widest">Cargar Fotografía</span>
                           <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                       )}
@@ -201,59 +227,79 @@ export default function Aliado() {
                   )}
 
                   <div className="space-y-2">
-                    <Label>Nombre del Producto</Label>
-                    <Input className="rounded-xl bg-slate-50 border-none" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
+                    <Label>¿Qué vas a rescatar?</Label>
+                    <Input className="rounded-2xl bg-slate-50 border-none py-6 font-bold text-slate-700" placeholder="Ej: Bolsa de Croissants" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Precio Original</Label>
-                      <Input type="number" className="rounded-xl" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
+                    <div className="space-y-2">
+                      <Label>Precio Base</Label>
+                      <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black" placeholder="30000" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Descuento %</Label>
-                      <Input type="number" className="rounded-xl" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
+                      <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black text-green-600" placeholder="50" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Stock Disponible</Label>
-                    <Input type="number" className="rounded-xl" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
+                    <Label>Cantidad de Packs (Stock)</Label>
+                    <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black" placeholder="5" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full bg-slate-900 py-7 rounded-2xl font-black text-base shadow-lg hover:bg-green-600 transition-all">
-                    {loading ? <Loader2 className="animate-spin" /> : "PUBLICAR RESCATE 🚀"}
-                  </Button>
+                  <div className="pt-4">
+                    <Button type="submit" disabled={loading} className="w-full bg-slate-900 py-8 rounded-[25px] font-black text-sm tracking-widest shadow-xl hover:bg-green-600 transition-all uppercase">
+                      {loading ? <Loader2 className="animate-spin" /> : "Publicar ahora 🚀"}
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
           </div>
 
-          {/* LISTA DE INVENTARIO */}
-          <div className="lg:col-span-2 space-y-5">
-            <h2 className="text-xl font-black text-slate-800 flex gap-2 items-center"><Package className="text-slate-400"/> Inventario Activo</h2>
-            <div className="grid gap-4">
+          {/* LISTA DE INVENTARIO REDISEÑADA */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-black text-slate-800 flex gap-3 items-center uppercase tracking-tighter">
+                   Tu Inventario Actual
+                </h2>
+                <Badge className="bg-slate-200 text-slate-600 border-none font-black px-4 py-1 rounded-full uppercase text-[10px]">
+                  {productos.length} items
+                </Badge>
+            </div>
+            
+            <div className="grid gap-5">
               {productos.length === 0 ? (
-                <div className="bg-white rounded-[40px] p-20 text-center border-2 border-dashed border-slate-200 text-slate-400 font-bold uppercase text-xs">No hay ofertas activas</div>
+                <div className="bg-white rounded-[45px] py-32 text-center border-2 border-dashed border-slate-100 flex flex-col items-center">
+                    <img src="/logo.png" className="w-12 h-12 grayscale opacity-20 mb-4" />
+                    <p className="font-black text-slate-300 uppercase text-[10px] tracking-widest">Aún no tienes ofertas publicadas</p>
+                </div>
               ) : (
                 productos.map((prod) => (
-                  <Card key={prod.id} className="border-none shadow-sm rounded-[32px] p-4 bg-white">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <img src={prod.imagen_url || IMG_SORPRESA} className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
+                  <Card key={prod.id} className="border-none shadow-sm rounded-[35px] p-6 bg-white hover:shadow-xl transition-shadow group">
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="flex items-center gap-6">
+                        <div className="relative">
+                            <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[25px] object-cover shadow-md group-hover:scale-105 transition-transform" />
+                            {prod.stock < 3 && <div className="absolute -top-2 -right-2 bg-red-500 w-6 h-6 rounded-full border-4 border-white animate-pulse" />}
+                        </div>
                         <div>
-                          <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
-                          <p className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded inline-block mt-1 uppercase">Stock: {prod.stock}</p>
+                          <h4 className="font-black text-slate-800 text-base uppercase tracking-tight mb-1">{prod.nombre}</h4>
+                          <div className="flex gap-2 items-center">
+                             <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase">Stock: {prod.stock}</span>
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">${Number(prod.precio_original).toLocaleString()} Original</span>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-lg font-black text-slate-900">${Number(prod.precio_rescate).toLocaleString()}</p>
+                          <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(prod.precio_rescate).toLocaleString()}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Precio Rescate</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={() => editarStock(prod)} variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-100 text-slate-400 hover:text-blue-600"><Pencil size={16}/></Button>
-                          <Button onClick={() => eliminarProducto(prod.id)} variant="outline" className="h-10 w-10 p-0 rounded-xl border-slate-100 text-slate-400 hover:text-red-500"><Trash2 size={16}/></Button>
+                          <Button onClick={() => editarStock(prod)} variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-50 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border-none"><Pencil size={18}/></Button>
+                          <Button onClick={() => eliminarProducto(prod.id)} variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-50 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border-none"><Trash2 size={18}/></Button>
                         </div>
                       </div>
                     </div>
@@ -269,5 +315,9 @@ export default function Aliado() {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-[10px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
+  return <label className="text-[10px] font-black uppercase text-slate-400 ml-1 block mb-2 tracking-widest">{children}</label>;
+}
+
+function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>;
 }

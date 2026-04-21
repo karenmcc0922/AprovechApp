@@ -9,7 +9,9 @@ import {
   CheckCircle2, 
   MapPin, 
   ShoppingBag,
-  History
+  History,
+  ArrowRight,
+  Ticket
 } from "lucide-react";
 
 export default function MisRescates() {
@@ -21,7 +23,6 @@ export default function MisRescates() {
     setRescates(guardados);
   }, []);
 
-  // Función para simular que el usuario ya recogió el producto
   const completarRecogida = (id: number) => {
     const actualizados = rescates.map(r => 
       r.id === id ? { ...r, estado: "Completado" } : r
@@ -34,26 +35,40 @@ export default function MisRescates() {
   const completados = rescates.filter(r => r.estado === "Completado");
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
       
-      <main className="container mx-auto px-4 pt-28 pb-12 max-w-4xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+      <main className="container mx-auto px-6 pt-32 pb-20 max-w-4xl">
+        {/* Cabecera Dinámica */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Mis Rescates 🛍️</h1>
-            <p className="text-slate-500 font-medium mt-1">Gestiona tus rescates y códigos de recogida.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-1 bg-green-500 rounded-full" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tu impacto positivo</p>
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">
+              Mis <span className="text-green-600">Rescates</span>
+            </h1>
           </div>
           
-          <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex bg-slate-200/50 p-1.5 rounded-[24px] backdrop-blur-sm">
             <button 
               onClick={() => setFilter("pendientes")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${filter === "pendientes" ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"}`}
+              className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
+                filter === "pendientes" 
+                ? "bg-white text-slate-900 shadow-xl scale-105" 
+                : "text-slate-500 hover:text-slate-700"
+              }`}
             >
               Activos ({pendientes.length})
             </button>
             <button 
               onClick={() => setFilter("completados")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${filter === "completados" ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"}`}
+              className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
+                filter === "completados" 
+                ? "bg-white text-slate-900 shadow-xl scale-105" 
+                : "text-slate-500 hover:text-slate-700"
+              }`}
             >
               Historial
             </button>
@@ -61,54 +76,79 @@ export default function MisRescates() {
         </div>
 
         {filter === "pendientes" ? (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {pendientes.length > 0 ? (
               pendientes.map((rescate) => (
-                <Card key={rescate.id} className="border-none shadow-xl rounded-[40px] overflow-hidden bg-white">
+                <Card key={rescate.id} className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[45px] overflow-hidden bg-white">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
-                      <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-72">
-                        <div className="bg-white p-4 rounded-[32px] mb-4 shadow-2xl">
-                          <QrCode className="w-32 h-32 text-slate-900" />
+                      {/* Lado del QR (Estilo Ticket) */}
+                      <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
+                        {/* Decoración de Ticket */}
+                        <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4">
+                            {[...Array(8)].map((_, i) => (
+                                <div key={i} className="w-6 h-6 rounded-full bg-[#F8FAFC]" />
+                            ))}
                         </div>
-                        <p className="font-mono font-bold tracking-[0.3em] text-lg uppercase">
-                          #{String(rescate.id).slice(-4)}
-                        </p>
-                        <Badge className="mt-4 bg-green-500/20 text-green-400 border-none px-4 py-1 font-black">
-                          LISTO PARA RECOGER
-                        </Badge>
+
+                        <div className="bg-white p-5 rounded-[35px] mb-6 shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
+                          <QrCode className="w-36 h-36 text-slate-900" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Código de Rescate</p>
+                          <p className="font-mono text-2xl font-black tracking-widest text-green-400">
+                            #{String(rescate.id).slice(-4).toUpperCase()}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="p-8 flex-1 flex flex-col justify-between">
+                      {/* Información del Producto */}
+                      <div className="p-10 flex-1 flex flex-col justify-between">
                         <div>
-                          <div className="flex justify-between items-start mb-4">
+                          <div className="flex justify-between items-start mb-6">
                             <div>
-                              <p className="text-green-600 font-black text-xs uppercase tracking-widest mb-1">{rescate.local}</p>
-                              <h3 className="text-2xl font-black text-slate-900">{rescate.producto}</h3>
+                              <Badge className="bg-green-100 text-green-700 border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider mb-3">
+                                Listo para entrega
+                              </Badge>
+                              <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">{rescate.producto}</h3>
+                              <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
+                                <Ticket className="w-4 h-4" /> {rescate.local}
+                              </p>
                             </div>
-                            <p className="text-2xl font-black text-slate-900">${rescate.precio.toLocaleString()}</p>
+                            <div className="text-right">
+                              <p className="text-3xl font-black text-slate-900 tracking-tighter">${rescate.precio.toLocaleString()}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Pagado</p>
+                            </div>
                           </div>
                           
-                          <div className="space-y-3 mb-8">
-                            <div className="flex items-center gap-3 text-slate-500 font-medium">
-                              <MapPin className="w-5 h-5 text-slate-300" />
-                              <span className="text-sm">{rescate.direccion || "Pereira, Risaralda"}</span>
+                          <div className="space-y-4 py-6 border-y border-slate-50">
+                            <div className="flex items-center gap-4 group">
+                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-green-50 transition-colors">
+                                <MapPin className="w-5 h-5 text-slate-400 group-hover:text-green-600" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
+                                <p className="text-sm font-bold text-slate-700">{rescate.direccion || "Pereira, Centro"}</p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-slate-500 font-medium">
-                              <Clock className="w-5 h-5 text-slate-300" />
-                              <span className="text-sm">Recoger antes de las 8:00 PM</span>
+                            <div className="flex items-center gap-4 group">
+                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors">
+                                <Clock className="w-5 h-5 text-slate-400 group-hover:text-orange-600" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Horario límite</p>
+                                <p className="text-sm font-bold text-slate-700">Hoy antes de las 8:00 PM</p>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex gap-3">
-                          <Button 
-                            onClick={() => completarRecogida(rescate.id)}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-6 font-black shadow-lg shadow-green-100"
-                          >
-                            MARCAR RECOGIDO ✅
-                          </Button>
-                        </div>
+                        <Button 
+                          onClick={() => completarRecogida(rescate.id)}
+                          className="w-full mt-8 bg-green-600 hover:bg-slate-900 text-white rounded-[25px] py-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 transition-all hover:scale-[1.02] active:scale-95"
+                        >
+                          Confirmar que ya lo tengo ✅
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -119,23 +159,27 @@ export default function MisRescates() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {completados.length > 0 ? (
               completados.map((rescate) => (
-                <Card key={rescate.id} className="border-none shadow-sm rounded-[32px] bg-white p-6 hover:shadow-md transition-all border border-slate-50">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="bg-slate-50 p-3 rounded-2xl">
+                <Card key={rescate.id} className="border-none shadow-sm rounded-[35px] bg-white p-8 hover:shadow-xl transition-all group border border-transparent hover:border-slate-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <CheckCircle2 className="w-6 h-6 text-green-600" />
                     </div>
-                    <Badge variant="outline" className="text-slate-400 border-slate-100 font-bold">
-                      {rescate.fecha}
-                    </Badge>
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                      {rescate.fecha || "Completado"}
+                    </span>
                   </div>
-                  <h4 className="font-black text-slate-800 uppercase text-sm mb-1">{rescate.producto}</h4>
-                  <p className="text-xs font-bold text-slate-400 mb-4">{rescate.local}</p>
-                  <div className="flex justify-between items-center pt-4 border-t border-slate-50">
-                    <span className="font-black text-slate-900">${rescate.precio.toLocaleString()}</span>
-                    <Badge className="bg-slate-100 text-slate-500 border-none font-bold">ENTREGADO</Badge>
+                  <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">{rescate.producto}</h4>
+                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">{rescate.local}</p>
+                  
+                  <div className="flex justify-between items-center pt-6 border-t border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
+                      <span className="font-black text-slate-900 text-xl">${rescate.precio.toLocaleString()}</span>
+                    </div>
+                    <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1">RECATADO</Badge>
                   </div>
                 </Card>
               ))
@@ -153,13 +197,16 @@ export default function MisRescates() {
 
 function EmptyState({ icon, message }: { icon: React.ReactNode, message: string }) {
   return (
-    <div className="text-center py-20 bg-white rounded-[48px] border-2 border-dashed border-slate-100">
-      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+    <div className="text-center py-24 bg-white rounded-[50px] border-4 border-dashed border-slate-50">
+      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
         {icon}
       </div>
-      <p className="text-slate-500 font-bold">{message}</p>
-      <Button variant="link" className="text-green-600 font-black mt-2" onClick={() => window.location.href='/catalog'}>
-        Ir al catálogo ahora
+      <p className="text-slate-400 font-black uppercase tracking-widest text-xs mb-6 px-10 leading-relaxed">{message}</p>
+      <Button 
+        onClick={() => window.location.href='/catalog'}
+        className="bg-slate-900 hover:bg-green-600 text-white rounded-full px-10 py-6 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-3 mx-auto"
+      >
+        Ir al catálogo <ArrowRight className="w-4 h-4" />
       </Button>
     </div>
   );
