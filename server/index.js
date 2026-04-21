@@ -245,10 +245,30 @@ app.post('/api/pedidos/crear', (req, res) => {
     });
 });
 
+// Busca o reemplaza esta ruta en tu index.js
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const sql = "SELECT p.*, a.nombre_local FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
-  pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
+  const { id } = req.params;
+  // Traemos los pedidos uniendo con la tabla aliados para tener la dirección y el nombre del local
+  const sql = `
+    SELECT 
+      p.id, 
+      p.nombre_producto AS producto, 
+      p.precio_final AS precio, 
+      p.codigo_qr, 
+      p.estado, 
+      a.nombre_local AS local, 
+      a.direccion 
+    FROM pedidos p 
+    JOIN aliados a ON p.aliado_id = a.id 
+    WHERE p.usuario_id = ? 
+    ORDER BY p.id DESC
+  `;
+
+  pool.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Error al obtener rescates:", err);
+      return res.status(500).json({ error: "Error al obtener el historial" });
+    }
     res.json(results);
   });
 });

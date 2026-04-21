@@ -11,35 +11,68 @@ import {
   ShoppingBag,
   History,
   ArrowRight,
-  Ticket
+  Ticket,
+  Loader2
 } from "lucide-react";
 
 export default function MisRescates() {
   const [rescates, setRescates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
 
   useEffect(() => {
-    const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-    setRescates(guardados);
+    const fetchRescates = async () => {
+      // 1. Obtenemos el usuario de la sesión
+      const stored = localStorage.getItem("usuario");
+      if (!stored) {
+        setLoading(false);
+        return;
+      }
+      
+      const user = JSON.parse(stored);
+
+      try {
+        // 2. Consultamos la API con el ID del usuario
+        const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${user.id}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Aseguramos que el estado sea 'Pendiente' si viene vacío de la DB
+          const datosFormateados = data.map((r: any) => ({
+            ...r,
+            estado: r.estado || "Pendiente"
+          }));
+          setRescates(datosFormateados);
+        }
+      } catch (error) {
+        console.error("Error cargando rescates:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRescates();
   }, []);
 
-  const completarRecogida = (id: number) => {
+  // Filtrado de datos
+  const pendientes = rescates.filter(r => r.estado === "Pendiente");
+  const completados = rescates.filter(r => r.estado === "Completado");
+
+  const completarRecogidaLocal = (id: number) => {
+    // Optimistic UI: actualizamos en pantalla inmediatamente
     const actualizados = rescates.map(r => 
       r.id === id ? { ...r, estado: "Completado" } : r
     );
     setRescates(actualizados);
-    localStorage.setItem("historial_rescates", JSON.stringify(actualizados));
+    // Nota: Aquí podrías añadir un fetch PUT para avisar al backend que se entregó
   };
-
-  const pendientes = rescates.filter(r => r.estado === "Pendiente");
-  const completados = rescates.filter(r => r.estado === "Completado");
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
       
       <main className="container mx-auto px-6 pt-32 pb-20 max-w-4xl">
-        {/* Cabecera Dinámica */}
+        {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -70,21 +103,25 @@ export default function MisRescates() {
                 : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Historial
+              Historial ({completados.length})
             </button>
           </div>
         </div>
 
-        {filter === "pendientes" ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sincronizando con la red...</p>
+          </div>
+        ) : filter === "pendientes" ? (
           <div className="space-y-8">
             {pendientes.length > 0 ? (
               pendientes.map((rescate) => (
                 <Card key={rescate.id} className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[45px] overflow-hidden bg-white">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
-                      {/* Lado del QR (Estilo Ticket) */}
+                      {/* Sección Ticket / QR */}
                       <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
-                        {/* Decoración de Ticket */}
                         <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4">
                             {[...Array(8)].map((_, i) => (
                                 <div key={i} className="w-6 h-6 rounded-full bg-[#F8FAFC]" />
@@ -95,20 +132,20 @@ export default function MisRescates() {
                           <QrCode className="w-36 h-36 text-slate-900" />
                         </div>
                         <div className="text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Código de Rescate</p>
-                          <p className="font-mono text-2xl font-black tracking-widest text-green-400">
-                            #{String(rescate.id).slice(-4).toUpperCase()}
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">CÓDIGO DE RESCATE</p>
+                          <p className="font-mono text-2xl font-black tracking-widest text-green-400 uppercase">
+                            {rescate.codigo_qr}
                           </p>
                         </div>
                       </div>
 
-                      {/* Información del Producto */}
+                      {/* Información */}
                       <div className="p-10 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start mb-6">
                             <div>
                               <Badge className="bg-green-100 text-green-700 border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider mb-3">
-                                Listo para entrega
+                                LISTO PARA ENTREGA
                               </Badge>
                               <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">{rescate.producto}</h3>
                               <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
@@ -116,35 +153,35 @@ export default function MisRescates() {
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-3xl font-black text-slate-900 tracking-tighter">${rescate.precio.toLocaleString()}</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">Pagado</p>
+                              <p className="text-3xl font-black text-slate-900 tracking-tighter">${Number(rescate.precio).toLocaleString()}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">PAGADO</p>
                             </div>
                           </div>
                           
                           <div className="space-y-4 py-6 border-y border-slate-50">
-                            <div className="flex items-center gap-4 group">
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-green-50 transition-colors">
-                                <MapPin className="w-5 h-5 text-slate-400 group-hover:text-green-600" />
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+                                <MapPin className="w-5 h-5 text-slate-400" />
                               </div>
                               <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
-                                <p className="text-sm font-bold text-slate-700">{rescate.direccion || "Pereira, Centro"}</p>
+                                <p className="text-sm font-bold text-slate-700">{rescate.direccion}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 group">
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors">
-                                <Clock className="w-5 h-5 text-slate-400 group-hover:text-orange-600" />
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+                                <Clock className="w-5 h-5 text-slate-400" />
                               </div>
                               <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase">Horario límite</p>
-                                <p className="text-sm font-bold text-slate-700">Hoy antes de las 8:00 PM</p>
+                                <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del local</p>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         <Button 
-                          onClick={() => completarRecogida(rescate.id)}
+                          onClick={() => completarRecogidaLocal(rescate.id)}
                           className="w-full mt-8 bg-green-600 hover:bg-slate-900 text-white rounded-[25px] py-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 transition-all hover:scale-[1.02] active:scale-95"
                         >
                           Confirmar que ya lo tengo ✅
@@ -167,9 +204,7 @@ export default function MisRescates() {
                     <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <CheckCircle2 className="w-6 h-6 text-green-600" />
                     </div>
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                      {rescate.fecha || "Completado"}
-                    </span>
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">RESCATADO</span>
                   </div>
                   <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">{rescate.producto}</h4>
                   <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">{rescate.local}</p>
@@ -177,9 +212,9 @@ export default function MisRescates() {
                   <div className="flex justify-between items-center pt-6 border-t border-slate-50">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
-                      <span className="font-black text-slate-900 text-xl">${rescate.precio.toLocaleString()}</span>
+                      <span className="font-black text-slate-900 text-xl">${Number(rescate.precio).toLocaleString()}</span>
                     </div>
-                    <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1">RECATADO</Badge>
+                    <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1 uppercase">Historial</Badge>
                   </div>
                 </Card>
               ))
