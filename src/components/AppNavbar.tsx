@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Store, User, LogOut, LayoutDashboard, ShoppingBag } from "lucide-react";
+import { 
+  User, 
+  LogOut, 
+  Search
+} from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,35 +14,32 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function AppNavbar() {
   const [pendientesCount, setPendientesCount] = useState(0);
   const [userData, setUserData] = useState<any>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    // Función centralizada para cargar todos los datos de sesión
+    // Efecto de scroll para la sombra
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+
     const loadAppData = () => {
       const stored = localStorage.getItem("usuario");
       if (stored) {
         try {
           const user = JSON.parse(stored);
           setUserData(user);
-
-          // Lógica de conteo de notificaciones (Pedidos pendientes)
           const guardados = JSON.parse(localStorage.getItem("historial_rescates") || "[]");
-          const isVendor = user.role === "vendor";
           
-          if (isVendor) {
-            const count = guardados.filter((r: any) => 
-              (r.aliado_id === user.id) && r.estado === "Pendiente"
-            ).length;
-            setPendientesCount(count);
-          } else {
-            const count = guardados.filter((r: any) => 
-              r.usuario_id === user.id && r.estado === "Pendiente"
-            ).length;
-            setPendientesCount(count);
-          }
+          const count = guardados.filter((r: any) => 
+            (user.role === "vendor" ? r.aliado_id === user.id : r.usuario_id === user.id) 
+            && r.estado === "Pendiente"
+          ).length;
+          
+          setPendientesCount(count);
         } catch (e) {
           console.error("Error al procesar datos del usuario", e);
         }
@@ -46,121 +47,130 @@ export default function AppNavbar() {
     };
 
     loadAppData();
-
-    // Sincronización entre pestañas y actualización automática cada 5 segundos
     window.addEventListener('storage', loadAppData);
     const interval = setInterval(loadAppData, 5000);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('storage', loadAppData);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
-  // Variables derivadas del estado actual
   const isVendor = userData?.role === "vendor";
   const userName = userData?.nombre || "Usuario";
 
   const handleLogout = () => {
     localStorage.clear();
-    setUserData(null);
-    // Forzamos el salto a la página de inicio y recarga total
     window.location.href = "/";
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled 
+        ? "bg-white/90 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] py-3" 
+        : "bg-transparent py-5"
+    }`}>
+      <div className="container mx-auto px-6 flex items-center justify-between">
         
         {/* LOGO DINÁMICO */}
         <Link href={isVendor ? "/aliado" : "/catalog"}>
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="bg-green-600 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-green-200">
-              <Store className="text-white w-6 h-6" />
-            </div>
-            <span className="text-2xl font-black text-slate-900 tracking-tighter">
-              AprovechApp 
-              {isVendor && (
-                <span className="text-green-600 text-sm font-bold uppercase tracking-widest ml-2 bg-green-50 px-2 py-0.5 rounded-md">
-                  Business
+          <div className="flex items-center gap-3 cursor-pointer group">
+            <div className="relative">
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300" 
+              />
+              {pendientesCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
               )}
-            </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-[1000] text-slate-900 tracking-tighter leading-none uppercase italic">
+                Aprovech<span className="text-green-600">App</span>
+              </span>
+              {isVendor && (
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-green-600 leading-none mt-1">
+                  Business Partner
+                </span>
+              )}
+            </div>
           </div>
         </Link>
 
-        {/* NAVEGACIÓN Y PERFIL */}
-        <div className="flex items-center gap-4 md:gap-6">
-          
-          {/* MENÚ DE ESCRITORIO */}
-          <div className="hidden md:flex items-center gap-6">
-            {isVendor ? (
-              <>
-                <Link href="/aliado">
-                  <a className="text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2 transition-colors">
-                    <LayoutDashboard className="w-4 h-4" /> Mi Panel
-                  </a>
-                </Link>
-                <Link href="/pedidos-recibir">
-                  <a className="relative text-sm font-bold text-slate-600 hover:text-green-600 flex items-center gap-2 transition-colors">
-                    <ShoppingBag className="w-4 h-4" /> 
-                    Pedidos 
-                    {pendientesCount > 0 && (
-                      <span className="absolute -top-2 -right-3 bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
-                        {pendientesCount}
-                      </span>
-                    )}
-                  </a>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/catalog">
-                  <a className="text-sm font-bold text-slate-600 hover:text-green-600 transition-colors">Explorar</a>
-                </Link>
-                <Link href="/mis-rescates">
-                  <a className="relative text-sm font-bold text-slate-600 hover:text-green-600 transition-colors">
-                    Mis Rescates 
-                    {pendientesCount > 0 && (
-                      <span className="ml-1 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                        {pendientesCount}
-                      </span>
-                    )}
-                  </a>
-                </Link>
-              </>
-            )}
-          </div>
+        {/* NAVEGACIÓN CENTRAL (Desktop) */}
+        <div className="hidden md:flex items-center bg-slate-100/50 p-1.5 rounded-full border border-slate-200/50">
+          <Link href={isVendor ? "/aliado" : "/catalog"}>
+            <a className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+              window.location.pathname === (isVendor ? "/aliado" : "/catalog")
+                ? "bg-white text-green-600 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
+            }`}>
+              {isVendor ? "Dashboard" : "Explorar"}
+            </a>
+          </Link>
+          <Link href={isVendor ? "/pedidos-recibir" : "/mis-rescates"}>
+            <a className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all relative ${
+              window.location.pathname.includes("rescates") || window.location.pathname.includes("pedidos")
+                ? "bg-white text-green-600 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
+            }`}>
+              {isVendor ? "Pedidos" : "Mis Rescates"}
+              {pendientesCount > 0 && (
+                <span className="absolute top-1 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
+              )}
+            </a>
+          </Link>
+        </div>
 
-          {/* MENÚ DESPLEGABLE DE USUARIO */}
+        {/* ACCIONES DERECHA */}
+        <div className="flex items-center gap-3">
+          
+          <button className="hidden sm:flex p-2.5 text-slate-400 hover:text-green-600 transition-colors">
+            <Search className="w-5 h-5" />
+          </button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-11 w-11 rounded-full bg-slate-100 hover:bg-slate-200 p-0 border-2 border-white shadow-sm ring-1 ring-slate-100">
-                <User className="h-5 w-5 text-slate-600" />
+              <Button variant="ghost" className="relative group p-0 h-10 w-10 rounded-full border-2 border-white shadow-md ring-1 ring-slate-200 overflow-hidden">
+                <Avatar className="h-full w-full">
+                  <AvatarFallback className="bg-gradient-to-br from-slate-800 to-slate-900 text-white text-[10px] font-bold">
+                    {userName.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-slate-100">
-              <DropdownMenuLabel className="px-3 py-4">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Conectado como:</p>
-                  <p className="text-base font-black text-slate-900 truncate uppercase">{userName}</p>
+            
+            <DropdownMenuContent align="end" className="w-72 p-3 rounded-[24px] shadow-2xl border-slate-100 mt-2">
+              <DropdownMenuLabel className="p-4 bg-slate-50 rounded-2xl mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center text-white font-black">
+                    {userName.charAt(0)}
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter leading-none">Bienvenido</p>
+                    <p className="text-sm font-black text-slate-900 uppercase truncate">{userName}</p>
+                  </div>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-slate-50" />
               
               <Link href={isVendor ? "/perfil-aliado" : "/perfil"}>
-                <DropdownMenuItem className="cursor-pointer py-3 rounded-xl font-bold text-slate-600 focus:bg-slate-50 focus:text-green-600 transition-all">
-                  <User className="mr-3 h-4 w-4" /> Ver Mi Perfil
+                <DropdownMenuItem className="cursor-pointer py-3 rounded-xl font-bold text-slate-600 focus:bg-green-50 focus:text-green-700 transition-all gap-3">
+                  <User className="w-4 h-4" /> Configurar Cuenta
                 </DropdownMenuItem>
               </Link>
 
-              <DropdownMenuSeparator className="bg-slate-50" />
+              <DropdownMenuSeparator className="my-2" />
               
               <DropdownMenuItem 
                 onClick={handleLogout} 
-                className="text-red-600 font-bold py-3 rounded-xl cursor-pointer focus:bg-red-50 focus:text-red-700 transition-all"
+                className="text-red-600 font-bold py-3 rounded-xl cursor-pointer focus:bg-red-50 focus:text-red-700 transition-all gap-3"
               >
-                <LogOut className="mr-3 h-4 w-4" /> Cerrar Sesión
+                <LogOut className="w-4 h-4" /> Finalizar Sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
