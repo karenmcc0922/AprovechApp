@@ -58,6 +58,31 @@ app.post('/api/registro', (req, res) => {
   });
 });
 
+// --- COMPLETAR REGISTRO (Actualización de perfil) ---
+app.patch('/api/completar-registro', (req, res) => {
+  const { correo, password, telefono, ciudad } = req.body;
+
+  if (!correo || !password) {
+    return res.status(400).json({ error: "El correo y la contraseña son obligatorios" });
+  }
+
+  // Buscamos al usuario por correo y actualizamos sus datos
+  const sql = "UPDATE usuarios SET password = ?, telefono = ?, ciudad = ? WHERE correo = ?";
+  
+  pool.query(sql, [password, telefono, ciudad, correo], (err, result) => {
+    if (err) {
+      console.error("Error al actualizar:", err);
+      return res.status(500).json({ error: "Error interno al completar el perfil" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({ mensaje: "¡Perfil completado con éxito! Ya puedes iniciar sesión." });
+  });
+});
+
 // --- LOGIN MULTI-ROL ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
