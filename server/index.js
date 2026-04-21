@@ -29,6 +29,30 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
+// --- REGISTRO DE USUARIOS (NUEVO) ---
+app.post('/api/registro', (req, res) => {
+  const { nombre, correo, password } = req.body;
+
+  if (!nombre || !correo || !password) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+  }
+
+  const sql = "INSERT INTO usuarios (nombre, correo, password) VALUES (?, ?, ?)";
+  pool.query(sql, [nombre, correo, password], (err, result) => {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: "El correo ya está registrado" });
+      }
+      return res.status(500).json({ error: "Error al registrar usuario" });
+    }
+    
+    res.status(201).json({ 
+      mensaje: "Usuario creado con éxito", 
+      usuario: { id: result.insertId, nombre, correo } 
+    });
+  });
+});
+
 // --- LOGIN MULTI-ROL ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
