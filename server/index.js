@@ -302,23 +302,33 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
 });
 
 // Actualizar estado del pedido (Confirmar entrega)
+// Actualizar estado del pedido
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body; // Esperamos { "estado": "Completado" }
+  const { estado } = req.body;
 
+  // LOG DE DEPURACIÓN: Esto aparecerá en tu consola del servidor
+  console.log(`Intentando actualizar pedido ${id} a estado: ${estado}`);
+
+  if (!estado) {
+    return res.status(400).json({ error: "El estado es requerido" });
+  }
+
+  // IMPORTANTE: Verifica que tu tabla se llame 'pedidos' y la columna 'estado'
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
   
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("Error al actualizar estado:", err);
-      return res.status(500).json({ error: "Error al actualizar el pedido" });
+      console.error("ERROR EN LA QUERY:", err);
+      return res.status(500).json({ error: "Error interno del servidor", detalle: err.message });
     }
     
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Pedido no encontrado" });
+      return res.status(404).json({ error: "No se encontró el pedido con ese ID" });
     }
 
-    res.json({ mensaje: "Estado actualizado con éxito", nuevoEstado: estado });
+    console.log("¡Actualización exitosa!");
+    res.json({ success: true, mensaje: "Estado actualizado" });
   });
 });
 
