@@ -37,7 +37,7 @@ app.post('/api/registro', (req, res) => {
     return res.status(400).json({ error: "Todos los campos son obligatorios" });
   }
 
-  const sql = "INSERT INTO usuarios (nombre, correo, password) VALUES (?, ?, ?)";
+  const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
   pool.query(sql, [nombre, correo, password], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
