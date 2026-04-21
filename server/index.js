@@ -105,6 +105,46 @@ app.post('/api/completar-perfil', (req, res) => {
   );
 });
 
+// --- REGISTRO DE ALIADOS (Comercios) ---
+app.post('/api/registro-aliado', (req, res) => {
+  const { nombre_local, nit, correo, direccion, password } = req.body;
+
+  // Validación rápida
+  if (!nombre_local || !correo || !password) {
+    return res.status(400).json({ error: "Nombre, correo y contraseña son obligatorios" });
+  }
+
+  // Insertamos en la tabla usuarios con role 'vendor'
+  // Usamos el campo 'nombre' para guardar el 'nombre_local' y 'nit' lo podemos guardar en una columna extra o usarlo como identificador
+  const sql = `
+    INSERT INTO usuarios (nombre, correo, telefono, direccion, password, role) 
+    VALUES (?, ?, ?, ?, ?, 'vendor')
+  `;
+  
+  // Nota: Si tu tabla no tiene columna 'nit', lo ideal es agregarla a la DB o 
+  // concatenarla al nombre por ahora para no romper el SQL
+  const nombreConNit = `${nombre_local} (NIT: ${nit})`;
+
+  pool.query(sql, [nombreConNit, correo, nit, direccion, password], (err, result) => {
+    if (err) {
+      console.error("Error SQL Aliado:", err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: "Este correo ya está registrado" });
+      }
+      return res.status(500).json({ error: "Error al guardar en la base de datos" });
+    }
+    
+    // Devolvemos el objeto 'aliado' tal cual lo espera tu Frontend
+    res.status(201).json({ 
+      mensaje: "Comercio registrado", 
+      aliado: { 
+        id: result.insertId, 
+        nombre_local: nombre_local 
+      } 
+    });
+  });
+});
+
 // --- LOGIN MULTI-ROL ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
