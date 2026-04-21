@@ -33,7 +33,12 @@ export default function CompleteProfile() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get("email");
-    if (emailParam) setEmail(emailParam);
+    if (emailParam) {
+      setEmail(emailParam);
+    } else {
+      // Si no hay email en la URL, mejor mandarlos al login por seguridad
+      console.warn("No se encontró email en la URL");
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,22 +46,35 @@ export default function CompleteProfile() {
     setLoading(true);
 
     try {
+      // IMPORTANTE: La URL y el método deben coincidir con tu index.js en Render
       const response = await fetch("https://aprovechapp-api.onrender.com/api/completar-perfil", {
-        method: 'POST',
+        method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email, password, telefono, direccion, municipio, departamento, pais, fechaNacimiento
+          email, // Se enviará como 'email' y el backend lo usará para buscar 'correo'
+          password, 
+          telefono, 
+          direccion, 
+          municipio, 
+          departamento, 
+          pais, 
+          fechaNacimiento 
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+        alert("¡Perfil completado con éxito! ✨");
+        // Opcional: Guardar sesión para que entre directo
+        localStorage.setItem("usuario", JSON.stringify({ correo: email, nombre: email.split('@')[0] }));
         setLocation("/catalog"); 
       } else {
-        alert("Error al guardar los datos.");
+        alert(data.error || "Error al guardar los datos.");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error de conexión.");
+      console.error("Error en la petición:", error);
+      alert("Hubo un problema de conexión con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -96,7 +114,7 @@ export default function CompleteProfile() {
                 <CardTitle className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">Casi listo...</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
-                  <p className="text-sm text-slate-500 font-bold lowercase">{email}</p>
+                  <p className="text-sm text-slate-500 font-bold lowercase">{email || "Usuario"}</p>
                 </div>
               </div>
             </div>

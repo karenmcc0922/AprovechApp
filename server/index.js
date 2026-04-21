@@ -59,40 +59,50 @@ app.post('/api/registro', (req, res) => {
 });
 
 // --- COMPLETAR REGISTRO ---
-app.put('/api/completar-perfil', (req, res) => {
-  // Extraemos TODO lo que se ve en tu imagen
+app.post('/api/completar-perfil', (req, res) => {
+  // Recibimos los nombres tal cual vienen del frontend (CompleteProfile.tsx)
   const { 
-    correo, 
+    email, 
     password, 
     telefono, 
     direccion, 
     municipio, 
-    fecha_nacimiento 
+    departamento, 
+    pais, 
+    fechaNacimiento 
   } = req.body;
 
-  if (!correo) {
-    return res.status(400).json({ error: "El correo es necesario para identificar al usuario" });
-  }
-
-  // SQL ajustado a los nombres exactos de tu imagen
+  // El SQL debe usar los nombres de tu tabla (los de la captura de pantalla)
   const sql = `
     UPDATE usuarios 
-    SET password = ?, telefono = ?, direccion = ?, municipio = ?, fecha_nacimiento = ? 
+    SET password = ?, 
+        telefono = ?, 
+        direccion = ?, 
+        municipio = ?, 
+        departamento = ?, 
+        pais = ?, 
+        fecha_nacimiento = ? 
     WHERE correo = ?
   `;
   
-  pool.query(sql, [password, telefono, direccion, municipio, fecha_nacimiento, correo], (err, result) => {
-    if (err) {
-      console.error("Error SQL:", err);
-      return res.status(500).json({ error: "Error al actualizar la base de datos" });
-    }
+  // Mapeamos: fechaNacimiento (FE) -> fecha_nacimiento (DB)
+  // email (FE) -> correo (DB)
+  pool.query(
+    sql, 
+    [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], 
+    (err, result) => {
+      if (err) {
+        console.error("Error SQL:", err);
+        return res.status(500).json({ error: "Error al actualizar en TiDB" });
+      }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "No se encontró un registro con ese correo" });
-    }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "No se encontró el usuario con ese correo" });
+      }
 
-    res.json({ mensaje: "¡Perfil completado! Ya puedes iniciar sesión." });
-  });
+      res.status(200).json({ mensaje: "Perfil completado" });
+    }
+  );
 });
 
 // --- LOGIN MULTI-ROL ---
