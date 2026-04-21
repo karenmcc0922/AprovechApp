@@ -107,39 +107,49 @@ app.post('/api/completar-perfil', (req, res) => {
 
 // --- REGISTRO DE ALIADOS (Corregido para tu tabla 'aliados') ---
 app.post('/api/registro-aliado', (req, res) => {
+  // 1. Extraemos los datos que vienen del formulario (RegistroAliado.tsx)
   const { nombre_local, nit, correo, direccion, password } = req.body;
 
-  // 1. Validación de campos según tu tabla
+  // Validación de seguridad básica
   if (!nombre_local || !nit || !correo || !password) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res.status(400).json({ error: "Faltan datos obligatorios para el registro" });
   }
 
-  // 2. SQL apuntando a la tabla 'aliados' (según tu segunda imagen)
-  // Nota: Usamos password_hash para la columna 6 de tu tabla
+  // 2. SQL EXPLICITO: Definimos exactamente en qué columnas va cada valor
+  // Usamos los nombres reales de tu captura: nombre_local, nit, correo_corporativo, direccion, password_hash
   const sql = `
     INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) 
     VALUES (?, ?, ?, ?, ?)
   `;
 
-  pool.query(sql, [nombre_local, nit, correo, direccion, password], (err, result) => {
-    if (err) {
-      console.error("Error SQL en tabla aliados:", err);
-      // Error de duplicado (llave roja en tu imagen para nit o correo)
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ error: "El NIT o el Correo ya están registrados" });
+  // 3. Ejecutamos la consulta
+  pool.query(
+    sql, 
+    [nombre_local, nit, correo, direccion, password], 
+    (err, result) => {
+      if (err) {
+        console.error("DETALLE DEL ERROR SQL:", err); // Esto saldrá en los logs de Render
+        
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ error: "El NIT o Correo ya existen en nuestra base de datos." });
+        }
+        
+        // Si sale este error, revisa los logs de Render para ver si falta alguna columna
+        return res.status(500).json({ error: "Error interno al guardar. Revisa la estructura de la tabla." });
       }
-      return res.status(500).json({ error: "Error interno al guardar en aliados" });
+
+      console.log("Aliado registrado con éxito:", result.insertId);
+
+      // 4. Respondemos al frontend con el formato que él espera
+      res.status(201).json({ 
+        mensaje: "Comercio registrado", 
+        aliado: { 
+          id: result.insertId, 
+          nombre_local: nombre_local 
+        } 
+      });
     }
-    
-    // 3. Respuesta exitosa para el Frontend
-    res.status(201).json({ 
-      mensaje: "¡Comercio creado con éxito!", 
-      aliado: { 
-        id: result.insertId, 
-        nombre_local: nombre_local 
-      } 
-    });
-  });
+  );
 });
 
 // --- LOGIN MULTI-ROL ---
