@@ -34,9 +34,9 @@ const pool = mysql.createPool({
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
-  pool.query(sql, [nombre, correo], (err, result) => {
+  pool.query(sql, [nombre, correo], (err) => {
     if (err) return res.status(500).json({ error: err.code === 'ER_DUP_ENTRY' ? "Correo ya existe" : "Error DB" });
-    res.status(201).json({ mensaje: "Pre-registro exitoso", id: result.insertId });
+    res.status(201).json({ mensaje: "Pre-registro exitoso" });
   });
 });
 
@@ -77,40 +77,49 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// --- PRODUCTOS ---
+// --- PRODUCTOS (CATÁLOGO) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
   pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url], (err, result) => {
-    if (err) return res.status(500).json({ error: "Error al guardar" });
+    if (err) return res.status(500).json({ error: "Error al guardar producto" });
     res.status(201).json({ mensaje: "Éxito", id: result.insertId });
   });
 });
 
 app.get('/api/productos-todos', (req, res) => {
-  const sql = "SELECT p.*, a.nombre_local, a.direccion FROM productos_rescate p JOIN aliados a ON p.aliado_id = a.id WHERE p.stock > 0 ORDER BY p.id DESC";
-  pool.query(sql, (err, results) => res.json(results || []));
+  // JOIN crucial para que aparezca el nombre del local en las cards
+  const sql = `
+    SELECT p.*, a.nombre_local, a.direccion 
+    FROM productos_rescate p 
+    JOIN aliados a ON p.aliado_id = a.id 
+    WHERE p.stock > 0 
+    ORDER BY p.id DESC`;
+  pool.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error en productos-todos:", err);
+      return res.status(500).json({ error: "Error al cargar catálogo" });
+    }
+    res.json(results || []);
+  });
 });
 
-// --- PEDIDOS (Gestión de Rescates) ---
-
-// 1. Crear Pedido
+// --- PEDIDOS Y RESCATES ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
-    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
+    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible" });
     
     const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')";
     pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err) => {
-      if (err) return res.status(500).json({ error: "Error al crear pedido" });
+      if (err) return res.status(500).json({ error: "Error al crear el pedido" });
       res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
     });
   });
 });
 
-// 2. Listar para el Usuario (Historial y Activos)
 app.get('/api/pedidos/usuario/:id', (req, res) => {
   const sql = `
     SELECT p.id, p.nombre_producto, p.precio_final, p.codigo_qr, p.estado, a.nombre_local, a.direccion 
@@ -120,8 +129,7 @@ app.get('/api/pedidos/usuario/:id', (req, res) => {
     ORDER BY p.id DESC`;
   
   pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
-    // Mapeo para que el frontend reciba los nombres que ya configuramos
+    if (err) return res.status(500).json({ error: "Error al cargar rescates" });
     const data = (results || []).map(r => ({
       id: r.id,
       producto: r.nombre_producto,
@@ -135,36 +143,36 @@ app.get('/api/pedidos/usuario/:id', (req, res) => {
   });
 });
 
-// 3. Listar para el Aliado (Panel de Control)
 app.get('/api/pedidos/aliado/:id', (req, res) => {
   const sql = `
     SELECT p.*, u.telefono as usuario_telefono, u.correo as usuario_correo 
     FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC`;
   pool.query(sql, [req.params.id], (err, results) => {
+    if (err) return res.status(500).json({ error: "Error" });
     res.json((results || []).map(p => ({ ...p, estado: p.estado || 'Pendiente' })));
   });
 });
 
-// 4. ACTUALIZAR ESTADO (La ruta que daba error 500)
+// RUTA PARA CONFIRMAR ENTREGA (PATCH)
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  if (!estado) return res.status(400).json({ error: "Estado requerido" });
-
-  console.log(`PATCH: Pedido ${id} -> ${estado}`);
+  if (!estado) return res.status(400).json({ error: "Falta el estado" });
 
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("SQL ERROR:", err.sqlMessage);
-      return res.status(500).json({ error: "Error DB", detalle: err.sqlMessage });
+      console.error("SQL Error en PATCH:", err.sqlMessage);
+      return res.status(500).json({ error: "Error al actualizar", detalle: err.sqlMessage });
     }
-    if (result.affectedRows === 0) return res.status(404).json({ error: "No encontrado" });
-    res.json({ success: true });
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
+    res.json({ success: true, mensaje: "Estado actualizado correctamente" });
   });
 });
 
-// Puerto
+// 3. Puerto de escucha
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Servidor listo en puerto ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor AprovechApp ejecutándose en puerto ${PORT}`);
+});
