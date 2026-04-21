@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-// Configuración de CORS
+// 1. Configuración de CORS
 app.use(cors({
   origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -15,6 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// 2. Conexión a TiDB
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
@@ -29,32 +30,26 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
-// --- REGISTRO DE USUARIOS ---
+// --- USUARIOS ---
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
-  if (!nombre || !correo) return res.status(400).json({ error: "Nombre y correo son requeridos" });
-
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
   pool.query(sql, [nombre, correo], (err, result) => {
-    if (err) {
-      if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: "Este correo ya está registrado." });
-      return res.status(500).json({ error: "Error al guardar el registro." });
-    }
+    if (err) return res.status(500).json({ error: err.code === 'ER_DUP_ENTRY' ? "Correo ya existe" : "Error DB" });
     res.status(201).json({ mensaje: "Pre-registro exitoso", id: result.insertId });
   });
 });
 
-// --- COMPLETAR PERFIL ---
 app.post('/api/completar-perfil', (req, res) => {
   const { email, password, telefono, direccion, municipio, departamento, pais, fechaNacimiento } = req.body;
   const sql = `UPDATE usuarios SET password = ?, telefono = ?, direccion = ?, municipio = ?, departamento = ?, pais = ?, fecha_nacimiento = ? WHERE correo = ?`;
-  pool.query(sql, [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], (err, result) => {
+  pool.query(sql, [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], (err) => {
     if (err) return res.status(500).json({ error: "Error al actualizar perfil" });
     res.status(200).json({ mensaje: "Perfil completado" });
   });
 });
 
-// --- REGISTRO DE ALIADOS ---
+// --- ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
   const sql = `INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) VALUES (?, ?, ?, ?, ?)`;
@@ -64,7 +59,7 @@ app.post('/api/registro-aliado', (req, res) => {
   });
 });
 
-// --- LOGIN MULTI-ROL ---
+// --- LOGIN ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
   if (role === 'vendor') {
@@ -92,39 +87,18 @@ app.post('/api/productos', (req, res) => {
   });
 });
 
-app.put('/api/productos/:id', (req, res) => {
-  const { nombre, precio_rescate, stock } = req.body;
-  const sql = "UPDATE productos_rescate SET nombre = ?, precio_rescate = ?, stock = ? WHERE id = ?";
-  pool.query(sql, [nombre, precio_rescate, stock, req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: "Error al actualizar" });
-    res.json({ mensaje: "Producto actualizado" });
-  });
-});
-
-app.delete('/api/productos/:id', (req, res) => {
-  pool.query("DELETE FROM productos_rescate WHERE id = ?", [req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: "Error al eliminar" });
-    res.json({ mensaje: "Producto eliminado" });
-  });
-});
-
-app.get('/api/mis-productos/:aliado_id', (req, res) => {
-  pool.query("SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC", [req.params.aliado_id], (err, results) => {
-    res.json(results || []);
-  });
-});
-
 app.get('/api/productos-todos', (req, res) => {
   const sql = "SELECT p.*, a.nombre_local, a.direccion FROM productos_rescate p JOIN aliados a ON p.aliado_id = a.id WHERE p.stock > 0 ORDER BY p.id DESC";
   pool.query(sql, (err, results) => res.json(results || []));
 });
 
-// --- PEDIDOS ---
+// --- PEDIDOS (Gestión de Rescates) ---
+
+// 1. Crear Pedido
 app.post('/api/pedidos/crear', (req, res) => {
   const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
-  // Forzamos que el stock baje y creamos el pedido con estado 'Pendiente'
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
     if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
     
@@ -136,44 +110,61 @@ app.post('/api/pedidos/crear', (req, res) => {
   });
 });
 
+// 2. Listar para el Usuario (Historial y Activos)
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const sql = `SELECT p.id, p.nombre_producto AS producto, p.precio_final AS precio, p.codigo_qr, p.estado, a.nombre_local AS local, a.direccion 
-               FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC`;
-  pool.query(sql, [req.params.id], (err, results) => res.json(results || []));
-});
-
-app.get('/api/pedidos/aliado/:id', (req, res) => {
-  const sql = `SELECT p.*, u.telefono as usuario_telefono, u.correo as usuario_correo 
-               FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC`;
+  const sql = `
+    SELECT p.id, p.nombre_producto, p.precio_final, p.codigo_qr, p.estado, a.nombre_local, a.direccion 
+    FROM pedidos p 
+    JOIN aliados a ON p.aliado_id = a.id 
+    WHERE p.usuario_id = ? 
+    ORDER BY p.id DESC`;
+  
   pool.query(sql, [req.params.id], (err, results) => {
-    const pedidos = (results || []).map(p => ({ ...p, estado: p.estado || 'Pendiente' }));
-    res.json(pedidos);
+    if (err) return res.status(500).json({ error: "Error" });
+    // Mapeo para que el frontend reciba los nombres que ya configuramos
+    const data = (results || []).map(r => ({
+      id: r.id,
+      producto: r.nombre_producto,
+      precio: r.precio_final,
+      codigo_qr: r.codigo_qr,
+      estado: r.estado || 'Pendiente',
+      local: r.nombre_local,
+      direccion: r.direccion
+    }));
+    res.json(data);
   });
 });
 
-// --- LA RUTA DEL ERROR 500 (CORREGIDA) ---
+// 3. Listar para el Aliado (Panel de Control)
+app.get('/api/pedidos/aliado/:id', (req, res) => {
+  const sql = `
+    SELECT p.*, u.telefono as usuario_telefono, u.correo as usuario_correo 
+    FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC`;
+  pool.query(sql, [req.params.id], (err, results) => {
+    res.json((results || []).map(p => ({ ...p, estado: p.estado || 'Pendiente' })));
+  });
+});
+
+// 4. ACTUALIZAR ESTADO (La ruta que daba error 500)
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  if (!estado) return res.status(400).json({ error: "Estado es requerido" });
+  if (!estado) return res.status(400).json({ error: "Estado requerido" });
 
-  // Agregamos logs para depurar en Render
-  console.log(`Actualizando pedido ${id} a ${estado}`);
+  console.log(`PATCH: Pedido ${id} -> ${estado}`);
 
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("DATABASE ERROR:", err);
-      // Enviamos el sqlMessage para saber exactamente qué falló (ej. columna inexistente)
-      return res.status(500).json({ error: "Error interno", detalle: err.sqlMessage });
+      console.error("SQL ERROR:", err.sqlMessage);
+      return res.status(500).json({ error: "Error DB", detalle: err.sqlMessage });
     }
-    
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
-    
-    res.json({ success: true, mensaje: "Estado actualizado" });
+    if (result.affectedRows === 0) return res.status(404).json({ error: "No encontrado" });
+    res.json({ success: true });
   });
 });
 
+// Puerto
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Servidor en puerto ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Servidor listo en puerto ${PORT}`));
