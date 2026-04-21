@@ -58,28 +58,40 @@ app.post('/api/registro', (req, res) => {
   });
 });
 
-// --- COMPLETAR REGISTRO (Actualización de perfil) ---
-app.patch('/api/completar-registro', (req, res) => {
-  const { correo, password, telefono, ciudad } = req.body;
+// --- COMPLETAR REGISTRO ---
+app.put('/api/completar-perfil', (req, res) => {
+  // Extraemos TODO lo que se ve en tu imagen
+  const { 
+    correo, 
+    password, 
+    telefono, 
+    direccion, 
+    municipio, 
+    fecha_nacimiento 
+  } = req.body;
 
-  if (!correo || !password) {
-    return res.status(400).json({ error: "El correo y la contraseña son obligatorios" });
+  if (!correo) {
+    return res.status(400).json({ error: "El correo es necesario para identificar al usuario" });
   }
 
-  // Buscamos al usuario por correo y actualizamos sus datos
-  const sql = "UPDATE usuarios SET password = ?, telefono = ?, ciudad = ? WHERE correo = ?";
+  // SQL ajustado a los nombres exactos de tu imagen
+  const sql = `
+    UPDATE usuarios 
+    SET password = ?, telefono = ?, direccion = ?, municipio = ?, fecha_nacimiento = ? 
+    WHERE correo = ?
+  `;
   
-  pool.query(sql, [password, telefono, ciudad, correo], (err, result) => {
+  pool.query(sql, [password, telefono, direccion, municipio, fecha_nacimiento, correo], (err, result) => {
     if (err) {
-      console.error("Error al actualizar:", err);
-      return res.status(500).json({ error: "Error interno al completar el perfil" });
+      console.error("Error SQL:", err);
+      return res.status(500).json({ error: "Error al actualizar la base de datos" });
     }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+      return res.status(404).json({ error: "No se encontró un registro con ese correo" });
     }
 
-    res.json({ mensaje: "¡Perfil completado con éxito! Ya puedes iniciar sesión." });
+    res.json({ mensaje: "¡Perfil completado! Ya puedes iniciar sesión." });
   });
 });
 
