@@ -20,59 +20,69 @@ export default function MisRescates() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
 
-  useEffect(() => {
-    const fetchRescates = async () => {
-      // 1. Obtenemos el usuario de la sesión
-      const stored = localStorage.getItem("usuario");
-      if (!stored) {
-        setLoading(false);
-        return;
-      }
+  const fetchRescates = async () => {
+    const stored = localStorage.getItem("usuario");
+    if (!stored) {
+      setLoading(false);
+      return;
+    }
+    
+    const user = JSON.parse(stored);
+
+    try {
+      const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${user.id}`);
+      const data = await response.json();
       
-      const user = JSON.parse(stored);
-
-      try {
-        // 2. Consultamos la API con el ID del usuario
-        const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${user.id}`);
-        const data = await response.json();
-        
-        if (response.ok) {
-          // Aseguramos que el estado sea 'Pendiente' si viene vacío de la DB
-          const datosFormateados = data.map((r: any) => ({
-            ...r,
-            estado: r.estado || "Pendiente"
-          }));
-          setRescates(datosFormateados);
-        }
-      } catch (error) {
-        console.error("Error cargando rescates:", error);
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        const datosFormateados = data.map((r: any) => ({
+          ...r,
+          estado: r.estado || "Pendiente"
+        }));
+        setRescates(datosFormateados);
       }
-    };
+    } catch (error) {
+      console.error("Error cargando rescates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRescates();
   }, []);
 
-  // Filtrado de datos
+  // FUNCIÓN CRÍTICA: Actualiza la DB y el estado local
+  const completarRecogidaLocal = async (id: number) => {
+    try {
+      const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${id}/estado`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ estado: 'Completado' }),
+      });
+
+      if (response.ok) {
+        // Actualización optimista en la interfaz
+        setRescates(prev => 
+          prev.map(r => r.id === id ? { ...r, estado: "Completado" } : r)
+        );
+      } else {
+        console.error("Error al actualizar en el servidor");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+    }
+  };
+
   const pendientes = rescates.filter(r => r.estado === "Pendiente");
   const completados = rescates.filter(r => r.estado === "Completado");
-
-  const completarRecogidaLocal = (id: number) => {
-    // Optimistic UI: actualizamos en pantalla inmediatamente
-    const actualizados = rescates.map(r => 
-      r.id === id ? { ...r, estado: "Completado" } : r
-    );
-    setRescates(actualizados);
-    // Nota: Aquí podrías añadir un fetch PUT para avisar al backend que se entregó
-  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
       
       <main className="container mx-auto px-6 pt-32 pb-20 max-w-4xl">
-        {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -139,7 +149,6 @@ export default function MisRescates() {
                         </div>
                       </div>
 
-                      {/* Información */}
                       <div className="p-10 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start mb-6">
@@ -147,13 +156,17 @@ export default function MisRescates() {
                               <Badge className="bg-green-100 text-green-700 border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider mb-3">
                                 LISTO PARA ENTREGA
                               </Badge>
-                              <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">{rescate.producto}</h3>
+                              <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
+                                {rescate.nombre_producto || rescate.producto}
+                              </h3>
                               <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
-                                <Ticket className="w-4 h-4" /> {rescate.local}
+                                <Ticket className="w-4 h-4" /> {rescate.nombre_aliado || rescate.local}
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-3xl font-black text-slate-900 tracking-tighter">${Number(rescate.precio).toLocaleString()}</p>
+                              <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                                ${Number(rescate.precio_final || rescate.precio).toLocaleString()}
+                              </p>
                               <p className="text-[10px] font-bold text-slate-400 uppercase">PAGADO</p>
                             </div>
                           </div>
@@ -165,7 +178,7 @@ export default function MisRescates() {
                               </div>
                               <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
-                                <p className="text-sm font-bold text-slate-700">{rescate.direccion}</p>
+                                <p className="text-sm font-bold text-slate-700">{rescate.direccion_aliado || rescate.direccion}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
@@ -206,13 +219,19 @@ export default function MisRescates() {
                     </div>
                     <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">RESCATADO</span>
                   </div>
-                  <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">{rescate.producto}</h4>
-                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">{rescate.local}</p>
+                  <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">
+                    {rescate.nombre_producto || rescate.producto}
+                  </h4>
+                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">
+                    {rescate.nombre_aliado || rescate.local}
+                  </p>
                   
                   <div className="flex justify-between items-center pt-6 border-t border-slate-50">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
-                      <span className="font-black text-slate-900 text-xl">${Number(rescate.precio).toLocaleString()}</span>
+                      <span className="font-black text-slate-900 text-xl">
+                        ${Number(rescate.precio_final || rescate.precio).toLocaleString()}
+                      </span>
                     </div>
                     <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1 uppercase">Historial</Badge>
                   </div>

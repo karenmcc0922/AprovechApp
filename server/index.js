@@ -301,5 +301,26 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
   });
 });
 
+// Actualizar estado del pedido (Confirmar entrega)
+app.patch('/api/pedidos/:id/estado', (req, res) => {
+  const { id } = req.params;
+  const { estado } = req.body; // Esperamos { "estado": "Completado" }
+
+  const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
+  
+  pool.query(sql, [estado, id], (err, result) => {
+    if (err) {
+      console.error("Error al actualizar estado:", err);
+      return res.status(500).json({ error: "Error al actualizar el pedido" });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    res.json({ mensaje: "Estado actualizado con éxito", nuevoEstado: estado });
+  });
+});
+
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Puerto ${PORT}`));
