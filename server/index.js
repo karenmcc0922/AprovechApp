@@ -31,24 +31,29 @@ const pool = mysql.createPool({
 
 // --- REGISTRO DE USUARIOS (NUEVO) ---
 app.post('/api/registro', (req, res) => {
-  const { nombre, correo, password } = req.body;
+  const { nombre, correo } = req.body;
 
-  if (!nombre || !correo || !password) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+  // Validación mínima
+  if (!nombre || !correo) {
+    return res.status(400).json({ error: "Nombre y correo son requeridos" });
   }
 
+  // Insertamos solo lo que tenemos. 
+  // Nota: Asegúrate que en TiDB los otros campos (password, telefono) sean NULLABLE
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
-  pool.query(sql, [nombre, correo, password], (err, result) => {
+  
+  pool.query(sql, [nombre, correo], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ error: "El correo ya está registrado" });
+        return res.status(400).json({ error: "Este correo ya está registrado para recibir beneficios." });
       }
-      return res.status(500).json({ error: "Error al registrar usuario" });
+      console.error("Error DB:", err);
+      return res.status(500).json({ error: "Error al guardar el registro previo." });
     }
     
     res.status(201).json({ 
-      mensaje: "Usuario creado con éxito", 
-      usuario: { id: result.insertId, nombre, correo } 
+      mensaje: "Pre-registro exitoso", 
+      id: result.insertId 
     });
   });
 });
