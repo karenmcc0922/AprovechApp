@@ -273,5 +273,33 @@ app.get('/api/pedidos/usuario/:id', (req, res) => {
   });
 });
 
+// Añadir en index.js antes del PORT
+app.get('/api/pedidos/aliado/:id', (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    SELECT 
+      p.*, 
+      u.telefono as usuario_telefono,
+      u.correo as usuario_correo
+    FROM pedidos p
+    JOIN usuarios u ON p.usuario_id = u.id
+    WHERE p.aliado_id = ?
+    ORDER BY p.id DESC
+  `;
+
+  pool.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Error obteniendo pedidos aliado:", err);
+      return res.status(500).json({ error: "Error en el servidor" });
+    }
+    // Forzamos el estado a 'Pendiente' si es null
+    const pedidos = results.map(p => ({
+      ...p,
+      estado: p.estado || 'Pendiente'
+    }));
+    res.json(pedidos);
+  });
+});
+
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Puerto ${PORT}`));
