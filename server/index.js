@@ -198,6 +198,20 @@ app.get('/api/aliados/:id/estadisticas', (req, res) => {
   });
 });
 
+app.get('/api/aliados/:id/actividad', (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    SELECT * FROM historial_actividad 
+    WHERE aliado_id = ? 
+    ORDER BY fecha DESC 
+    LIMIT 10
+  `;
+  pool.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
+
 // --- LOGIN ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;

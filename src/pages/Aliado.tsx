@@ -10,18 +10,18 @@ import {
   Image as ImageIcon,
   X, 
   Gift, 
-  CheckCircle2, 
   Plus,
   Pencil,
   BarChart3,
   TrendingUp,
-  AlertCircle
+  History // Icono para el historial
 } from "lucide-react";
 
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_rescates: 0, total_ganado: 0 });
+  const [actividad, setActividad] = useState<any[]>([]); // Estado para el historial
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -37,8 +37,8 @@ export default function Aliado() {
   const [descuentoManual, setDescuentoManual] = useState("");
   const IMG_SORPRESA = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
-  // 1. CARGAR PRODUCTOS Y ESTADÍSTICAS
-  const cargarDatos = async () => {
+  // 1. CARGAR TODOS LOS DATOS
+  const cargarTodo = async () => {
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
 
@@ -47,18 +47,22 @@ export default function Aliado() {
       const resProd = await fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`);
       if (resProd.ok) setProductos(await resProd.json());
 
-      // Cargar Estadísticas (Ventas Reales)
+      // Cargar Estadísticas
       const resStats = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/estadisticas`);
       if (resStats.ok) setStats(await resStats.json());
+
+      // Cargar Historial de Actividad
+      const resAct = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/actividad`);
+      if (resAct.ok) setActividad(await resAct.json());
       
     } catch (error) {
       console.error("Error al sincronizar datos:", error);
     }
   };
 
-  useEffect(() => { cargarDatos(); }, []);
+  useEffect(() => { cargarTodo(); }, []);
 
-  // 2. LÓGICA DE FORMULARIO
+  // 2. LÓGICA DE MANEJO DE IMÁGENES Y PRECIOS (Sin cambios)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,6 +98,7 @@ export default function Aliado() {
     }
   };
 
+  // 3. ACCIONES DE PRODUCTO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const aliadoId = localStorage.getItem("aliado_id");
@@ -117,7 +122,7 @@ export default function Aliado() {
         setNuevoProducto({ nombre: "", precio_original: "", precio_rescate: "", stock: "", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" });
         setImagePreview(null);
         setDescuentoManual("");
-        cargarDatos();
+        cargarTodo(); // Recargamos todo para actualizar lista e historial
       }
     } catch (error) { alert("Error"); } finally { setLoading(false); }
   };
@@ -126,7 +131,7 @@ export default function Aliado() {
     if (!confirm("¿Deseas eliminar esta oferta permanentemente?")) return;
     try {
       const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${id}`, { method: "DELETE" });
-      if (res.ok) setProductos(productos.filter(p => p.id !== id));
+      if (res.ok) cargarTodo();
     } catch (error) { alert("Error al eliminar"); }
   };
 
@@ -143,7 +148,7 @@ export default function Aliado() {
           stock: parseInt(nuevoStock) 
         })
       });
-      if (res.ok) cargarDatos();
+      if (res.ok) cargarTodo();
     } catch (error) { alert("Error al editar"); }
   };
 
@@ -158,27 +163,25 @@ export default function Aliado() {
             <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
               Dashboard <span className="text-green-600">Aliado</span>
             </h1>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Control de inventario y métricas de impacto</p>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Control de inventario y trazabilidad</p>
           </div>
           <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3">
              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-             <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Conexión Segura con TiDB</span>
+             <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Nodo TiDB Cloud Activo</span>
           </div>
         </div>
 
-        {/* MÉTRICAS MEJORADAS */}
+        {/* MÉTRICAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* Ganancia Real */}
           <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02] border-l-4 border-green-500">
             <div className="bg-green-50 p-4 rounded-2xl"><TrendingUp className="text-green-600 w-6 h-6" /></div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ventas Reales</p>
               <h3 className="text-2xl font-black text-slate-900">${Number(stats.total_ganado || 0).toLocaleString()}</h3>
-              <p className="text-[9px] text-green-600 font-bold uppercase">{stats.total_rescates} pedidos completados</p>
+              <p className="text-[9px] text-green-600 font-bold uppercase">{stats.total_rescates} rescates hoy</p>
             </div>
           </Card>
 
-          {/* Ganancia Potencial */}
           <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
             <div className="bg-blue-50 p-4 rounded-2xl"><DollarSign className="text-blue-600 w-6 h-6" /></div>
             <div>
@@ -186,65 +189,60 @@ export default function Aliado() {
               <h3 className="text-2xl font-black text-slate-900">
                 ${productos.reduce((acc, p) => acc + (Number(p.precio_rescate) * Number(p.stock)), 0).toLocaleString()}
               </h3>
-              <p className="text-[9px] text-blue-600 font-bold uppercase">Dinero por recuperar</p>
+              <p className="text-[9px] text-blue-600 font-bold uppercase">Por recuperar</p>
             </div>
           </Card>
 
-          {/* Variedad de Ofertas */}
           <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
             <div className="bg-purple-50 p-4 rounded-2xl"><BarChart3 className="text-purple-600 w-6 h-6" /></div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ofertas Activas</p>
-              <h3 className="text-2xl font-black text-slate-900">{productos.length} Items</h3>
-              <p className="text-[9px] text-purple-600 font-bold uppercase">Gestión de excedentes</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Items en Tienda</p>
+              <h3 className="text-2xl font-black text-slate-900">{productos.length} SKU</h3>
+              <p className="text-[9px] text-purple-600 font-bold uppercase">Ofertas activas</p>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* FORMULARIO */}
-          <div className="space-y-6">
-            <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden">
+        {/* CONTENIDO PRINCIPAL: 3 COLUMNAS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* COLUMNA 1: FORMULARIO (Ancho 4) */}
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden sticky top-32">
               <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <Plus className="w-5 h-5 text-green-400"/>
-                  <span className="font-black text-sm uppercase tracking-widest">Crear Nueva Oferta</span>
+                  <span className="font-black text-sm uppercase tracking-widest">Crear Oferta</span>
                 </div>
               </div>
 
-              <CardContent className="p-10 space-y-8">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Selector Sorpresa */}
+              <CardContent className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div 
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
-                    className={`cursor-pointer p-5 rounded-3xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500 shadow-inner" : "bg-slate-50 border-slate-100"}`}
+                    className={`cursor-pointer p-4 rounded-3xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500 shadow-inner" : "bg-slate-50 border-slate-100"}`}
                   >
                     <div className="flex gap-4 items-center">
-                      <div className={`p-3 rounded-2xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white shadow-lg' : 'bg-slate-200 text-slate-400'}`}>
-                        {nuevoProducto.esSorpresa ? <Gift className="w-5 h-5" /> : <ImageIcon className="w-5 h-5" />}
+                      <div className={`p-2 rounded-xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                        {nuevoProducto.esSorpresa ? <Gift className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
                       </div>
-                      <p className="font-black text-xs text-slate-800 uppercase tracking-tight">
+                      <p className="font-black text-[10px] text-slate-800 uppercase italic">
                         {nuevoProducto.esSorpresa ? "Pack Sorpresa" : "Producto Único"}
                       </p>
                     </div>
-                    {nuevoProducto.esSorpresa && <CheckCircle2 className="w-6 h-6 text-green-600" />}
                   </div>
 
-                  {/* Imagen */}
                   {!nuevoProducto.esSorpresa && (
                     <div className="space-y-3">
-                      <Label>Imagen Real</Label>
                       {imagePreview ? (
-                        <div className="relative h-40 rounded-[30px] overflow-hidden shadow-xl border-4 border-white">
-                          <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                          <button onClick={removeImage} className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
+                        <div className="relative h-32 rounded-[25px] overflow-hidden border-2 border-slate-100">
+                          <img src={imagePreview} className="w-full h-full object-cover" />
+                          <button onClick={removeImage} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"><X size={12}/></button>
                         </div>
                       ) : (
-                        <label className="w-full h-40 border-2 border-dashed rounded-[30px] flex flex-col items-center justify-center cursor-pointer border-slate-200 hover:bg-slate-50 hover:border-green-400 transition-all group">
-                          <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-green-50 transition-colors">
-                            <ImageIcon className="w-6 h-6 text-slate-300 group-hover:text-green-500" />
-                          </div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase mt-3 tracking-widest">Cargar Fotografía</span>
+                        <label className="w-full h-32 border-2 border-dashed rounded-[25px] flex flex-col items-center justify-center cursor-pointer border-slate-200 hover:bg-slate-50 transition-all">
+                          <ImageIcon className="w-5 h-5 text-slate-300 mb-2" />
+                          <span className="text-[9px] font-black text-slate-400 uppercase">Cargar Foto</span>
                           <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                       )}
@@ -252,108 +250,102 @@ export default function Aliado() {
                   )}
 
                   <div className="space-y-2">
-                    <Label>¿Qué vas a rescatar?</Label>
-                    <Input className="rounded-2xl bg-slate-50 border-none py-6 font-bold text-slate-700" placeholder="Ej: Bolsa de Croissants" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
+                    <Label>Producto</Label>
+                    <Input className="rounded-xl bg-slate-50 border-none font-bold" placeholder="Nombre" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Precio Base</Label>
-                      <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black" placeholder="30000" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
+                      <Label>Precio Original</Label>
+                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
-                      <Label>Descuento %</Label>
-                      <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black text-green-600" placeholder="50" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
+                      <Label>% Dcto</Label>
+                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Cantidad de Packs (Stock)</Label>
-                    <Input type="number" className="rounded-2xl bg-slate-50 border-none py-6 font-black" placeholder="5" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
+                    <Label>Stock Disponible</Label>
+                    <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
-                  <div className="pt-4">
-                    <Button type="submit" disabled={loading} className="w-full bg-slate-900 py-8 rounded-[25px] font-black text-sm tracking-widest shadow-xl hover:bg-green-600 transition-all uppercase">
-                      {loading ? <Loader2 className="animate-spin" /> : "Publicar ahora 🚀"}
-                    </Button>
-                  </div>
+                  <Button type="submit" disabled={loading} className="w-full bg-slate-900 py-6 rounded-[20px] font-black text-[11px] tracking-widest hover:bg-green-600 transition-all uppercase">
+                    {loading ? <Loader2 className="animate-spin" /> : "Publicar ahora 🚀"}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
 
-          {/* LISTA DE INVENTARIO */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-slate-800 flex gap-3 items-center uppercase tracking-tighter italic">
-                   Tu Inventario <span className="text-green-600">Actual</span>
-                </h2>
-                <Badge className="bg-slate-200 text-slate-600 border-none font-black px-4 py-1 rounded-full uppercase text-[10px]">
-                  {productos.length} items activos
-                </Badge>
-            </div>
-            
-            <div className="grid gap-5">
-              {productos.length === 0 ? (
-                <div className="bg-white rounded-[45px] py-32 text-center border-2 border-dashed border-slate-100 flex flex-col items-center">
-                    <img src="/logo.png" className="w-12 h-12 grayscale opacity-20 mb-4" />
-                    <p className="font-black text-slate-300 uppercase text-[10px] tracking-widest">Aún no tienes ofertas publicadas</p>
-                </div>
-              ) : (
-                productos.map((prod) => (
-                  <Card key={prod.id} className="border-none shadow-sm rounded-[35px] p-6 bg-white hover:shadow-xl transition-shadow group">
-                    <div className="flex items-center justify-between gap-6 flex-wrap md:flex-nowrap">
-                      <div className="flex items-center gap-6">
-                        <div className="relative">
-                            <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[25px] object-cover shadow-md group-hover:scale-105 transition-transform" />
-                            {prod.stock < 3 && prod.stock > 0 && (
-                              <div className="absolute -top-2 -right-2 bg-amber-500 p-1 rounded-full border-2 border-white shadow-lg">
-                                <AlertCircle size={12} className="text-white" />
-                              </div>
-                            )}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-slate-800 text-base uppercase tracking-tight mb-1">{prod.nombre}</h4>
-                          <div className="flex gap-2 items-center flex-wrap">
-                             <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase transition-all ${
-                               prod.stock === 0 
-                               ? "bg-red-100 text-red-600 animate-pulse" 
-                               : "bg-green-50 text-green-600"
-                             }`}>
-                                {prod.stock === 0 ? "¡AGOTADO!" : `Stock: ${prod.stock}`}
-                             </span>
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ref: #${prod.id}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                        <div className="text-right">
-                          <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(prod.precio_rescate).toLocaleString()}</p>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest line-through">${Number(prod.precio_original).toLocaleString()}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={() => editarStock(prod)} variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-50 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border-none"><Pencil size={18}/></Button>
-                          <Button onClick={() => eliminarProducto(prod.id)} variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-50 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border-none"><Trash2 size={18}/></Button>
-                        </div>
+          {/* COLUMNA 2: INVENTARIO (Ancho 5) */}
+          <div className="lg:col-span-5 space-y-6">
+            <h2 className="text-lg font-black text-slate-800 uppercase italic">Inventario Activo</h2>
+            <div className="grid gap-4">
+              {productos.map((prod) => (
+                <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-5 bg-white hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <img src={prod.imagen_url || IMG_SORPRESA} className="w-16 h-16 rounded-2xl object-cover" />
+                      <div>
+                        <h4 className="font-black text-slate-800 text-sm uppercase tracking-tight">{prod.nombre}</h4>
+                        <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${prod.stock === 0 ? "bg-red-100 text-red-600" : "bg-green-50 text-green-600"}`}>
+                          Stock: {prod.stock}
+                        </span>
                       </div>
                     </div>
-                  </Card>
-                ))
-              )}
+                    <div className="flex gap-2">
+                      <Button onClick={() => editarStock(prod)} variant="outline" className="h-10 w-10 p-0 rounded-xl border-none bg-slate-50 text-slate-400 hover:text-blue-600"><Pencil size={14}/></Button>
+                      <Button onClick={() => eliminarProducto(prod.id)} variant="outline" className="h-10 w-10 p-0 rounded-xl border-none bg-slate-50 text-slate-400 hover:text-red-500"><Trash2 size={14}/></Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
+
+          {/* COLUMNA 3: HISTORIAL (Ancho 3) */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card className="border-none shadow-sm rounded-[35px] bg-white p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 bg-slate-900 rounded-xl">
+                  <History className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-black text-slate-900 text-xs uppercase tracking-tighter italic">Actividad Reciente</h3>
+              </div>
+
+              <div className="space-y-8 relative">
+                {/* Línea de tiempo vertical */}
+                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-50" />
+
+                {actividad.length === 0 ? (
+                  <p className="text-[10px] font-bold text-slate-400 uppercase text-center py-4 italic">Sin movimientos registrados</p>
+                ) : (
+                  actividad.map((log) => (
+                    <div key={log.id} className="relative pl-8">
+                      {/* Círculo indicador */}
+                      <div className={`absolute left-0 top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm z-10 ${
+                        log.tipo_evento === 'VENTA' ? 'bg-green-500' : 
+                        log.tipo_evento === 'STOCK' ? 'bg-blue-500' : 'bg-slate-900'
+                      }`} />
+                      
+                      <p className="text-[11px] font-bold text-slate-800 leading-tight">{log.descripcion}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase mt-1 tracking-widest">
+                        {new Date(log.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+
         </div>
       </main>
     </div>
   );
 }
 
-// Subcomponentes
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="text-[10px] font-black uppercase text-slate-400 ml-1 block mb-2 tracking-widest">{children}</label>;
-}
-
-function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>;
+  return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
