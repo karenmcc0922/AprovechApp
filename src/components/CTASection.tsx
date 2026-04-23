@@ -16,7 +16,7 @@ export default function CTASection() {
 
     try {
       // 1. REGISTRO EN TU API (RENDER + TiDB)
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/registro", {
+      const response = await fetch("https://aprovechapp-api.onrender.com/api/registro/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
