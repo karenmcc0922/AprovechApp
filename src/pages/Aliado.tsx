@@ -13,12 +13,15 @@ import {
   CheckCircle2, 
   Plus,
   Pencil,
-  BarChart3
+  BarChart3,
+  TrendingUp,
+  AlertCircle
 } from "lucide-react";
 
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total_rescates: 0, total_ganado: 0 });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -34,20 +37,28 @@ export default function Aliado() {
   const [descuentoManual, setDescuentoManual] = useState("");
   const IMG_SORPRESA = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
-  const cargarProductos = async () => {
+  // 1. CARGAR PRODUCTOS Y ESTADÍSTICAS
+  const cargarDatos = async () => {
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
+
     try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProductos(data);
-      }
-    } catch (error) { console.error(error); }
+      // Cargar Productos
+      const resProd = await fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`);
+      if (resProd.ok) setProductos(await resProd.json());
+
+      // Cargar Estadísticas (Ventas Reales)
+      const resStats = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/estadisticas`);
+      if (resStats.ok) setStats(await resStats.json());
+      
+    } catch (error) {
+      console.error("Error al sincronizar datos:", error);
+    }
   };
 
-  useEffect(() => { cargarProductos(); }, []);
+  useEffect(() => { cargarDatos(); }, []);
 
+  // 2. LÓGICA DE FORMULARIO
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -64,31 +75,6 @@ export default function Aliado() {
   const removeImage = () => {
     setImagePreview(null);
     setNuevoProducto(prev => ({ ...prev, esSorpresa: true, imagen_url: "" }));
-  };
-
-  const eliminarProducto = async (id: number) => {
-    if (!confirm("¿Deseas eliminar esta oferta permanentemente?")) return;
-    try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${id}`, { method: "DELETE" });
-      if (res.ok) setProductos(productos.filter(p => p.id !== id));
-    } catch (error) { alert("Error al eliminar"); }
-  };
-
-  const editarStock = async (prod: any) => {
-    const nuevoStock = prompt(`Actualizar stock para ${prod.nombre}:`, prod.stock);
-    if (nuevoStock === null || nuevoStock === "") return;
-    try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${prod.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          nombre: prod.nombre, 
-          precio_rescate: prod.precio_rescate, 
-          stock: parseInt(nuevoStock) 
-        })
-      });
-      if (res.ok) setProductos(productos.map(p => p.id === prod.id ? { ...p, stock: nuevoStock } : p));
-    } catch (error) { alert("Error al editar"); }
   };
 
   const handlePrecioOriginalChange = (val: string) => {
@@ -131,9 +117,34 @@ export default function Aliado() {
         setNuevoProducto({ nombre: "", precio_original: "", precio_rescate: "", stock: "", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" });
         setImagePreview(null);
         setDescuentoManual("");
-        cargarProductos();
+        cargarDatos();
       }
     } catch (error) { alert("Error"); } finally { setLoading(false); }
+  };
+
+  const eliminarProducto = async (id: number) => {
+    if (!confirm("¿Deseas eliminar esta oferta permanentemente?")) return;
+    try {
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${id}`, { method: "DELETE" });
+      if (res.ok) setProductos(productos.filter(p => p.id !== id));
+    } catch (error) { alert("Error al eliminar"); }
+  };
+
+  const editarStock = async (prod: any) => {
+    const nuevoStock = prompt(`Actualizar stock para ${prod.nombre}:`, prod.stock);
+    if (nuevoStock === null || nuevoStock === "") return;
+    try {
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${prod.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          nombre: prod.nombre, 
+          precio_rescate: prod.precio_rescate, 
+          stock: parseInt(nuevoStock) 
+        })
+      });
+      if (res.ok) cargarDatos();
+    } catch (error) { alert("Error al editar"); }
   };
 
   return (
@@ -141,55 +152,69 @@ export default function Aliado() {
       <AppNavbar />
       <main className="container mx-auto px-4 pt-32 pb-12 max-w-7xl">
         
-        {/* Header de Aliado */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Panel de Aliado</h1>
-            </div>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Gestiona tus excedentes y aumenta tus ventas</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
+              Dashboard <span className="text-green-600">Aliado</span>
+            </h1>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Control de inventario y métricas de impacto</p>
           </div>
           <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3">
              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-             <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Local Operativo</span>
+             <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Conexión Segura con TiDB</span>
           </div>
         </div>
 
-        {/* Métricas con diseño mejorado */}
+        {/* MÉTRICAS MEJORADAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
-            <div className="bg-green-50 p-4 rounded-2xl"><DollarSign className="text-green-600 w-6 h-6" /></div>
+          {/* Ganancia Real */}
+          <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02] border-l-4 border-green-500">
+            <div className="bg-green-50 p-4 rounded-2xl"><TrendingUp className="text-green-600 w-6 h-6" /></div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ganancia Potencial</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ventas Reales</p>
+              <h3 className="text-2xl font-black text-slate-900">${Number(stats.total_ganado || 0).toLocaleString()}</h3>
+              <p className="text-[9px] text-green-600 font-bold uppercase">{stats.total_rescates} pedidos completados</p>
+            </div>
+          </Card>
+
+          {/* Ganancia Potencial */}
+          <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
+            <div className="bg-blue-50 p-4 rounded-2xl"><DollarSign className="text-blue-600 w-6 h-6" /></div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Valor Inventario</p>
               <h3 className="text-2xl font-black text-slate-900">
                 ${productos.reduce((acc, p) => acc + (Number(p.precio_rescate) * Number(p.stock)), 0).toLocaleString()}
               </h3>
+              <p className="text-[9px] text-blue-600 font-bold uppercase">Dinero por recuperar</p>
             </div>
           </Card>
+
+          {/* Variedad de Ofertas */}
           <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 flex items-center gap-5 transition-transform hover:scale-[1.02]">
-            <div className="bg-blue-50 p-4 rounded-2xl"><BarChart3 className="text-blue-600 w-6 h-6" /></div>
+            <div className="bg-purple-50 p-4 rounded-2xl"><BarChart3 className="text-purple-600 w-6 h-6" /></div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ofertas Activas</p>
-              <h3 className="text-2xl font-black text-slate-900">{productos.length}</h3>
+              <h3 className="text-2xl font-black text-slate-900">{productos.length} Items</h3>
+              <p className="text-[9px] text-purple-600 font-bold uppercase">Gestión de excedentes</p>
             </div>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* FORMULARIO DE CREACIÓN REDISEÑADO */}
+          {/* FORMULARIO */}
           <div className="space-y-6">
             <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden">
               <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <Plus className="w-5 h-5 text-green-400"/>
-                  <span className="font-black text-sm uppercase tracking-widest">Crear Oferta</span>
+                  <span className="font-black text-sm uppercase tracking-widest">Crear Nueva Oferta</span>
                 </div>
               </div>
 
               <CardContent className="p-10 space-y-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Selector Sorpresa / Real */}
+                  {/* Selector Sorpresa */}
                   <div 
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
                     className={`cursor-pointer p-5 rounded-3xl border-2 transition-all flex justify-between items-center ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500 shadow-inner" : "bg-slate-50 border-slate-100"}`}
@@ -205,7 +230,7 @@ export default function Aliado() {
                     {nuevoProducto.esSorpresa && <CheckCircle2 className="w-6 h-6 text-green-600" />}
                   </div>
 
-                  {/* Subida de Imagen */}
+                  {/* Imagen */}
                   {!nuevoProducto.esSorpresa && (
                     <div className="space-y-3">
                       <Label>Imagen Real</Label>
@@ -257,14 +282,14 @@ export default function Aliado() {
             </Card>
           </div>
 
-          {/* LISTA DE INVENTARIO REDISEÑADA */}
+          {/* LISTA DE INVENTARIO */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-slate-800 flex gap-3 items-center uppercase tracking-tighter">
-                   Tu Inventario Actual
+                <h2 className="text-xl font-black text-slate-800 flex gap-3 items-center uppercase tracking-tighter italic">
+                   Tu Inventario <span className="text-green-600">Actual</span>
                 </h2>
                 <Badge className="bg-slate-200 text-slate-600 border-none font-black px-4 py-1 rounded-full uppercase text-[10px]">
-                  {productos.length} items
+                  {productos.length} items activos
                 </Badge>
             </div>
             
@@ -277,25 +302,35 @@ export default function Aliado() {
               ) : (
                 productos.map((prod) => (
                   <Card key={prod.id} className="border-none shadow-sm rounded-[35px] p-6 bg-white hover:shadow-xl transition-shadow group">
-                    <div className="flex items-center justify-between gap-6">
+                    <div className="flex items-center justify-between gap-6 flex-wrap md:flex-nowrap">
                       <div className="flex items-center gap-6">
                         <div className="relative">
                             <img src={prod.imagen_url || IMG_SORPRESA} className="w-20 h-20 rounded-[25px] object-cover shadow-md group-hover:scale-105 transition-transform" />
-                            {prod.stock < 3 && <div className="absolute -top-2 -right-2 bg-red-500 w-6 h-6 rounded-full border-4 border-white animate-pulse" />}
+                            {prod.stock < 3 && prod.stock > 0 && (
+                              <div className="absolute -top-2 -right-2 bg-amber-500 p-1 rounded-full border-2 border-white shadow-lg">
+                                <AlertCircle size={12} className="text-white" />
+                              </div>
+                            )}
                         </div>
                         <div>
                           <h4 className="font-black text-slate-800 text-base uppercase tracking-tight mb-1">{prod.nombre}</h4>
-                          <div className="flex gap-2 items-center">
-                             <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase">Stock: {prod.stock}</span>
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">${Number(prod.precio_original).toLocaleString()} Original</span>
+                          <div className="flex gap-2 items-center flex-wrap">
+                             <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase transition-all ${
+                               prod.stock === 0 
+                               ? "bg-red-100 text-red-600 animate-pulse" 
+                               : "bg-green-50 text-green-600"
+                             }`}>
+                                {prod.stock === 0 ? "¡AGOTADO!" : `Stock: ${prod.stock}`}
+                             </span>
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ref: #${prod.id}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
                         <div className="text-right">
                           <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(prod.precio_rescate).toLocaleString()}</p>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Precio Rescate</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest line-through">${Number(prod.precio_original).toLocaleString()}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={() => editarStock(prod)} variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-50 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border-none"><Pencil size={18}/></Button>
@@ -314,6 +349,7 @@ export default function Aliado() {
   );
 }
 
+// Subcomponentes
 function Label({ children }: { children: React.ReactNode }) {
   return <label className="text-[10px] font-black uppercase text-slate-400 ml-1 block mb-2 tracking-widest">{children}</label>;
 }
