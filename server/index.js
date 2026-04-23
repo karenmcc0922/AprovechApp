@@ -49,6 +49,38 @@ app.post('/api/completar-perfil', (req, res) => {
   });
 });
 
+// RUTA PARA CONFIRMAR ENTREGA (PATCH)
+app.patch('/api/pedidos/:id/estado', (req, res) => {
+  const { id } = req.params;
+  const { estado } = req.body;
+
+  console.log(`Intentando actualizar pedido ID: ${id} a estado: ${estado}`);
+
+  // 1. Validamos que el ID sea un número
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID de pedido no válido" });
+  }
+
+  // 2. Ejecutamos el UPDATE
+  // Importante: Asegúrate de que la columna se llame 'estado' en tu tabla 'pedidos'
+  const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
+  
+  pool.query(sql, [estado, id], (err, result) => {
+    if (err) {
+      // ESTE LOG ES EL QUE DEBES MIRAR EN RENDER SI SALE ERROR 500
+      console.error("❌ ERROR CRÍTICO EN DB:", err.sqlMessage);
+      return res.status(500).json({ error: "Error interno del servidor", detalle: err.sqlMessage });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "No se encontró el pedido para actualizar" });
+    }
+
+    console.log("✅ Estado actualizado correctamente en la base de datos");
+    res.json({ success: true });
+  });
+});
+
 // --- ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
@@ -57,24 +89,6 @@ app.post('/api/registro-aliado', (req, res) => {
     if (err) return res.status(500).json({ error: "Error al registrar aliado" });
     res.status(201).json({ mensaje: "Comercio registrado", aliado: { id: result.insertId, nombre_local } });
   });
-});
-
-// --- LOGIN ---
-app.post('/api/login', (req, res) => {
-  const { correo, password, role } = req.body;
-  if (role === 'vendor') {
-    const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
-    pool.query(sql, [correo, password], (err, results) => {
-      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
-      else res.status(401).json({ error: "Credenciales incorrectas" });
-    });
-  } else {
-    const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
-    pool.query(sql, [correo, password], (err, results) => {
-      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
-      else res.status(401).json({ error: "Credenciales incorrectas" });
-    });
-  }
 });
 
 // --- PRODUCTOS (CATÁLOGO) ---
@@ -168,37 +182,38 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
   });
 });
 
-// RUTA PARA CONFIRMAR ENTREGA (PATCH)
-// REEMPLAZA TU RUTA PATCH POR ESTA
-app.patch('/api/pedidos/:id/estado', (req, res) => {
+app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body;
-
-  console.log(`Intentando actualizar pedido ID: ${id} a estado: ${estado}`);
-
-  // 1. Validamos que el ID sea un número
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID de pedido no válido" });
-  }
-
-  // 2. Ejecutamos el UPDATE
-  // Importante: Asegúrate de que la columna se llame 'estado' en tu tabla 'pedidos'
-  const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
+  const sql = `
+    SELECT 
+      COUNT(*) as total_rescates, 
+      SUM(precio_final) as total_ganado
+    FROM pedidos 
+    WHERE aliado_id = ? AND estado = 'Completado'
+  `;
   
-  pool.query(sql, [estado, id], (err, result) => {
-    if (err) {
-      // ESTE LOG ES EL QUE DEBES MIRAR EN RENDER SI SALE ERROR 500
-      console.error("❌ ERROR CRÍTICO EN DB:", err.sqlMessage);
-      return res.status(500).json({ error: "Error interno del servidor", detalle: err.sqlMessage });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "No se encontró el pedido para actualizar" });
-    }
-
-    console.log("✅ Estado actualizado correctamente en la base de datos");
-    res.json({ success: true });
+  pool.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results[0]);
   });
+});
+
+// --- LOGIN ---
+app.post('/api/login', (req, res) => {
+  const { correo, password, role } = req.body;
+  if (role === 'vendor') {
+    const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
+    pool.query(sql, [correo, password], (err, results) => {
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
+      else res.status(401).json({ error: "Credenciales incorrectas" });
+    });
+  } else {
+    const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
+    pool.query(sql, [correo, password], (err, results) => {
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
+      else res.status(401).json({ error: "Credenciales incorrectas" });
+    });
+  }
 });
 
 // 3. Puerto de escucha
