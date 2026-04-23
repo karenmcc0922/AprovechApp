@@ -104,6 +104,21 @@ app.get('/api/productos-todos', (req, res) => {
   });
 });
 
+// NUEVA RUTA: Obtener productos de UN aliado específico
+app.get('/api/mis-productos/:id', (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC";
+  
+  pool.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Error al obtener mis productos:", err);
+      return res.status(500).json({ error: "Error en la base de datos" });
+    }
+    // Devolvemos los productos (o una lista vacía si no tiene ninguno)
+    res.json(results || []);
+  });
+});
+
 // --- PEDIDOS Y RESCATES ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
