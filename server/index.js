@@ -173,16 +173,31 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  if (!estado) return res.status(400).json({ error: "Falta el estado" });
+  // Log para depuración: Ver qué está llegando al servidor
+  console.log(`Intentando actualizar pedido ${id} a estado: ${estado}`);
+
+  if (!estado) {
+    return res.status(400).json({ error: "El nuevo estado es requerido" });
+  }
 
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
+  
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("SQL Error en PATCH:", err.sqlMessage);
-      return res.status(500).json({ error: "Error al actualizar", detalle: err.sqlMessage });
+      console.error("❌ ERROR SQL AL ACTUALIZAR ESTADO:", err.sqlMessage);
+      return res.status(500).json({ 
+        error: "Error interno en la base de datos", 
+        detalle: err.sqlMessage 
+      });
     }
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
-    res.json({ success: true, mensaje: "Estado actualizado correctamente" });
+
+    if (result.affectedRows === 0) {
+      console.warn(`⚠️ No se encontró el pedido con ID ${id}`);
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    console.log(`✅ Pedido ${id} actualizado con éxito`);
+    res.json({ success: true, mensaje: "Estado actualizado" });
   });
 });
 
