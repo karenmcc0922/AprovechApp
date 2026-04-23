@@ -212,6 +212,21 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   });
 });
 
+app.get('/api/pedidos/validar/:id/:aliadoId', (req, res) => {
+  const { id, aliadoId } = req.params;
+  const sql = `
+    SELECT p.*, u.nombre as nombre_usuario 
+    FROM pedidos p 
+    JOIN usuarios u ON p.usuario_id = u.id 
+    WHERE p.id = ? AND p.aliado_id = ?
+  `;
+  pool.query(sql, [id, aliadoId], (err, results) => {
+    if (err) return res.status(500).json(err);
+    if (results.length === 0) return res.status(404).json({ mensaje: "Pedido no encontrado" });
+    res.json(results[0]);
+  });
+});
+
 // --- LOGIN ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
