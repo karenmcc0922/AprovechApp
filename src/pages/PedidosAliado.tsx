@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import AppNavbar from "../components/AppNavbar";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
   ShoppingBag, 
@@ -8,13 +10,21 @@ import {
   Ticket, 
   RefreshCcw, 
   Clock,
-  ChevronRight
+  ChevronRight,
+  Search,
+  CheckCircle2
 } from "lucide-react";
 
 export default function PedidosAliado() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // ESTADOS PARA LA VALIDACIÓN POR CÓDIGO
+  const [codigoBusqueda, setCodigoBusqueda] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [pedidoEncontrado, setPedidoEncontrado] = useState<any>(null);
+
   const user = JSON.parse(localStorage.getItem("usuario") || "{}");
 
   const fetchPedidos = async (showLoader = false) => {
@@ -36,9 +46,48 @@ export default function PedidosAliado() {
 
   useEffect(() => {
     fetchPedidos(true);
-    const interval = setInterval(() => fetchPedidos(false), 15000); // Auto-refresh cada 15 seg
+    const interval = setInterval(() => fetchPedidos(false), 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // LÓGICA DE VALIDACIÓN
+  const buscarPedidoPorCodigo = async () => {
+    if (!codigoBusqueda) return;
+    setBuscando(true);
+    setPedidoEncontrado(null);
+    try {
+      // Usamos el ID del aliado desde el objeto usuario
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/validar/${codigoBusqueda}/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPedidoEncontrado(data);
+      } else {
+        alert("Código no encontrado o no pertenece a este local");
+      }
+    } catch (error) {
+      alert("Error en la búsqueda");
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  const confirmarEntrega = async (pedidoId: number) => {
+    try {
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${pedidoId}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "Completado" })
+      });
+      if (res.ok) {
+        alert("¡Rescate entregado con éxito!");
+        setPedidoEncontrado(null);
+        setCodigoBusqueda("");
+        fetchPedidos(false);
+      }
+    } catch (error) {
+      alert("Error al confirmar");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -47,7 +96,7 @@ export default function PedidosAliado() {
       <div className="container mx-auto px-6 pt-32 pb-20 max-w-5xl">
         
         {/* Header de Gestión */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="relative flex h-3 w-3">
@@ -75,6 +124,73 @@ export default function PedidosAliado() {
           </div>
         </div>
 
+        {/* --- SECCIÓN MEJORA 2: VALIDADOR RÁPIDO --- */}
+        <div className="mb-12">
+          <div className="bg-slate-900 rounded-[35px] p-8 shadow-2xl shadow-slate-200 relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="text-center md:text-left">
+                <h3 className="text-white font-black text-xl uppercase italic tracking-tighter mb-1">Checkpoint de Rescate</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Valida el código de entrega aquí</p>
+              </div>
+
+              <div className="flex gap-2 w-full md:w-auto max-w-md">
+                <div className="relative flex-1">
+                  <Input 
+                    placeholder="Código de rescate..." 
+                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12"
+                    value={codigoBusqueda}
+                    onChange={(e) => setCodigoBusqueda(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
+                  />
+                  <Ticket className="absolute left-4 top-4 text-slate-500 w-6 h-6" />
+                </div>
+                <Button 
+                  onClick={buscarPedidoPorCodigo}
+                  disabled={buscando}
+                  className="h-14 px-8 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs"
+                >
+                  {buscando ? <Loader2 className="animate-spin" /> : <Search />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Resultado de búsqueda dentro del banner */}
+            {pedidoEncontrado && (
+              <div className="mt-8 p-6 bg-white rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in duration-300">
+                <div className="flex items-center gap-5">
+                  <div className="bg-green-100 p-4 rounded-2xl">
+                    <CheckCircle2 className="text-green-600 w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Cliente: {pedidoEncontrado.nombre_usuario}</p>
+                    <h4 className="text-lg font-black text-slate-900 uppercase italic">{pedidoEncontrado.nombre_producto}</h4>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                   <button 
+                    onClick={() => setPedidoEncontrado(null)}
+                    className="text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-widest"
+                  >
+                    Cancelar
+                  </button>
+                  {pedidoEncontrado.estado !== 'Completado' ? (
+                    <Button 
+                      onClick={() => confirmarEntrega(pedidoEncontrado.id)}
+                      className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12"
+                    >
+                      Confirmar Entrega
+                    </Button>
+                  ) : (
+                    <Badge className="bg-slate-100 text-slate-400 py-3 px-6 rounded-xl font-black">YA ENTREGADO</Badge>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* LISTADO DE PEDIDOS */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="animate-spin text-green-600 w-12 h-12 mb-4" />
@@ -90,6 +206,7 @@ export default function PedidosAliado() {
           </div>
         ) : (
           <div className="grid gap-6">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2 px-4">Historial de Hoy</h2>
             {pedidos.map((pedido) => (
               <div 
                 key={pedido.id} 
@@ -101,9 +218,6 @@ export default function PedidosAliado() {
                     <div className="bg-slate-900 p-5 rounded-[28px] group-hover:bg-green-600 transition-colors">
                       <ShoppingBag className="text-white w-8 h-8" />
                     </div>
-                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-4 border-white">
-                      1
-                    </div>
                   </div>
                   
                   <div>
@@ -112,7 +226,7 @@ export default function PedidosAliado() {
                         {pedido.id % 2 === 0 ? 'Rescate Express' : 'Rescate Estándar'}
                       </Badge>
                       <span className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Hace 5 min
+                        <Clock className="w-3 h-3" /> {new Date(pedido.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2 group-hover:text-green-600 transition-colors">
@@ -129,9 +243,8 @@ export default function PedidosAliado() {
 
                 {/* Status y Código (Lado Derecho) */}
                 <div className="flex flex-wrap lg:flex-nowrap items-center gap-6 w-full lg:w-auto pt-6 lg:pt-0 border-t lg:border-t-0 border-slate-50">
-                  
                   <div className="flex flex-col items-start lg:items-end flex-1 lg:flex-none">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 text-right">Monto a recibir</p>
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 text-right">Monto recibido</p>
                     <span className="font-black text-2xl text-slate-900 tracking-tighter">
                       ${pedido.precio_final.toLocaleString()}
                     </span>
@@ -140,9 +253,9 @@ export default function PedidosAliado() {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-xl shadow-slate-200 group-hover:shadow-green-100 transition-all">
                       <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Código de Entrega</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID Pedido</span>
                         <span className="font-mono text-lg font-black tracking-[0.2em] text-green-400 uppercase">
-                          {pedido.codigo_qr}
+                          {pedido.id}
                         </span>
                       </div>
                       <Ticket className="w-6 h-6 text-slate-700" />
