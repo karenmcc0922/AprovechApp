@@ -169,35 +169,35 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
 });
 
 // RUTA PARA CONFIRMAR ENTREGA (PATCH)
+// REEMPLAZA TU RUTA PATCH POR ESTA
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
-  // Log para depuración: Ver qué está llegando al servidor
-  console.log(`Intentando actualizar pedido ${id} a estado: ${estado}`);
+  console.log(`Intentando actualizar pedido ID: ${id} a estado: ${estado}`);
 
-  if (!estado) {
-    return res.status(400).json({ error: "El nuevo estado es requerido" });
+  // 1. Validamos que el ID sea un número
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "ID de pedido no válido" });
   }
 
+  // 2. Ejecutamos el UPDATE
+  // Importante: Asegúrate de que la columna se llame 'estado' en tu tabla 'pedidos'
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
   
   pool.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error("❌ ERROR SQL AL ACTUALIZAR ESTADO:", err.sqlMessage);
-      return res.status(500).json({ 
-        error: "Error interno en la base de datos", 
-        detalle: err.sqlMessage 
-      });
+      // ESTE LOG ES EL QUE DEBES MIRAR EN RENDER SI SALE ERROR 500
+      console.error("❌ ERROR CRÍTICO EN DB:", err.sqlMessage);
+      return res.status(500).json({ error: "Error interno del servidor", detalle: err.sqlMessage });
     }
 
     if (result.affectedRows === 0) {
-      console.warn(`⚠️ No se encontró el pedido con ID ${id}`);
-      return res.status(404).json({ error: "Pedido no encontrado" });
+      return res.status(404).json({ error: "No se encontró el pedido para actualizar" });
     }
 
-    console.log(`✅ Pedido ${id} actualizado con éxito`);
-    res.json({ success: true, mensaje: "Estado actualizado" });
+    console.log("✅ Estado actualizado correctamente en la base de datos");
+    res.json({ success: true });
   });
 });
 
