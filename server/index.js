@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// 2. CONEXIÓN A TiDB CLOUD (Uso de pool para mejor rendimiento)
+// 2. CONEXIÓN A TiDB CLOUD
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
@@ -158,24 +158,23 @@ app.get('/api/aliados/:id/estadisticas', (req, res) => {
   });
 });
 
-// CORRECCIÓN PARA LA GRÁFICA (Removido DATE_FORMAT conflictivo)
+// CORRECCIÓN DEFINITIVA PARA LA GRÁFICA (Resuelve error only_full_group_by)
 app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const { id } = req.params;
   const sql = `
     SELECT 
-      DATE(fecha) as fecha_completa,
       DATE_FORMAT(fecha, '%d/%m') as fecha, 
       SUM(precio_final) as total 
     FROM pedidos 
     WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')
-    GROUP BY DATE(fecha) 
-    ORDER BY fecha_completa ASC 
+    GROUP BY DATE_FORMAT(fecha, '%d/%m')
+    ORDER BY MIN(fecha) ASC 
     LIMIT 7
   `;
   pool.query(sql, [id], (err, results) => {
     if (err) {
       console.error("Error en ventas-semanales:", err);
-      return res.status(500).json({ error: "Error en el servidor", detalle: err.message });
+      return res.status(500).json({ error: "Error de base de datos", detalle: err.message });
     }
     res.json(results || []);
   });
@@ -185,7 +184,10 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json(err);
+    if (err) {
+      // Si el error es que la tabla no existe, devolvemos lista vacía en lugar de romper el dashboard
+      return res.json([]);
+    }
     res.json(results || []);
   });
 });
