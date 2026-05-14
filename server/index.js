@@ -59,11 +59,11 @@ app.post('/api/registro-aliado', (req, res) => {
   });
 });
 
-// --- PRODUCTOS Y CATÁLOGO ---
+// --- PRODUCTOS Y CATÁLOGO (CON FILTROS DE SEGURIDAD ALIMENTARIA) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
   
-  // SQL actualizado con categoría
+  // Guardamos la categoría y la fecha exacta de publicación para controlar la expiración
   const sql = `INSERT INTO productos_rescate 
                (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria, fecha_elaboracion) 
                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
@@ -78,14 +78,29 @@ app.post('/api/productos', (req, res) => {
 });
 
 app.get('/api/productos-todos', (req, res) => {
+  // LÓGICA DE SEGURIDAD: 
+  // 1. Solo aliados NO bloqueados por calidad.
+  // 2. Filtro de expiración según categoría (Preparados 12h, Panadería 48h, etc).
   const sql = `
     SELECT p.*, a.nombre_local, a.direccion 
     FROM productos_rescate p 
     JOIN aliados a ON p.aliado_id = a.id 
     WHERE p.stock > 0 
+    AND a.estado_calidad != 'Bloqueado'
+    AND (
+      (p.categoria = 'Preparados' AND p.fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
+      (p.categoria = 'Panaderia' AND p.fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
+      (p.categoria = 'Frutas' AND p.fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
+      (p.categoria = 'Despensa') 
+      OR p.categoria IS NULL
+    )
     ORDER BY p.id DESC`;
+
   pool.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: "Error al cargar catálogo" });
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al cargar catálogo" });
+    }
     res.json(results || []);
   });
 });
@@ -156,6 +171,26 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   });
 });
 
+// --- SEGURIDAD ALIMENTARIA: REPORTES DE CALIDAD ---
+app.post('/api/reportar-calidad', (req, res) => {
+  const { pedido_id, usuario_id, aliado_id, motivo, foto_evidencia } = req.body;
+  const sql = "INSERT INTO reportes_calidad (pedido_id, usuario_id, aliado_id, motivo, foto_evidencia) VALUES (?, ?, ?, ?, ?)";
+  
+  pool.query(sql, [pedido_id, usuario_id, aliado_id, motivo, foto_evidencia], (err) => {
+    if (err) return res.status(500).json({ error: "Error al enviar reporte" });
+    
+    // Si el aliado acumula 3 reportes, lo ponemos en advertencia
+    const checkSql = "SELECT COUNT(*) as fallas FROM reportes_calidad WHERE aliado_id = ?";
+    pool.query(checkSql, [aliado_id], (err, results) => {
+      if (!err && results[0].fallas >= 3) {
+        pool.query("UPDATE aliados SET estado_calidad = 'Advertencia' WHERE id = ?", [aliado_id]);
+      }
+    });
+
+    res.status(201).json({ mensaje: "Reporte recibido para revisión" });
+  });
+});
+
 // --- ESTADÍSTICAS Y ANALÍTICAS ---
 app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
@@ -166,7 +201,6 @@ app.get('/api/aliados/:id/estadisticas', (req, res) => {
   });
 });
 
-// CORRECCIÓN DEFINITIVA PARA LA GRÁFICA (Resuelve error only_full_group_by)
 app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const { id } = req.params;
   const sql = `
@@ -180,10 +214,7 @@ app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
     LIMIT 7
   `;
   pool.query(sql, [id], (err, results) => {
-    if (err) {
-      console.error("Error en ventas-semanales:", err);
-      return res.status(500).json({ error: "Error de base de datos", detalle: err.message });
-    }
+    if (err) return res.status(500).json({ error: "Error DB", detalle: err.message });
     res.json(results || []);
   });
 });
@@ -192,10 +223,7 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
   pool.query(sql, [id], (err, results) => {
-    if (err) {
-      // Si el error es que la tabla no existe, devolvemos lista vacía en lugar de romper el dashboard
-      return res.json([]);
-    }
+    if (err) return res.json([]);
     res.json(results || []);
   });
 });
