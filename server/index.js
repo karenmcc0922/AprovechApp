@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. CONFIGURACIÓN DE CORS
+// 1. CONFIGURACIÓN DE MIDDLEWARES Y CORS
 app.use(cors({
   origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// 2. CONEXIÓN A TiDB CLOUD
+// 2. CONEXIÓN A TiDB CLOUD (POOL DE CONEXIONES)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
@@ -29,6 +29,12 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000
 });
+
+// Helper para logs de error más limpios
+const handleSQLError = (res, err, message) => {
+  console.error(`❌ ${message}:`, err);
+  return res.status(500).json({ error: message, details: err.message });
+};
 
 // --- ENDPOINTS DE USUARIOS ---
 app.post('/api/registro', (req, res) => {
@@ -44,7 +50,7 @@ app.post('/api/completar-perfil', (req, res) => {
   const { email, password, telefono, direccion, municipio, departamento, pais, fechaNacimiento } = req.body;
   const sql = `UPDATE usuarios SET password = ?, telefono = ?, direccion = ?, municipio = ?, departamento = ?, pais = ?, fecha_nacimiento = ? WHERE correo = ?`;
   pool.query(sql, [password, telefono, direccion, municipio, departamento, pais, fechaNacimiento, email], (err) => {
-    if (err) return res.status(500).json({ error: "Error al actualizar perfil" });
+    if (err) return handleSQLError(res, err, "Error al actualizar perfil");
     res.status(200).json({ mensaje: "Perfil completado" });
   });
 });
@@ -54,33 +60,34 @@ app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
   const sql = `INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) VALUES (?, ?, ?, ?, ?)`;
   pool.query(sql, [nombre_local, nit, correo, direccion, password], (err, result) => {
-    if (err) return res.status(500).json({ error: "Error al registrar aliado" });
+    if (err) return handleSQLError(res, err, "Error al registrar aliado");
     res.status(201).json({ mensaje: "Comercio registrado", aliado: { id: result.insertId, nombre_local } });
   });
 });
 
-// --- PRODUCTOS Y CATÁLOGO (CON FILTROS DE SEGURIDAD ALIMENTARIA) ---
+// --- PRODUCTOS (CORREGIDO PARA EVITAR ERROR 500) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
   
-  // Guardamos la categoría y la fecha exacta de publicación para controlar la expiración
+  // Usamos un valor por defecto si la categoría viene vacía
+  const catFinal = categoria || 'Preparados';
+
+  // Nota: Eliminamos fecha_elaboracion del INSERT. 
+  // La base de datos lo llenará automáticamente si la columna tiene DEFAULT CURRENT_TIMESTAMP.
   const sql = `INSERT INTO productos_rescate 
-               (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria, fecha_elaboracion) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
+               (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
+               VALUES (?, ?, ?, ?, ?, ?, ?)`;
                
-  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria], (err, result) => {
+  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal], (err, result) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Error al guardar producto" });
+      // Si sale error 500 aquí, revisa que las columnas 'categoria' existan en TiDB
+      return handleSQLError(res, err, "Error al guardar producto en la base de datos");
     }
     res.status(201).json({ mensaje: "Producto creado con éxito", id: result.insertId });
   });
 });
 
 app.get('/api/productos-todos', (req, res) => {
-  // LÓGICA DE SEGURIDAD: 
-  // 1. Solo aliados NO bloqueados por calidad.
-  // 2. Filtro de expiración según categoría (Preparados 12h, Panadería 48h, etc).
   const sql = `
     SELECT p.*, a.nombre_local, a.direccion 
     FROM productos_rescate p 
@@ -97,10 +104,7 @@ app.get('/api/productos-todos', (req, res) => {
     ORDER BY p.id DESC`;
 
   pool.query(sql, (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Error al cargar catálogo" });
-    }
+    if (err) return handleSQLError(res, err, "Error al cargar catálogo");
     res.json(results || []);
   });
 });
@@ -109,7 +113,7 @@ app.get('/api/mis-productos/:id', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC";
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error en DB" });
+    if (err) return handleSQLError(res, err, "Error al cargar tus productos");
     res.json(results || []);
   });
 });
@@ -120,11 +124,11 @@ app.post('/api/pedidos/crear', (req, res) => {
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
-    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
+    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible" });
     
     const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')";
     pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err) => {
-      if (err) return res.status(500).json({ error: "Error al crear pedido" });
+      if (err) return handleSQLError(res, err, "Error al crear pedido");
       res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
     });
   });
@@ -134,8 +138,8 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
-  pool.query(sql, [estado, id], (err, result) => {
-    if (err) return res.status(500).json({ error: "Error interno" });
+  pool.query(sql, [estado, id], (err) => {
+    if (err) return handleSQLError(res, err, "Error al actualizar estado");
     res.json({ success: true });
   });
 });
@@ -143,7 +147,7 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
 app.get('/api/pedidos/usuario/:id', (req, res) => {
   const sql = "SELECT p.*, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
+    if (err) return handleSQLError(res, err, "Error al obtener pedidos");
     res.json(results);
   });
 });
@@ -151,7 +155,7 @@ app.get('/api/pedidos/usuario/:id', (req, res) => {
 app.get('/api/pedidos/aliado/:id', (req, res) => {
   const sql = "SELECT p.*, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
+    if (err) return handleSQLError(res, err, "Error al obtener pedidos del aliado");
     res.json(results);
   });
 });
@@ -165,38 +169,36 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
     WHERE p.codigo_qr = ? AND p.aliado_id = ?
   `;
   pool.query(sql, [codigo, aliadoId], (err, results) => {
-    if (err) return res.status(500).json(err);
-    if (results.length === 0) return res.status(404).json({ mensaje: "No encontrado" });
+    if (err) return handleSQLError(res, err, "Error al validar código");
+    if (results.length === 0) return res.status(404).json({ mensaje: "Código no encontrado o no pertenece a este local" });
     res.json(results[0]);
   });
 });
 
-// --- SEGURIDAD ALIMENTARIA: REPORTES DE CALIDAD ---
+// --- SEGURIDAD ALIMENTARIA ---
 app.post('/api/reportar-calidad', (req, res) => {
   const { pedido_id, usuario_id, aliado_id, motivo, foto_evidencia } = req.body;
   const sql = "INSERT INTO reportes_calidad (pedido_id, usuario_id, aliado_id, motivo, foto_evidencia) VALUES (?, ?, ?, ?, ?)";
   
   pool.query(sql, [pedido_id, usuario_id, aliado_id, motivo, foto_evidencia], (err) => {
-    if (err) return res.status(500).json({ error: "Error al enviar reporte" });
+    if (err) return handleSQLError(res, err, "Error al enviar reporte");
     
-    // Si el aliado acumula 3 reportes, lo ponemos en advertencia
     const checkSql = "SELECT COUNT(*) as fallas FROM reportes_calidad WHERE aliado_id = ?";
     pool.query(checkSql, [aliado_id], (err, results) => {
       if (!err && results[0].fallas >= 3) {
         pool.query("UPDATE aliados SET estado_calidad = 'Advertencia' WHERE id = ?", [aliado_id]);
       }
     });
-
-    res.status(201).json({ mensaje: "Reporte recibido para revisión" });
+    res.status(201).json({ mensaje: "Reporte recibido" });
   });
 });
 
-// --- ESTADÍSTICAS Y ANALÍTICAS ---
+// --- ANALÍTICAS ---
 app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
-  const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND estado = 'Completado'";
+  const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')";
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json(err);
+    if (err) return handleSQLError(res, err, "Error en estadísticas");
     res.json(results[0] || { total_rescates: 0, total_ganado: 0 });
   });
 });
@@ -204,52 +206,49 @@ app.get('/api/aliados/:id/estadisticas', (req, res) => {
 app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT 
-      DATE_FORMAT(fecha, '%d/%m') as fecha, 
-      SUM(precio_final) as total 
+    SELECT DATE_FORMAT(fecha, '%d/%m') as fecha, SUM(precio_final) as total 
     FROM pedidos 
     WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')
     GROUP BY DATE_FORMAT(fecha, '%d/%m')
-    ORDER BY MIN(fecha) ASC 
-    LIMIT 7
-  `;
+    ORDER BY MIN(fecha) ASC LIMIT 7`;
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error DB", detalle: err.message });
+    if (err) return handleSQLError(res, err, "Error en gráfica");
     res.json(results || []);
   });
 });
 
 app.get('/api/aliados/:id/actividad', (req, res) => {
   const { id } = req.params;
+  // Asegúrate de que la tabla 'historial_actividad' exista, si no, devuelve un array vacío
   const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.json([]);
+    if (err) return res.json([]); 
     res.json(results || []);
   });
 });
 
-// --- SISTEMA DE LOGIN ---
+// --- LOGIN ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
   if (role === 'vendor') {
     const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({error: "Error DB"});
-      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
+      if (err) return handleSQLError(res, err, "Error en Login Aliado");
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { ...results[0], role: 'vendor' } });
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   } else {
     const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
-      if (err) return res.status(500).json({error: "Error DB"});
-      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
+      if (err) return handleSQLError(res, err, "Error en Login Usuario");
+      if (results?.length > 0) res.json({ mensaje: "OK", usuario: { ...results[0], role: 'user' } });
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   }
 });
 
-// PUERTO
+// LANZAMIENTO
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor AprovechApp ejecutándose en puerto ${PORT}`);
+  console.log(`🚀 Servidor AprovechApp corriendo en el puerto ${PORT}`);
 });
