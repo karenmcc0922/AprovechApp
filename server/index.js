@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// 2. CONEXIÓN A TiDB CLOUD
+// 2. CONEXIÓN A TiDB CLOUD (Uso de pool para mejor rendimiento)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
@@ -133,7 +133,6 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
   });
 });
 
-// VALIDAR POR CÓDIGO (Para la Mejora 2 en PedidosAliado)
 app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   const { codigo, aliadoId } = req.params;
   const sql = `
@@ -149,7 +148,7 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   });
 });
 
-// --- ESTADÍSTICAS Y ANALÍTICAS (Mejora 3) ---
+// --- ESTADÍSTICAS Y ANALÍTICAS ---
 app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND estado = 'Completado'";
@@ -159,18 +158,26 @@ app.get('/api/aliados/:id/estadisticas', (req, res) => {
   });
 });
 
+// CORRECCIÓN PARA LA GRÁFICA (Removido DATE_FORMAT conflictivo)
 app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT DATE_FORMAT(fecha, '%d/%m') as fecha, SUM(precio_final) as total 
+    SELECT 
+      DATE(fecha) as fecha_completa,
+      DATE_FORMAT(fecha, '%d/%m') as fecha, 
+      SUM(precio_final) as total 
     FROM pedidos 
-    WHERE aliado_id = ? AND estado = 'Completado'
+    WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')
     GROUP BY DATE(fecha) 
-    ORDER BY fecha ASC LIMIT 7
+    ORDER BY fecha_completa ASC 
+    LIMIT 7
   `;
   pool.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
+    if (err) {
+      console.error("Error en ventas-semanales:", err);
+      return res.status(500).json({ error: "Error en el servidor", detalle: err.message });
+    }
+    res.json(results || []);
   });
 });
 
@@ -179,7 +186,7 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
   pool.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json(err);
-    res.json(results);
+    res.json(results || []);
   });
 });
 
@@ -189,12 +196,14 @@ app.post('/api/login', (req, res) => {
   if (role === 'vendor') {
     const sql = "SELECT id, nombre_local AS nombre, correo_corporativo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
     pool.query(sql, [correo, password], (err, results) => {
+      if (err) return res.status(500).json({error: "Error DB"});
       if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'vendor' } });
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   } else {
     const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
+      if (err) return res.status(500).json({error: "Error DB"});
       if (results?.length > 0) res.json({ mensaje: "OK", usuario: { id: results[0].id, nombre: results[0].nombre, role: 'user' } });
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
