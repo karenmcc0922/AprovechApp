@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. Configuración de CORS
+// 1. CONFIGURACIÓN DE CORS
 app.use(cors({
   origin: ['https://aprovechapp.vercel.app', 'http://localhost:5173'], 
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// 2. Conexión a TiDB
+// 2. CONEXIÓN A TiDB CLOUD
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 4000,
@@ -30,7 +30,7 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 10000
 });
 
-// --- USUARIOS ---
+// --- ENDPOINTS DE USUARIOS ---
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
   const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
@@ -49,39 +49,7 @@ app.post('/api/completar-perfil', (req, res) => {
   });
 });
 
-// RUTA PARA CONFIRMAR ENTREGA (PATCH)
-app.patch('/api/pedidos/:id/estado', (req, res) => {
-  const { id } = req.params;
-  const { estado } = req.body;
-
-  console.log(`Intentando actualizar pedido ID: ${id} a estado: ${estado}`);
-
-  // 1. Validamos que el ID sea un número
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "ID de pedido no válido" });
-  }
-
-  // 2. Ejecutamos el UPDATE
-  // Importante: Asegúrate de que la columna se llame 'estado' en tu tabla 'pedidos'
-  const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
-  
-  pool.query(sql, [estado, id], (err, result) => {
-    if (err) {
-      // ESTE LOG ES EL QUE DEBES MIRAR EN RENDER SI SALE ERROR 500
-      console.error("❌ ERROR CRÍTICO EN DB:", err.sqlMessage);
-      return res.status(500).json({ error: "Error interno del servidor", detalle: err.sqlMessage });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "No se encontró el pedido para actualizar" });
-    }
-
-    console.log("✅ Estado actualizado correctamente en la base de datos");
-    res.json({ success: true });
-  });
-});
-
-// --- ALIADOS ---
+// --- ENDPOINTS DE ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
   const sql = `INSERT INTO aliados (nombre_local, nit, correo_corporativo, direccion, password_hash) VALUES (?, ?, ?, ?, ?)`;
@@ -91,7 +59,7 @@ app.post('/api/registro-aliado', (req, res) => {
   });
 });
 
-// --- PRODUCTOS (CATÁLOGO) ---
+// --- PRODUCTOS Y CATÁLOGO ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
   const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
@@ -102,7 +70,6 @@ app.post('/api/productos', (req, res) => {
 });
 
 app.get('/api/productos-todos', (req, res) => {
-  // JOIN crucial para que aparezca el nombre del local en las cards
   const sql = `
     SELECT p.*, a.nombre_local, a.direccion 
     FROM productos_rescate p 
@@ -110,101 +77,96 @@ app.get('/api/productos-todos', (req, res) => {
     WHERE p.stock > 0 
     ORDER BY p.id DESC`;
   pool.query(sql, (err, results) => {
-    if (err) {
-      console.error("Error en productos-todos:", err);
-      return res.status(500).json({ error: "Error al cargar catálogo" });
-    }
+    if (err) return res.status(500).json({ error: "Error al cargar catálogo" });
     res.json(results || []);
   });
 });
 
-// NUEVA RUTA: Obtener productos de UN aliado específico
 app.get('/api/mis-productos/:id', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT * FROM productos_rescate WHERE aliado_id = ? ORDER BY id DESC";
-  
   pool.query(sql, [id], (err, results) => {
-    if (err) {
-      console.error("Error al obtener mis productos:", err);
-      return res.status(500).json({ error: "Error en la base de datos" });
-    }
-    // Devolvemos los productos (o una lista vacía si no tiene ninguno)
+    if (err) return res.status(500).json({ error: "Error en DB" });
     res.json(results || []);
   });
 });
 
-// --- PEDIDOS Y RESCATES ---
+// --- GESTIÓN DE PEDIDOS ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
-    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible" });
+    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock" });
     
     const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')";
     pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err) => {
-      if (err) return res.status(500).json({ error: "Error al crear el pedido" });
+      if (err) return res.status(500).json({ error: "Error al crear pedido" });
       res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
     });
   });
 });
 
+app.patch('/api/pedidos/:id/estado', (req, res) => {
+  const { id } = req.params;
+  const { estado } = req.body;
+  const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
+  pool.query(sql, [estado, id], (err, result) => {
+    if (err) return res.status(500).json({ error: "Error interno" });
+    res.json({ success: true });
+  });
+});
+
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const sql = `
-    SELECT p.id, p.nombre_producto, p.precio_final, p.codigo_qr, p.estado, a.nombre_local, a.direccion 
-    FROM pedidos p 
-    JOIN aliados a ON p.aliado_id = a.id 
-    WHERE p.usuario_id = ? 
-    ORDER BY p.id DESC`;
-  
+  const sql = "SELECT p.*, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return res.status(500).json({ error: "Error al cargar rescates" });
-    const data = (results || []).map(r => ({
-      id: r.id,
-      producto: r.nombre_producto,
-      precio: r.precio_final,
-      codigo_qr: r.codigo_qr,
-      estado: r.estado || 'Pendiente',
-      local: r.nombre_local,
-      direccion: r.direccion
-    }));
-    res.json(data);
+    if (err) return res.status(500).json({ error: "Error" });
+    res.json(results);
   });
 });
 
 app.get('/api/pedidos/aliado/:id', (req, res) => {
-  const sql = `
-    SELECT p.*, u.telefono as usuario_telefono, u.correo as usuario_correo 
-    FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC`;
+  const sql = "SELECT p.*, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ error: "Error" });
-    res.json((results || []).map(p => ({ ...p, estado: p.estado || 'Pendiente' })));
+    res.json(results);
   });
 });
 
-app.get('/api/aliados/:id/estadisticas', (req, res) => {
-  const { id } = req.params;
+// VALIDAR POR CÓDIGO (Para la Mejora 2 en PedidosAliado)
+app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
+  const { codigo, aliadoId } = req.params;
   const sql = `
-    SELECT 
-      COUNT(*) as total_rescates, 
-      SUM(precio_final) as total_ganado
-    FROM pedidos 
-    WHERE aliado_id = ? AND estado = 'Completado'
+    SELECT p.*, u.nombre as nombre_usuario 
+    FROM pedidos p 
+    JOIN usuarios u ON p.usuario_id = u.id 
+    WHERE p.codigo_qr = ? AND p.aliado_id = ?
   `;
-  
-  pool.query(sql, [id], (err, results) => {
+  pool.query(sql, [codigo, aliadoId], (err, results) => {
     if (err) return res.status(500).json(err);
+    if (results.length === 0) return res.status(404).json({ mensaje: "No encontrado" });
     res.json(results[0]);
   });
 });
 
-app.get('/api/aliados/:id/actividad', (req, res) => {
+// --- ESTADÍSTICAS Y ANALÍTICAS (Mejora 3) ---
+app.get('/api/aliados/:id/estadisticas', (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND estado = 'Completado'";
+  pool.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results[0] || { total_rescates: 0, total_ganado: 0 });
+  });
+});
+
+app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT * FROM historial_actividad 
-    WHERE aliado_id = ? 
-    ORDER BY fecha DESC 
-    LIMIT 10
+    SELECT DATE_FORMAT(fecha, '%d/%m') as fecha, SUM(precio_final) as total 
+    FROM pedidos 
+    WHERE aliado_id = ? AND estado = 'Completado'
+    GROUP BY DATE(fecha) 
+    ORDER BY fecha ASC LIMIT 7
   `;
   pool.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json(err);
@@ -212,22 +174,16 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   });
 });
 
-app.get('/api/pedidos/validar/:id/:aliadoId', (req, res) => {
-  const { id, aliadoId } = req.params;
-  const sql = `
-    SELECT p.*, u.nombre as nombre_usuario 
-    FROM pedidos p 
-    JOIN usuarios u ON p.usuario_id = u.id 
-    WHERE p.id = ? AND p.aliado_id = ?
-  `;
-  pool.query(sql, [id, aliadoId], (err, results) => {
+app.get('/api/aliados/:id/actividad', (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
+  pool.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json(err);
-    if (results.length === 0) return res.status(404).json({ mensaje: "Pedido no encontrado" });
-    res.json(results[0]);
+    res.json(results);
   });
 });
 
-// --- LOGIN ---
+// --- SISTEMA DE LOGIN ---
 app.post('/api/login', (req, res) => {
   const { correo, password, role } = req.body;
   if (role === 'vendor') {
@@ -245,7 +201,7 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// 3. Puerto de escucha
+// PUERTO
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor AprovechApp ejecutándose en puerto ${PORT}`);
