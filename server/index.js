@@ -61,11 +61,19 @@ app.post('/api/registro-aliado', (req, res) => {
 
 // --- PRODUCTOS Y CATÁLOGO ---
 app.post('/api/productos', (req, res) => {
-  const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url } = req.body;
-  const sql = "INSERT INTO productos_rescate (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url) VALUES (?, ?, ?, ?, ?, ?)";
-  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url], (err, result) => {
-    if (err) return res.status(500).json({ error: "Error al guardar producto" });
-    res.status(201).json({ mensaje: "Éxito", id: result.insertId });
+  const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
+  
+  // SQL actualizado con categoría
+  const sql = `INSERT INTO productos_rescate 
+               (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria, fecha_elaboracion) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
+               
+  pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al guardar producto" });
+    }
+    res.status(201).json({ mensaje: "Producto creado con éxito", id: result.insertId });
   });
 });
 

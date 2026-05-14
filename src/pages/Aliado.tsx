@@ -22,7 +22,8 @@ import {
   TrendingUp,
   History,
   AlertCircle,
-  X
+  X,
+  ShieldCheck // Nuevo icono para responsabilidad
 } from "lucide-react";
 
 export default function Aliado() {
@@ -33,11 +34,15 @@ export default function Aliado() {
   const [datosGrafica, setDatosGrafica] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  // NUEVOS ESTADOS PARA RESPONSABILIDAD SOCIAL
+  const [aceptaResponsabilidad, setAceptaResponsabilidad] = useState(false);
+
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: "",
     precio_original: "",
     precio_rescate: "",
     stock: "",
+    categoria: "Preparados", // Valor por defecto
     descripcion: "Pack sorpresa de productos frescos",
     esSorpresa: true,
     imagen_url: ""
@@ -61,10 +66,7 @@ export default function Aliado() {
       if (resProd.ok) setProductos(await resProd.json());
       if (resStats.ok) setStats(await resStats.json());
       if (resAct.ok) setActividad(await resAct.json());
-      if (resGrafica.ok) {
-        const data = await resGrafica.json();
-        setDatosGrafica(data);
-      }
+      if (resGrafica.ok) setDatosGrafica(await resGrafica.json());
       
     } catch (error) {
       console.error("Error al sincronizar datos:", error);
@@ -105,9 +107,12 @@ export default function Aliado() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!aceptaResponsabilidad) return alert("Debes aceptar la declaración de calidad.");
+
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
     setLoading(true);
+
     try {
       const payload = {
         aliado_id: parseInt(aliadoId),
@@ -115,20 +120,31 @@ export default function Aliado() {
         precio_original: parseFloat(nuevoProducto.precio_original),
         precio_rescate: parseFloat(nuevoProducto.precio_rescate),
         stock: parseInt(nuevoProducto.stock),
+        categoria: nuevoProducto.categoria, // Enviamos categoría al backend
         imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url
       };
+
       const res = await fetch("https://aprovechapp-api.onrender.com/api/productos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
       if (res.ok) {
-        setNuevoProducto({ nombre: "", precio_original: "", precio_rescate: "", stock: "", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" });
+        setNuevoProducto({ 
+          nombre: "", precio_original: "", precio_rescate: "", stock: "", 
+          categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" 
+        });
         setImagePreview(null);
         setDescuentoManual("");
+        setAceptaResponsabilidad(false); // Reset del check
         cargarTodo();
       }
-    } catch (error) { alert("Error al publicar"); } finally { setLoading(false); }
+    } catch (error) { 
+      alert("Error al publicar"); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
@@ -236,7 +252,6 @@ export default function Aliado() {
                     </p>
                   </div>
 
-                  {/* Lógica de Imagen Corregida */}
                   {!nuevoProducto.esSorpresa && (
                     <div className="space-y-2">
                       {imagePreview ? (
@@ -264,6 +279,22 @@ export default function Aliado() {
                     <Label>Producto</Label>
                     <Input className="rounded-xl bg-slate-50 border-none font-bold" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
+
+                  {/* NUEVO SELECTOR DE CATEGORÍA */}
+                  <div className="space-y-1">
+                    <Label>Categoría de Perecederos</Label>
+                    <select 
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none"
+                      value={nuevoProducto.categoria}
+                      onChange={e => setNuevoProducto({...nuevoProducto, categoria: e.target.value})}
+                    >
+                      <option value="Preparados">Platos Preparados (Hoy)</option>
+                      <option value="Panaderia">Panadería / Repostería</option>
+                      <option value="Frutas">Frutas y Verduras</option>
+                      <option value="Despensa">Despensa (Cerca a vencer)</option>
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label>Precio Original</Label>
@@ -274,12 +305,38 @@ export default function Aliado() {
                       <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
+                  
                   <div className="space-y-1">
-                    <Label>Stock</Label>
+                    <Label>Stock Disponible</Label>
                     <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full bg-slate-900 py-6 rounded-[20px] font-black uppercase text-[11px] hover:bg-green-600">
-                    {loading ? <Loader2 className="animate-spin" /> : "Publicar Oferta"}
+
+                  {/* NUEVA DECLARACIÓN DE RESPONSABILIDAD */}
+                  <div className={`p-4 rounded-2xl transition-all border ${aceptaResponsabilidad ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="mt-1 accent-green-600"
+                        checked={aceptaResponsabilidad}
+                        onChange={e => setAceptaResponsabilidad(e.target.checked)}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-800 uppercase flex items-center gap-1">
+                          <ShieldCheck size={12} className="text-blue-600"/> Declaración de Calidad
+                        </span>
+                        <p className="text-[9px] font-bold text-slate-500 leading-tight mt-1">
+                          Certifico que el producto es apto para consumo y cumple las normas de salud vigentes.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !aceptaResponsabilidad} 
+                    className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-lg ${aceptaResponsabilidad ? 'bg-slate-900 hover:bg-green-600 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                  >
+                    {loading ? <Loader2 className="animate-spin" /> : "Publicar Oferta Segura"}
                   </Button>
                 </form>
               </CardContent>
@@ -287,15 +344,18 @@ export default function Aliado() {
           </div>
 
           <div className="lg:col-span-5 space-y-4">
-            <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas</h2>
+            <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas Activas</h2>
             {productos.length > 0 ? productos.map((prod) => (
-              <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-4 bg-white">
+              <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <img src={prod.imagen_url || IMG_SORPRESA} className="w-14 h-14 rounded-2xl object-cover" />
                     <div>
                       <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
-                      <p className="text-[10px] font-bold text-green-600 uppercase">Stock: {prod.stock}</p>
+                      <div className="flex gap-2 items-center">
+                        <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">{prod.categoria || 'Rescate'}</span>
+                        <p className="text-[10px] font-bold text-green-600 uppercase">Stock: {prod.stock}</p>
+                      </div>
                     </div>
                   </div>
                   <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-red-500"><Trash2 size={14}/></Button>
@@ -308,7 +368,7 @@ export default function Aliado() {
              <Card className="border-none shadow-sm rounded-[35px] bg-white p-6">
               <div className="flex items-center gap-3 mb-6">
                 <History className="w-4 h-4 text-slate-400" />
-                <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad</h3>
+                <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad Reciente</h3>
               </div>
               <div className="space-y-6 relative">
                 <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-50" />
@@ -320,7 +380,7 @@ export default function Aliado() {
                       {new Date(log.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                )) : <p className="text-[10px] font-bold text-slate-400 uppercase">Sin actividad</p>}
+                )) : <p className="text-[10px] font-bold text-slate-400 uppercase">Sin movimientos</p>}
               </div>
             </Card>
           </div>
