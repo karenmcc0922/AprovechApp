@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter"; // <--- Importamos el hook de navegación
 import AppNavbar from "../components/AppNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +28,13 @@ import {
   Loader2,
   MapPin,
   Package2,
-  Clock // Icono nuevo para frescura
+  Clock 
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
 export default function Catalog() {
+  const [, setLocation] = useLocation(); // <--- Inicializamos el router para cambiar de página
   const [productosDB, setProductosDB] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -45,7 +47,6 @@ export default function Catalog() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Lógica del Semáforo de Frescura
   const getSemaforo = (categoria: string) => {
     switch(categoria) {
       case 'Preparados': 
@@ -61,7 +62,6 @@ export default function Catalog() {
 
   const fetchProductos = async () => {
     try {
-      // Usamos el endpoint que ya tiene el filtro de expiración automática
       const response = await fetch("https://aprovechapp-api.onrender.com/api/productos-todos");
       if (response.ok) {
         const data = await response.json();
@@ -87,7 +87,7 @@ export default function Catalog() {
       precioOriginal: p.precio_original,
       precioOferta: p.precio_rescate,
       descuento: Math.round(((p.precio_original - p.precio_rescate) / p.precio_original) * 100),
-      categoria: p.categoria || "Despensa", // Mapeo de la categoría real
+      categoria: p.categoria || "Despensa",
       imagen: p.imagen_url || IMG_FALLBACK, 
       direccion: p.direccion || "Dirección no disponible",
       stock: p.stock,
@@ -200,7 +200,7 @@ export default function Catalog() {
                 </div>
                 <Slider 
                     value={[maxPrice]} 
-                    onValueChange={([v]) => setMaxPrice(v)} 
+                    onValueChange={(([v]) => setMaxPrice(v))} 
                     max={100000} 
                     step={1000}
                     className="py-4"
@@ -226,7 +226,7 @@ export default function Catalog() {
                     <p className="font-black text-xl leading-tight mb-2">Seguridad Garantizada</p>
                     <p className="text-green-100 text-xs font-medium opacity-80">Validamos cada aliado para asegurar la calidad de tus rescates.</p>
                 </div>
-                <img src="/logo.png" className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 group-hover:scale-110 transition-transform" />
+                <img src="/logo.png" className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 group-hover:scale-110 transition-transform" alt="AprovechApp Logo"/>
             </div>
           </aside>
 
@@ -265,7 +265,6 @@ export default function Catalog() {
                           <Badge className="bg-white text-slate-900 border-none font-black px-4 py-2 rounded-full shadow-xl text-sm">
                             -{prod.descuento}%
                           </Badge>
-                          {/* ETIQUETA DE FRESCURA (SEMÁFORO) */}
                           <Badge className={`${semaforo.color} border font-black px-4 py-2 rounded-full shadow-xl text-[10px] flex items-center gap-1`}>
                             <Clock size={10} /> {semaforo.texto}
                           </Badge>
@@ -273,9 +272,15 @@ export default function Catalog() {
                       </div>
 
                       <div className="p-8">
+                        {/* SECCIÓN MODIFICADA: Ahora el nombre de la tienda es clickeable */}
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{prod.tienda}</p>
+                          <button 
+                            onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
+                            className="text-[10px] font-black text-slate-400 hover:text-green-600 hover:underline uppercase tracking-widest transition-colors text-left"
+                          >
+                            {prod.tienda}
+                          </button>
                         </div>
                         
                         <h3 className="text-xl font-black text-slate-800 mb-6 group-hover:text-green-600 transition-colors uppercase truncate">{prod.nombre}</h3>
@@ -309,7 +314,7 @@ export default function Catalog() {
             <div className="p-10">
               <DialogHeader className="mb-8">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-                    <img src="/logo.png" className="w-6 h-6 object-contain" />
+                    <img src="/logo.png" className="w-6 h-6 object-contain" alt="AprovechApp"/>
                 </div>
                 <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">¿Confirmas el rescate?</DialogTitle>
                 <DialogDescription className="font-bold text-slate-400 text-xs uppercase tracking-widest">
