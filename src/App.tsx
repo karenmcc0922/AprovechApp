@@ -8,7 +8,8 @@ import RegistroAliado from "./pages/RegistroAliado";
 import Aliado from "./pages/Aliado";
 import PerfilAliado from "./pages/PerfilAliado"; 
 import MisRescates from "./pages/MisRescates"; 
-import PedidosAliado from "./pages/PedidosAliado"; // <--- Importamos la nueva vista de Aliado
+import PedidosAliado from "./pages/PedidosAliado"; 
+// import VitrinaAliado from "./pages/VitrinaAliado"; // <--- Importarías la vista pública cuando la crees
 
 function App() {
   return (
@@ -19,19 +20,22 @@ function App() {
       {/* 2. Login Centralizado */}
       <Route path="/login" component={Login} />
       
-      {/* 3. Flujo Comercio (Aliado) */}
+      {/* 3. Flujo Comercio (Aliado - Privado) */}
       <Route path="/registro-aliado" component={RegistroAliado} />
-      <Route path="/aliado" component={Aliado} />
-      <Route path="/perfil-aliado" component={PerfilAliado} />
-      <Route path="/pedidos-recibir" component={PedidosAliado} /> {/* <--- Conectamos la ruta de Pedidos */}
+      <Route path="/aliado" component={Aliado} /> {/* Dashboard Principal */}
+      <Route path="/perfil-aliado" component={PerfilAliado} /> {/* Configuración/Ajustes de su propio local */}
+      <Route path="/pedidos-recibir" component={PedidosAliado} /> 
       
       {/* 4. Flujo Usuario (Rescatista) */}
       <Route path="/completar-perfil" component={CompleteProfile} />
       <Route path="/catalog" component={Catalog} />
       <Route path="/perfil" component={Profile} />
       <Route path="/mis-rescates" component={MisRescates} /> 
+      
+      {/* 5. Vista Pública del Comercio (Para el cliente) */}
+      {/* <Route path="/aliado/:id" component={VitrinaAliado} /> */} {/* <--- RUTA DINÁMICA CLAVE */}
 
-      {/* 5. Error 404 */}
+      {/* 6. Error 404 */}
       <Route>
         <div className="flex flex-col items-center justify-center min-h-screen font-bold text-slate-400 gap-4 bg-slate-50">
           <span className="text-6xl animate-bounce">🥑</span>

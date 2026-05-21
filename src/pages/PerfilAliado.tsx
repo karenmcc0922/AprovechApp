@@ -34,10 +34,16 @@ export default function PerfilAliado() {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        const response = await fetch(`https://aprovechapp-api.onrender.com/api/perfil-aliado/${aliadoId}`);
+        // Corregido para usar la ruta unificada del backend
+        const response = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/panel-privado`);
         if (response.ok) {
           const data = await response.json();
-          setPerfil(data);
+          setPerfil({
+            nombre_local: data.nombre_local || "",
+            nit: data.nit || "",
+            correo_corporativo: data.correo_corporativo || "",
+            direccion: data.direccion || ""
+          });
         }
       } catch (error) {
         console.error("Error cargando perfil:", error);
@@ -51,24 +57,26 @@ export default function PerfilAliado() {
   const handleUpdate = async () => {
     setUpdating(true);
     try {
-      await fetch(`https://aprovechapp-api.onrender.com/api/actualizar-perfil/${aliadoId}`, {
+      // Corregido apuntando al endpoint de actualización adecuado
+      const response = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/actualizar`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            nombre_local: perfil.nombre_local,
-            direccion: perfil.direccion
+          nombre_local: perfil.nombre_local,
+          direccion: perfil.direccion
         }),
       });
+
+      if (!response.ok) throw new Error("Error en servidor");
 
       setTimeout(() => {
         setEditMode(false);
         setUpdating(false);
-        // Podrías usar un toast aquí si tienes la librería configurada
         alert("¡Información actualizada con éxito! 🥑");
       }, 800);
       
     } catch (error) {
-      alert("Error al conectar con el servidor");
+      alert("Error al conectar con el servidor o actualizar datos");
       setUpdating(false);
     }
   };
@@ -107,7 +115,7 @@ export default function PerfilAliado() {
             </div>
 
             <div className="mb-14">
-              <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
                 {perfil.nombre_local || "Mi Local"}
               </h1>
               <div className="flex items-center gap-3 mt-4">
@@ -115,7 +123,7 @@ export default function PerfilAliado() {
                   <CheckCircle className="w-3 h-3" /> VERIFICADO
                 </span>
                 <span className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white/80 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border border-white/10">
-                  <MapPin className="w-3 h-3" /> {perfil.direccion.split(',')[0]}
+                  <MapPin className="w-3 h-3" /> {perfil.direccion ? perfil.direccion.split(',')[0] : "Dirección no asignada"}
                 </span>
               </div>
             </div>
@@ -138,7 +146,7 @@ export default function PerfilAliado() {
                 <div className="group">
                   <label className="text-[10px] font-black text-slate-300 uppercase block mb-2 tracking-tighter">E-mail Corporativo</label>
                   <p className="text-slate-900 font-black flex items-center gap-3 text-sm break-all">
-                    <Mail className="w-5 h-5 text-green-600" /> {perfil.correo_corporativo}
+                    <Mail className="w-5 h-5 text-green-600" /> {perfil.correo_corporativo || "No registrado"}
                   </p>
                 </div>
                 <div className="pt-8 border-t border-slate-50">
@@ -199,7 +207,7 @@ export default function PerfilAliado() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Código Interno</label>
                   <div className="py-5 px-8 rounded-[25px] bg-slate-100/50 text-slate-400 font-mono text-xs border border-slate-50 flex items-center justify-between">
-                    <span>ALI-{aliadoId?.padStart(4, '0')}</span>
+                    <span>ALI-{aliadoId ? aliadoId.padStart(4, '0') : "0000"}</span>
                     <Clock size={14} className="opacity-30" />
                   </div>
                 </div>

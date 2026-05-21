@@ -65,24 +65,73 @@ app.post('/api/registro-aliado', (req, res) => {
   });
 });
 
-// --- PRODUCTOS (CORREGIDO PARA EVITAR ERROR 500) ---
+// OBTENER PERFIL COMPLETO (PRIVADO PARA PANEL DEL ALIADO)
+app.get('/api/aliados/:id/panel-privado', (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
+  pool.query(sql, [id], (err, results) => {
+    if (err) return handleSQLError(res, err, "Error al obtener perfil del aliado");
+    if (results.length === 0) return res.status(404).json({ error: "No se encontró el establecimiento" });
+    res.json(results[0]);
+  });
+});
+
+// ACTUALIZAR INFORMACIÓN DEL ESTABLECIMIENTO
+app.put('/api/aliados/:id/actualizar', (req, res) => {
+  const { id } = req.params;
+  const { nombre_local, direccion } = req.body;
+  const sql = "UPDATE aliados SET nombre_local = ?, direccion = ? WHERE id = ?";
+  pool.query(sql, [nombre_local, direccion, id], (err, result) => {
+    if (err) return handleSQLError(res, err, "Error al actualizar la base de datos");
+    res.json({ success: true, mensaje: "Establecimiento modificado con éxito" });
+  });
+});
+
+// PERFIL PÚBLICO DEL ALIADO CON SUS PRODUCTOS FILTRADOS
+app.get('/api/aliados/:id/perfil', (req, res) => {
+  const { id } = req.params;
+
+  const sqlAliado = "SELECT id, nombre_local, direccion, estado_calidad FROM aliados WHERE id = ?";
+  
+  const sqlProductos = `
+    SELECT * FROM productos_rescate 
+    WHERE aliado_id = ? 
+    AND stock > 0 
+    AND (
+      (categoria = 'Preparados' AND fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
+      (categoria = 'Panaderia' AND fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
+      (categoria = 'Frutas' AND fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
+      (categoria = 'Despensa') 
+      OR categoria IS NULL
+    )
+    ORDER BY id DESC`;
+
+  pool.query(sqlAliado, [id], (err, aliadoResult) => {
+    if (err) return handleSQLError(res, err, "Error al obtener datos del aliado");
+    if (aliadoResult.length === 0) return res.status(404).json({ error: "Aliado no encontrado" });
+
+    pool.query(sqlProductos, [id], (err, productosResult) => {
+      if (err) return handleSQLError(res, err, "Error al obtener productos del aliado");
+
+      res.json({
+        aliado: aliadoResult[0],
+        productos: productosResult || []
+      });
+    });
+  });
+});
+
+// --- PRODUCTOS ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
-  
-  // Usamos un valor por defecto si la categoría viene vacía
   const catFinal = categoria || 'Preparados';
 
-  // Nota: Eliminamos fecha_elaboracion del INSERT. 
-  // La base de datos lo llenará automáticamente si la columna tiene DEFAULT CURRENT_TIMESTAMP.
   const sql = `INSERT INTO productos_rescate 
                (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
                VALUES (?, ?, ?, ?, ?, ?, ?)`;
                
   pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal], (err, result) => {
-    if (err) {
-      // Si sale error 500 aquí, revisa que las columnas 'categoria' existan en TiDB
-      return handleSQLError(res, err, "Error al guardar producto en la base de datos");
-    }
+    if (err) return handleSQLError(res, err, "Error al guardar producto en la base de datos");
     res.status(201).json({ mensaje: "Producto creado con éxito", id: result.insertId });
   });
 });
@@ -219,7 +268,6 @@ app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
 
 app.get('/api/aliados/:id/actividad', (req, res) => {
   const { id } = req.params;
-  // Asegúrate de que la tabla 'historial_actividad' exista, si no, devuelve un array vacío
   const sql = "SELECT * FROM historial_actividad WHERE aliado_id = ? ORDER BY fecha DESC LIMIT 10";
   pool.query(sql, [id], (err, results) => {
     if (err) return res.json([]); 
