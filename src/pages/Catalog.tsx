@@ -142,7 +142,7 @@ export default function Catalog() {
           currency: "COP",
           amountInCents: valorEnCentavos,
           reference: referenciaUnica,
-          "public-key": "pub_test_2A9N78M76O5P4Q3R2S1T0U9V8W7X6Y5Z",
+          "public-key": "pub_test_cx76fF87gH88iI89jJ90kK91lL92mM93",
           redirectUrl: `${window.location.origin}/mis-rescates`,
         };
 
