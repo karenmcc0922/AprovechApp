@@ -114,12 +114,11 @@ export default function Catalog() {
 
   const openRescate = (product: any) => {
     setSelectedProduct(product);
-    setMetodoPago("wompi"); // Por defecto sugerir tarjeta/PSE
+    setMetodoPago("wompi"); 
     setStep("confirm");
     setIsModalOpen(true);
   };
 
-  // Función principal unificada de checkout
   const procesarCheckout = async () => {
     if (!selectedProduct) return;
     setIsProcessing(true);
@@ -143,14 +142,15 @@ export default function Catalog() {
           currency: "COP",
           amountInCents: valorEnCentavos,
           reference: referenciaUnica,
-          publicKey: "pub_test_Q5YWhS26O7T8Vp647Z4D1f6O5c2Z3X4A", // Llave pública Sandbox Wompi
+          publicKey: "pub_test_Q5YWhS26O7T8Vp647Z4D1f6O5c2Z3X4A", 
           redirectUrl: `${window.location.origin}/mis-rescates`,
         };
 
         // @ts-ignore
         const checkout = new window.WidgetCheckout(checkoutOptions);
-        setIsProcessing(false); // Liberar loading para abrir widget
+        setIsProcessing(false); 
         
+        // Se añade tipado anónimo para evitar errores de build de TypeScript
         checkout.open(async (result: any) => {
           const transaction = result.transaction;
           
@@ -166,19 +166,22 @@ export default function Catalog() {
                   nombre_usuario: user.nombre,
                   nombre_producto: selectedProduct.nombre,
                   precio_final: selectedProduct.precioOferta,
-                  estado: "pagado", // Entra activo y pagado
+                  estado: "pagado", 
                   referencia_pago: transaction.id
                 })
               });
               
               const data = await response.json();
               if (response.ok) {
-                setSelectedProduct({ ...selectedProduct, codigoGenerated: data.codigo });
+                setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
                 setStep("success");
                 fetchProductos();
+              } else {
+                alert(data.error || "Error al registrar el pedido pagado");
               }
             } catch (err) {
               console.error("Error sincronizando pago aprobado:", err);
+              alert("Hubo un problema registrando tu compra en el sistema.");
             }
           } else {
             alert(`Transacción no aprobada. Estado: ${transaction.status}`);
@@ -203,18 +206,17 @@ export default function Catalog() {
                 nombre_usuario: user.nombre,
                 nombre_producto: selectedProduct.nombre,
                 precio_final: selectedProduct.precioOferta,
-                estado: "pendiente" // Pendiente de pago físico en tienda
+                estado: "pendiente" 
             })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
 
-        setSelectedProduct({ ...selectedProduct, codigoGenerated: data.codigo });
+        setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
         setStep("success");
         fetchProductos();
       } catch (error: any) {
-        alert(error.message);
-        setIsModalOpen(false);
+        alert(error.message || "Error al crear la reserva");
       } finally {
         setIsProcessing(false);
       }
@@ -390,7 +392,7 @@ export default function Catalog() {
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Selector de métodos (Wompi vs Efectivo) */}
+              {/* Selector de métodos */}
               <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
                 <button
                   type="button"
