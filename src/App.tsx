@@ -9,7 +9,7 @@ import Aliado from "./pages/Aliado";
 import PerfilAliado from "./pages/PerfilAliado"; 
 import MisRescates from "./pages/MisRescates"; 
 import PedidosAliado from "./pages/PedidosAliado"; 
-// import VitrinaAliado from "./pages/VitrinaAliado"; // <--- Importarías la vista pública cuando la crees
+import VitrinaAliado from "./pages/VitrinaAliado";
 
 function App() {
   return (
@@ -33,7 +33,7 @@ function App() {
       <Route path="/mis-rescates" component={MisRescates} /> 
       
       {/* 5. Vista Pública del Comercio (Para el cliente) */}
-      {/* <Route path="/aliado/:id" component={VitrinaAliado} /> */} {/* <--- RUTA DINÁMICA CLAVE */}
+      <Route path="/aliado/:id" component={VitrinaAliado} /> 
 
       {/* 6. Error 404 */}
       <Route>
