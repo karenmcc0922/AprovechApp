@@ -141,8 +141,8 @@ export default function Catalog() {
         const checkoutOptions = {
           currency: "COP",
           amountInCents: valorEnCentavos,
-          reference: referenciaUnica,
-          "public-key": "pub_test_cx76fF87gH88iI89jJ90kK91lL92mM93",
+          reference: referenciaUnica
+          publicKey: "pub_prod_ILg9b7F9V8W7X6Y5Z4A3B2C1D0E9F8A7", 
           redirectUrl: `${window.location.origin}/mis-rescates`,
         };
 
