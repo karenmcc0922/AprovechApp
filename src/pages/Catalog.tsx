@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLocation } from "wouter"; // <--- Importamos el hook de navegación
+import { useLocation } from "wouter"; 
 import AppNavbar from "../components/AppNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,13 +28,15 @@ import {
   Loader2,
   MapPin,
   Package2,
-  Clock 
+  Clock,
+  CreditCard,
+  Banknote
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
 
 export default function Catalog() {
-  const [, setLocation] = useLocation(); // <--- Inicializamos el router para cambiar de página
+  const [, setLocation] = useLocation(); 
   const [productosDB, setProductosDB] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -46,6 +48,9 @@ export default function Catalog() {
   const [step, setStep] = useState<"confirm" | "success">("confirm");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Método de pago seleccionado en el Modal ("wompi" o "efectivo")
+  const [metodoPago, setMetodoPago] = useState<"wompi" | "efectivo">("wompi");
 
   const getSemaforo = (categoria: string) => {
     switch(categoria) {
@@ -109,13 +114,16 @@ export default function Catalog() {
 
   const openRescate = (product: any) => {
     setSelectedProduct(product);
+    setMetodoPago("wompi"); // Por defecto sugerir tarjeta/PSE
     setStep("confirm");
     setIsModalOpen(true);
   };
 
-  const confirmarRescate = async () => {
+  // Función principal unificada de checkout
+  const procesarCheckout = async () => {
     if (!selectedProduct) return;
     setIsProcessing(true);
+    
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
     
@@ -125,7 +133,66 @@ export default function Catalog() {
         return;
     }
 
-    try {
+    if (metodoPago === "wompi") {
+      // --- FLUJO PASARELA WOMPI ---
+      try {
+        const referenciaUnica = `APROVECH-${Date.now()}-${user.id}`;
+        const valorEnCentavos = Number(selectedProduct.precioOferta) * 100;
+
+        const checkoutOptions = {
+          currency: "COP",
+          amountInCents: valorEnCentavos,
+          reference: referenciaUnica,
+          publicKey: "pub_test_Q5YWhS26O7T8Vp647Z4D1f6O5c2Z3X4A", // Llave pública Sandbox Wompi
+          redirectUrl: `${window.location.origin}/mis-rescates`,
+        };
+
+        // @ts-ignore
+        const checkout = new window.WidgetCheckout(checkoutOptions);
+        setIsProcessing(false); // Liberar loading para abrir widget
+        
+        checkout.open(async (result: any) => {
+          const transaction = result.transaction;
+          
+          if (transaction.status === "APPROVED") {
+            try {
+              const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  usuario_id: user.id,
+                  producto_id: selectedProduct.idReal,
+                  aliado_id: selectedProduct.aliado_id,
+                  nombre_usuario: user.nombre,
+                  nombre_producto: selectedProduct.nombre,
+                  precio_final: selectedProduct.precioOferta,
+                  estado: "pagado", // Entra activo y pagado
+                  referencia_pago: transaction.id
+                })
+              });
+              
+              const data = await response.json();
+              if (response.ok) {
+                setSelectedProduct({ ...selectedProduct, codigoGenerated: data.codigo });
+                setStep("success");
+                fetchProductos();
+              }
+            } catch (err) {
+              console.error("Error sincronizando pago aprobado:", err);
+            }
+          } else {
+            alert(`Transacción no aprobada. Estado: ${transaction.status}`);
+          }
+        });
+      } catch (error) {
+        console.error("Error cargando pasarela:", error);
+        alert("No se pudo iniciar la conexión con Wompi.");
+        setIsProcessing(false);
+      }
+
+    } else {
+      // --- FLUJO RESERVA EN EFECTIVO ---
+      try {
         const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -135,20 +202,22 @@ export default function Catalog() {
                 aliado_id: selectedProduct.aliado_id,
                 nombre_usuario: user.nombre,
                 nombre_producto: selectedProduct.nombre,
-                precio_final: selectedProduct.precioOferta
+                precio_final: selectedProduct.precioOferta,
+                estado: "pendiente" // Pendiente de pago físico en tienda
             })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
 
-        setSelectedProduct({ ...selectedProduct, codigoGenerado: data.codigo });
+        setSelectedProduct({ ...selectedProduct, codigoGenerated: data.codigo });
         setStep("success");
         fetchProductos();
-    } catch (error: any) {
+      } catch (error: any) {
         alert(error.message);
         setIsModalOpen(false);
-    } finally {
+      } finally {
         setIsProcessing(false);
+      }
     }
   };
 
@@ -272,7 +341,6 @@ export default function Catalog() {
                       </div>
 
                       <div className="p-8">
-                        {/* SECCIÓN MODIFICADA: Ahora el nombre de la tienda es clickeable */}
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-2 h-2 rounded-full bg-green-500" />
                           <button 
@@ -307,38 +375,58 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal de Confirmación / QR */}
+      {/* Modal de Confirmación Adaptado */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           {step === "confirm" ? (
             <div className="p-10">
-              <DialogHeader className="mb-8">
+              <DialogHeader className="mb-6">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
                     <img src="/logo.png" className="w-6 h-6 object-contain" alt="AprovechApp"/>
                 </div>
-                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">¿Confirmas el rescate?</DialogTitle>
+                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">Método de Rescate</DialogTitle>
                 <DialogDescription className="font-bold text-slate-400 text-xs uppercase tracking-widest">
-                    Pagarás al retirar en el punto físico.
+                    Selecciona cómo deseas asegurar tu plato
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="bg-slate-50 p-8 rounded-[32px] mb-8 space-y-4 border border-slate-100">
+              {/* Selector de métodos (Wompi vs Efectivo) */}
+              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
+                <button
+                  type="button"
+                  onClick={() => setMetodoPago("wompi")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${metodoPago === "wompi" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                >
+                  <CreditCard size={14} /> Pagar Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetodoPago("efectivo")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${metodoPago === "efectivo" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                >
+                  <Banknote size={14} /> En el Local
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-[28px] mb-6 space-y-3 border border-slate-100">
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Local</span>
-                    <span className="font-black text-slate-900 uppercase">{selectedProduct?.tienda}</span>
+                    <span className="text-slate-400 font-black uppercase">Establecimiento</span>
+                    <span className="font-black text-slate-900 uppercase truncate max-w-[180px]">{selectedProduct?.tienda}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Categoría</span>
-                    <span className="font-black text-green-600 uppercase">{selectedProduct?.categoria}</span>
+                    <span className="text-slate-400 font-black uppercase">Flujo seleccionado</span>
+                    <span className="font-black text-blue-600 uppercase">
+                      {metodoPago === "wompi" ? "Pasarela Wompi" : "Reserva Manual"}
+                    </span>
                 </div>
-                <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                    <span className="text-slate-400 font-black uppercase text-[10px]">Precio Final</span>
+                <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <span className="text-slate-400 font-black uppercase text-[10px]">Total Neto</span>
                     <span className="text-2xl font-black text-green-600">${selectedProduct?.precioOferta.toLocaleString()}</span>
                 </div>
               </div>
 
-              <Button onClick={confirmarRescate} disabled={isProcessing} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-lg shadow-xl hover:bg-green-600 transition-all">
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "¡LISTO PARA RESCATAR!"}
+              <Button onClick={procesarCheckout} disabled={isProcessing} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-600 transition-all uppercase tracking-wider">
+                  {isProcessing ? <Loader2 className="animate-spin" /> : metodoPago === "wompi" ? "ABRIR PASARELA 💳" : "RESERVAR AHORA ⏳"}
               </Button>
             </div>
           ) : (
@@ -346,16 +434,16 @@ export default function Catalog() {
               <div className="w-24 h-24 bg-green-50 rounded-[35px] flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">¡RESERVADO!</h2>
+              <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">¡PROCESADO!</h2>
               <p className="text-slate-400 mb-10 text-xs font-black uppercase tracking-widest px-4 leading-relaxed">
-                  Presenta este código en <span className="text-slate-900 underline">{selectedProduct?.tienda}</span> para reclamar tu producto.
+                  Boleto asignado. Visita a <span className="text-slate-900 underline">{selectedProduct?.tienda}</span> para reclamar tu pedido.
               </p>
               
               <div className="bg-slate-900 p-10 rounded-[45px] mb-10 flex flex-col items-center shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-green-500" />
                 <QrCode className="w-32 h-32 text-white mb-6 opacity-90" />
                 <p className="text-green-400 font-mono font-black tracking-[0.3em] text-3xl uppercase">
-                    {selectedProduct?.codigoGenerado}
+                    {selectedProduct?.codigoGenerated}
                 </p>
               </div>
 

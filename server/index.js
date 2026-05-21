@@ -65,7 +65,6 @@ app.post('/api/registro-aliado', (req, res) => {
   });
 });
 
-// OBTENER PERFIL COMPLETO (PRIVADO PARA PANEL DEL ALIADO)
 app.get('/api/aliados/:id/panel-privado', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT nombre_local, nit, correo_corporativo, direccion FROM aliados WHERE id = ?";
@@ -76,7 +75,6 @@ app.get('/api/aliados/:id/panel-privado', (req, res) => {
   });
 });
 
-// ACTUALIZAR INFORMACIÓN DEL ESTABLECIMIENTO
 app.put('/api/aliados/:id/actualizar', (req, res) => {
   const { id } = req.params;
   const { nombre_local, direccion } = req.body;
@@ -87,10 +85,8 @@ app.put('/api/aliados/:id/actualizar', (req, res) => {
   });
 });
 
-// PERFIL PÚBLICO DEL ALIADO CON SUS PRODUCTOS FILTRADOS
 app.get('/api/aliados/:id/perfil', (req, res) => {
   const { id } = req.params;
-
   const sqlAliado = "SELECT id, nombre_local, direccion, estado_calidad FROM aliados WHERE id = ?";
   
   const sqlProductos = `
@@ -112,7 +108,6 @@ app.get('/api/aliados/:id/perfil', (req, res) => {
 
     pool.query(sqlProductos, [id], (err, productosResult) => {
       if (err) return handleSQLError(res, err, "Error al obtener productos del aliado");
-
       res.json({
         aliado: aliadoResult[0],
         productos: productosResult || []
@@ -167,18 +162,22 @@ app.get('/api/mis-productos/:id', (req, res) => {
   });
 });
 
-// --- GESTIÓN DE PEDIDOS ---
+// --- GESTIÓN DE PEDIDOS (CON MEDIOS DE PAGO) ---
 app.post('/api/pedidos/crear', (req, res) => {
-  const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final } = req.body;
+  const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, estado } = req.body;
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
+  // Normalizar el estado a minúsculas ("pendiente" o "pagado") para evitar conflictos de strings
+  const estadoFormateado = (estado || "pendiente").toLowerCase();
+  
+  // Resta automática en inventario (RF-08)
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
-    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible" });
+    if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible en el establecimiento" });
     
-    const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')";
-    pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr], (err) => {
-      if (err) return handleSQLError(res, err, "Error al crear pedido");
-      res.status(201).json({ mensaje: "Pedido creado", codigo: codigo_qr });
+    const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estadoFormateado], (err) => {
+      if (err) return handleSQLError(res, err, "Error al registrar pedido");
+      res.status(201).json({ mensaje: "Pedido guardado", codigo: codigo_qr });
     });
   });
 });
@@ -186,8 +185,11 @@ app.post('/api/pedidos/crear', (req, res) => {
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
+  // Guardamos en minúscula uniforme en BD
+  const estadoFormateado = estado ? estado.toLowerCase() : 'completado';
+  
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
-  pool.query(sql, [estado, id], (err) => {
+  pool.query(sql, [estadoFormateado, id], (err) => {
     if (err) return handleSQLError(res, err, "Error al actualizar estado");
     res.json({ success: true });
   });
@@ -242,10 +244,10 @@ app.post('/api/reportar-calidad', (req, res) => {
   });
 });
 
-// --- ANALÍTICAS ---
+// --- ANALÍTICAS (MÉTRICAS UNIFICADAS EN MINÚSCULAS) ---
 app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
-  const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')";
+  const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND (estado = 'completado' OR estado = 'entregado')";
   pool.query(sql, [id], (err, results) => {
     if (err) return handleSQLError(res, err, "Error en estadísticas");
     res.json(results[0] || { total_rescates: 0, total_ganado: 0 });
@@ -257,7 +259,7 @@ app.get('/api/aliados/:id/ventas-semanales', (req, res) => {
   const sql = `
     SELECT DATE_FORMAT(fecha, '%d/%m') as fecha, SUM(precio_final) as total 
     FROM pedidos 
-    WHERE aliado_id = ? AND (estado = 'Completado' OR estado = 'Entregado')
+    WHERE aliado_id = ? AND (estado = 'completado' OR estado = 'entregado')
     GROUP BY DATE_FORMAT(fecha, '%d/%m')
     ORDER BY MIN(fecha) ASC LIMIT 7`;
   pool.query(sql, [id], (err, results) => {
