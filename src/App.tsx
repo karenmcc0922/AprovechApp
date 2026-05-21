@@ -33,7 +33,7 @@ function App() {
       <Route path="/mis-rescates" component={MisRescates} /> 
       
       {/* 5. Vista Pública del Comercio (Para el cliente) */}
-      <Route path="/aliado/:id" component={VitrinaAliado} /> 
+      <Route path="/aliado-publico/:id" component={VitrinaAliado} /> 
 
       {/* 6. Error 404 */}
       <Route>
