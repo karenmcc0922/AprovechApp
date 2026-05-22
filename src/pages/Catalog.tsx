@@ -87,7 +87,7 @@ export default function Catalog() {
     } catch (error) {
       console.error("Error cargando DB:", error);
     } finally {
-      setLoading(false);
+      loading && setLoading(false);
     }
   };
 
@@ -131,9 +131,8 @@ export default function Catalog() {
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
 
-    // RESPALDO: Activa por bandera regalo_descuento ó si explícitamente es el usuario con ID 1 o "1"
-    const esPioneroDescuento = user?.regalo_descuento === 1 || user?.id === 1 || user?.id === "1";
-    const esPioneroEnvio = user?.regalo_domicilio === 1 || user?.id === 1 || user?.id === "1";
+    const esPioneroDescuento = user?.regalo_descuento === 1;
+    const esPioneroEnvio = user?.regalo_domicilio === 1;
 
     const subtotal = selectedProduct.precioOferta;
     const descuento = esPioneroDescuento ? Math.round(subtotal * 0.15) : 0;
@@ -173,6 +172,7 @@ export default function Catalog() {
         return;
     }
 
+    // Si elige pagar online y está en confirmación, pasa al formulario espejo de Wompi
     if (metodoPago === "wompi" && step === "confirm") {
       setStep("wompi_form");
       return;
@@ -209,7 +209,7 @@ export default function Catalog() {
               aliado_id: selectedProduct.aliado_id,
               nombre_usuario: user.nombre,
               nombre_producto: selectedProduct.nombre,
-              precio_final: calculosCheckout.total, // Enviamos el total con descuento
+              precio_final: calculosCheckout.total, // Enviamos el total calculado con descuentos e IVA
               estado: "pagado", 
               tipo_entrega: tipoEntrega,
               costo_domicilio: calculosCheckout.envio
@@ -219,6 +219,7 @@ export default function Catalog() {
           const data = await response.json();
           
           if (response.ok) {
+            // Desactivamos los regalos en el LocalStorage local para que la UI se actualice de inmediato
             user.regalo_descuento = 0;
             user.regalo_domicilio = 0;
             localStorage.setItem("usuario", JSON.stringify(user));
@@ -249,7 +250,7 @@ export default function Catalog() {
                 aliado_id: selectedProduct.aliado_id,
                 nombre_usuario: user.nombre,
                 nombre_producto: selectedProduct.nombre,
-                precio_final: calculosCheckout.total, // Enviamos el total con descuento
+                precio_final: calculosCheckout.total,
                 estado: "pendiente",
                 tipo_entrega: tipoEntrega,
                 costo_domicilio: calculosCheckout.envio
@@ -258,6 +259,7 @@ export default function Catalog() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
 
+        // Desactivamos los regalos locales al reservar con éxito
         user.regalo_descuento = 0;
         user.regalo_domicilio = 0;
         localStorage.setItem("usuario", JSON.stringify(user));
@@ -397,8 +399,7 @@ export default function Catalog() {
                         <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                           <div>
                             <p className="text-slate-300 text-xs line-through font-bold mb-1">${prod.precioOriginal.toLocaleString()}</p>
-                            {/* CORREGIDO AQUÍ: Renderizado puro sin mutar el estado */}
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta = prod.precioOferta.toLocaleString()}</p>
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
