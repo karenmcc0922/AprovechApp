@@ -184,6 +184,37 @@ app.get('/api/mis-productos/:id', (req, res) => {
   });
 });
 
+// NUEVO: Editar un producto existente del aliado
+app.put('/api/productos/:id/actualizar', (req, res) => {
+  const { id } = req.params;
+  const { nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
+  const catFinal = categoria || 'Preparados';
+
+  const sql = `
+    UPDATE productos_rescate 
+    SET nombre = ?, precio_original = ?, precio_rescate = ?, stock = ?, imagen_url = ?, categoria = ? 
+    WHERE id = ?
+  `;
+
+  pool.query(sql, [nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, id], (err, result) => {
+    if (err) return handleSQLError(res, err, "Error al actualizar el producto");
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
+    res.json({ success: true, mensaje: "Producto modificado con éxito" });
+  });
+});
+
+// NUEVO: Eliminar físicamente un producto del catálogo
+app.delete('/api/productos/:id/eliminar', (req, res) => {
+  const { id } = req.params;
+  const sql = "DELETE FROM productos_rescate WHERE id = ?";
+
+  pool.query(sql, [id], (err, result) => {
+    if (err) return handleSQLError(res, err, "Error al eliminar el producto");
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
+    res.json({ success: true, mensaje: "Producto eliminado correctamente" });
+  });
+});
+
 // --- GESTIÓN DE PEDIDOS (CON MEDIOS DE PAGO Y DOMICILIO) ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { 

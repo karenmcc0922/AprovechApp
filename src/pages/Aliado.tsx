@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { 
   Trash2, 
+  Edit2,
   Loader2, 
   Image as ImageIcon,
   Gift, 
@@ -34,7 +35,10 @@ export default function Aliado() {
   const [datosGrafica, setDatosGrafica] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // NUEVOS ESTADOS PARA RESPONSABILIDAD SOCIAL
+  // CONTROL DE EDICIÓN
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // RESPONSABILIDAD SOCIAL
   const [aceptaResponsabilidad, setAceptaResponsabilidad] = useState(false);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -105,6 +109,67 @@ export default function Aliado() {
     }
   };
 
+  // ENTRAR EN MODO EDICIÓN
+  const activarEdicion = (prod: any) => {
+    setEditingId(prod.id);
+    const esSorp = prod.imagen_url === IMG_SORPRESA;
+    
+    // Calcular porcentaje de descuento previo de forma visual si aplica
+    let descuentoPrevio = "";
+    if (Number(prod.precio_original) > 0) {
+      const diff = Number(prod.precio_original) - Number(prod.precio_rescate);
+      descuentoPrevio = Math.round((diff / Number(prod.precio_original)) * 100).toString();
+    }
+
+    setNuevoProducto({
+      nombre: prod.nombre,
+      precio_original: prod.precio_original.toString(),
+      precio_rescate: prod.precio_rescate.toString(),
+      stock: prod.stock.toString(),
+      categoria: prod.categoria || "Preparados",
+      descripcion: prod.descripcion || "Pack sorpresa",
+      esSorpresa: esSorp,
+      imagen_url: prod.imagen_url || ""
+    });
+
+    setDescuentoManual(descuentoPrevio);
+    setImagePreview(esSorp ? null : prod.imagen_url);
+    setAceptaResponsabilidad(true); // Se asume previamente aceptado
+  };
+
+  // CANCELAR MODO EDICIÓN
+  const cancelarEdicion = () => {
+    setEditingId(null);
+    setNuevoProducto({ 
+      nombre: "", precio_original: "", precio_rescate: "", stock: "", 
+      categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" 
+    });
+    setImagePreview(null);
+    setDescuentoManual("");
+    setAceptaResponsabilidad(false);
+  };
+
+  // ELIMINAR PRODUCTO (DELETE)
+  const eliminarProducto = async (id: number) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este producto de forma permanente?")) return;
+    
+    try {
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${id}/eliminar`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        if (editingId === id) cancelarEdicion();
+        cargarTodo();
+      } else {
+        alert("No se pudo eliminar el producto. Podría estar asociado a un pedido activo.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+    }
+  };
+
+  // SUBMIT UNIFICADO (CREAR O EDITAR)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aceptaResponsabilidad) return alert("Debes aceptar la declaración de calidad.");
@@ -124,24 +189,25 @@ export default function Aliado() {
         imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url
       };
 
-      const res = await fetch("https://aprovechapp-api.onrender.com/api/productos", {
-        method: "POST",
+      // Cambia la URL y el Método si está editando
+      const url = editingId 
+        ? `https://aprovechapp-api.onrender.com/api/productos/${editingId}/actualizar`
+        : "https://aprovechapp-api.onrender.com/api/productos";
+        
+      const method = editingId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        setNuevoProducto({ 
-          nombre: "", precio_original: "", precio_rescate: "", stock: "", 
-          categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" 
-        });
-        setImagePreview(null);
-        setDescuentoManual("");
-        setAceptaResponsabilidad(false); 
+        cancelarEdicion();
         cargarTodo();
       }
     } catch (error) { 
-      alert("Error al publicar"); 
+      alert("Error al guardar cambios"); 
     } finally { 
       setLoading(false); 
     }
@@ -234,9 +300,22 @@ export default function Aliado() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-4">
             <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden">
-              <div className="bg-slate-900 p-8 text-white flex items-center gap-3">
-                <Plus className="w-5 h-5 text-green-400"/>
-                <span className="font-black text-sm uppercase tracking-widest">Crear Oferta</span>
+              <div className={`p-8 text-white flex items-center justify-between transition-colors ${editingId ? 'bg-amber-600' : 'bg-slate-900'}`}>
+                <div className="flex items-center gap-3">
+                  <Plus className="w-5 h-5 text-green-400"/>
+                  <span className="font-black text-sm uppercase tracking-widest">
+                    {editingId ? "Editar Oferta" : "Crear Oferta"}
+                  </span>
+                </div>
+                {editingId && (
+                  <button 
+                    type="button" 
+                    onClick={cancelarEdicion} 
+                    className="bg-white/20 hover:bg-white/30 text-white p-1 rounded-full transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
               <CardContent className="p-8 space-y-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -334,9 +413,19 @@ export default function Aliado() {
                   <Button 
                     type="submit" 
                     disabled={loading || !aceptaResponsabilidad} 
-                    className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-lg ${aceptaResponsabilidad ? 'bg-slate-900 hover:bg-green-600 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                    className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-lg ${
+                      aceptaResponsabilidad 
+                        ? (editingId ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-green-600 text-white') 
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
                   >
-                    {loading ? <Loader2 className="animate-spin" /> : "Publicar Oferta Segura"}
+                    {loading ? (
+                      <Loader2 className="animate-spin" />
+                    ) : editingId ? (
+                      "Actualizar Oferta"
+                    ) : (
+                      "Publicar Oferta Segura"
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -346,10 +435,9 @@ export default function Aliado() {
           <div className="lg:col-span-5 space-y-4">
             <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas Activas</h2>
             {productos.length > 0 ? productos.map((prod) => (
-              <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-shadow">
+              <Card key={prod.id} className={`border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-all ${editingId === prod.id ? 'ring-2 ring-amber-500 bg-amber-50/20' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* AJUSTE AQUÍ: Validación estricta y evento onError para usar la constante local de manera segura */}
                     <img 
                       src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA} 
                       className="w-14 h-14 rounded-2xl object-cover" 
@@ -366,7 +454,24 @@ export default function Aliado() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-red-500"><Trash2 size={14}/></Button>
+                  
+                  {/* BOTONES DE ACCIÓN: EDITAR Y BORRAR */}
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => activarEdicion(prod)}
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full"
+                    >
+                      <Edit2 size={14}/>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => eliminarProducto(prod.id)}
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                    >
+                      <Trash2 size={14}/>
+                    </Button>
+                  </div>
                 </div>
               </Card>
             )) : <p className="text-xs font-bold text-slate-400 uppercase p-4 italic">No hay productos activos</p>}
@@ -398,7 +503,6 @@ export default function Aliado() {
   );
 }
 
-// Renombrado a LabelCustom para evitar conflictos si usas el import nativo de Shadcn UI arriba
 function LabelCustom({ children }: { children: React.ReactNode }) {
   return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
