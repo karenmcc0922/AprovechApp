@@ -142,7 +142,7 @@ export default function Catalog() {
           currency: "COP",
           amountInCents: valorEnCentavos,
           reference: referenciaUnica,
-          publicKey: "pub_prod_ILg9b7F9V8W7X6Y5Z4A3B2C1D0E9F8A7", 
+          publicKey: "pub_test_Q5YWhS26O7T8Vp647Z4D1f6O5c2Z3X4A", // Llave Sandbox oficial
           redirectUrl: `${window.location.origin}/mis-rescates`,
         };
 
