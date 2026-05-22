@@ -112,7 +112,7 @@ app.get('/api/aliados/:id/perfil', (req, res) => {
   const sqlAliado = "SELECT id, nombre_local, direccion, estado_calidad FROM aliados WHERE id = ?";
   
   const sqlProductos = `
-    SELECT * FROM productos_rescale 
+    SELECT * FROM productos_rescate 
     WHERE aliado_id = ? 
     AND stock > 0 
     AND (
@@ -231,26 +231,29 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   });
 });
 
+// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const sql = "SELECT p.*, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
+  const sql = "SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
     if (err) return handleSQLError(res, err, "Error al obtener pedidos");
     res.json(results);
   });
 });
 
+// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/aliado/:id', (req, res) => {
-  const sql = "SELECT p.*, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
+  const sql = "SELECT p.*, p.codigo_qr AS codigo, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
     if (err) return handleSQLError(res, err, "Error al obtener pedidos del aliado");
     res.json(results);
   });
 });
 
+// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   const { codigo, aliadoId } = req.params;
   const sql = `
-    SELECT p.*, u.nombre as nombre_usuario 
+    SELECT p.*, p.codigo_qr AS codigo, u.nombre as nombre_usuario 
     FROM pedidos p 
     JOIN usuarios u ON p.usuario_id = u.id 
     WHERE p.codigo_qr = ? AND p.aliado_id = ?
@@ -266,7 +269,7 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
 app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT p.id, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
+    SELECT p.id, p.codigo_qr AS codigo, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
     FROM pedidos p 
     JOIN usuarios u ON p.usuario_id = u.id 
     WHERE p.aliado_id = ? AND p.estado = 'pagado'
@@ -278,12 +281,12 @@ app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   });
 });
 
-// Marcar pedido como entregado (Acción directa del comercio)
+// Marcar pedido como entregado (Acción directa del comercio por medio del ID oculto)
 app.put('/api/pedidos/:id/entregar', (req, res) => {
   const { id } = req.params;
   const sql = "UPDATE pedidos SET estado = 'entregado' WHERE id = ?";
   pool.query(sql, [id], (err, result) => {
-    if (err) return handleSQLError(res, err, "Error al despachar/entregar el pedido");
+    if (err) return handleSQLError(res, err, "Error al despacho/entregar el pedido");
     if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
     res.json({ success: true, mensaje: "Pedido marcado como entregado correctamente" });
   });

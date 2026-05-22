@@ -40,7 +40,7 @@ export default function PedidosAliado() {
     } catch (error) {
       console.error("Error cargando pedidos:", error);
     } finally {
-      setLoading(false);
+      loading && setLoading(false);
       setIsRefreshing(false);
     }
   };
@@ -139,7 +139,7 @@ export default function PedidosAliado() {
                 <div className="relative flex-1">
                   <Input 
                     placeholder="Código de rescate..." 
-                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12"
+                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12 uppercase tracking-wider"
                     value={codigoBusqueda}
                     onChange={(e) => setCodigoBusqueda(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
@@ -163,7 +163,12 @@ export default function PedidosAliado() {
                     <CheckCircle2 className="text-green-600 w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Cliente: {pedidoEncontrado.nombre_usuario}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-[10px] font-black text-slate-400 uppercase">Cliente: {pedidoEncontrado.nombre_usuario}</p>
+                      <span className="bg-slate-100 text-slate-700 font-mono text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        Cód: {pedidoEncontrado.codigo || `##${pedidoEncontrado.id}`}
+                      </span>
+                    </div>
                     <h4 className="text-lg font-black text-slate-900 uppercase italic">{pedidoEncontrado.nombre_producto}</h4>
                   </div>
                 </div>
@@ -256,10 +261,13 @@ export default function PedidosAliado() {
                     </div>
 
                     <div className="flex flex-col gap-2 min-w-[140px]">
+                      {/* MODIFICADO: Ahora muestra el código alfanumérico en vez del ID numérico */}
                       <div className="flex items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-md">
                         <div className="flex flex-col">
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">ID Pedido</span>
-                          <span className="font-mono text-sm font-black tracking-wider text-green-400 uppercase">#{pedido.id}</span>
+                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Código QR</span>
+                          <span className="font-mono text-sm font-black tracking-wider text-green-400 uppercase">
+                            {pedido.codigo || `##${pedido.id}`}
+                          </span>
                         </div>
                         <Ticket className="w-4 h-4 text-slate-600" />
                       </div>
