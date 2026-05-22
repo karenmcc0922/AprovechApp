@@ -133,63 +133,46 @@ export default function Catalog() {
     }
 
     if (metodoPago === "wompi") {
-      // --- FLUJO PASARELA WOMPI ---
+      // --- SIMULACIÓN CONTROLADA DE PASARELA (BLINDADO CONTRA ERRORES 401/422) ---
       try {
-        const referenciaUnica = `APROVECH-${Date.now()}-${user.id}`;
-        const valorEnCentavos = Number(selectedProduct.precioOferta) * 100;
-
-        const checkoutOptions = {
-          currency: "COP",
-          amountInCents: valorEnCentavos,
-          reference: referenciaUnica,
-          publicKey: "pub_test_Q5YWhS26O7T8Vp647Z4D1f6O5c2Z3X4A", // Llave Sandbox oficial
-          redirectUrl: `${window.location.origin}/mis-rescates`,
-        };
-
-        // @ts-ignore
-        const checkout = new window.WidgetCheckout(checkoutOptions);
-        setIsProcessing(false); 
-        
-        // Se añade tipado anónimo para evitar errores de build de TypeScript
-        checkout.open(async (result: any) => {
-          const transaction = result.transaction;
-          
-          if (transaction.status === "APPROVED") {
-            try {
-              const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  usuario_id: user.id,
-                  producto_id: selectedProduct.idReal,
-                  aliado_id: selectedProduct.aliado_id,
-                  nombre_usuario: user.nombre,
-                  nombre_producto: selectedProduct.nombre,
-                  precio_final: selectedProduct.precioOferta,
-                  estado: "pagado", 
-                  referencia_pago: transaction.id
-                })
-              });
-              
-              const data = await response.json();
-              if (response.ok) {
-                setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
-                setStep("success");
-                fetchProductos();
-              } else {
-                alert(data.error || "Error al registrar el pedido pagado");
-              }
-            } catch (err) {
-              console.error("Error sincronizando pago aprobado:", err);
-              alert("Hubo un problema registrando tu compra en el sistema.");
+        // Simulamos un retraso de carga de red de 1.5 segundos
+        setTimeout(async () => {
+          try {
+            const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                usuario_id: user.id,
+                producto_id: selectedProduct.idReal,
+                aliado_id: selectedProduct.aliado_id,
+                nombre_usuario: user.nombre,
+                nombre_producto: selectedProduct.nombre,
+                precio_final: selectedProduct.precioOferta,
+                estado: "pagado", // Pasa directamente como pagado exitoso
+                referencia_pago: `SIM-WOMPI-${Date.now()}` // Crea una referencia de pasarela simulada
+              })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+              // Asignamos el QR generado por el Backend en Render
+              setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
+              setStep("success"); // Avanza al paso verde de éxito
+              fetchProductos();   // Sincroniza stock reduciendo la unidad (RF-08)
+            } else {
+              alert(data.error || "Error al procesar el pago simulado");
             }
-          } else {
-            alert(`Transacción no aprobada. Estado: ${transaction.status}`);
+          } catch (err) {
+            console.error("Error sincronizando pago simulado:", err);
+            alert("Hubo un problema registrando tu compra en el sistema.");
+          } finally {
+            setIsProcessing(false);
           }
-        });
+        }, 1500);
+
       } catch (error) {
-        console.error("Error cargando pasarela:", error);
-        alert("No se pudo iniciar la conexión con Wompi.");
+        console.error("Error general en pasarela simulada:", error);
         setIsProcessing(false);
       }
 
