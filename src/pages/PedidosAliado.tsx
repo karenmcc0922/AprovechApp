@@ -12,7 +12,8 @@ import {
   Clock,
   ChevronRight,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Check // Icono añadido para el despacho manual directo
 } from "lucide-react";
 
 export default function PedidosAliado() {
@@ -50,13 +51,12 @@ export default function PedidosAliado() {
     return () => clearInterval(interval);
   }, []);
 
-  // LÓGICA DE VALIDACIÓN
+  // LÓGICA DE VALIDACIÓN POR CÓDIGO QR / TEXTO
   const buscarPedidoPorCodigo = async () => {
     if (!codigoBusqueda) return;
     setBuscando(true);
     setPedidoEncontrado(null);
     try {
-      // Usamos el ID del aliado desde el objeto usuario
       const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/validar/${codigoBusqueda}/${user.id}`);
       if (res.ok) {
         const data = await res.json();
@@ -71,21 +71,23 @@ export default function PedidosAliado() {
     }
   };
 
-  const confirmarEntrega = async (pedidoId: number) => {
+  // FUNCIÓN REUTILIZABLE PARA CAMBIAR EL ESTADO A ENTREGADO (Desde buscador o desde la tarjeta)
+  const ejecutarEntregaFinal = async (pedidoId: number) => {
     try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${pedidoId}/estado`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estado: "Completado" })
+      const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${pedidoId}/entregar`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
         alert("¡Rescate entregado con éxito!");
         setPedidoEncontrado(null);
         setCodigoBusqueda("");
-        fetchPedidos(false);
+        fetchPedidos(false); // Recarga la lista para ver el cambio de Badge en vivo
+      } else {
+        alert("No se pudo actualizar el estado en el servidor");
       }
     } catch (error) {
-      alert("Error al confirmar");
+      alert("Error al confirmar la entrega");
     }
   };
 
@@ -124,7 +126,7 @@ export default function PedidosAliado() {
           </div>
         </div>
 
-        {/* --- SECCIÓN MEJORA 2: VALIDADOR RÁPIDO --- */}
+        {/* BÚSQUEDA RÁPIDA POR CÓDIGO */}
         <div className="mb-12">
           <div className="bg-slate-900 rounded-[35px] p-8 shadow-2xl shadow-slate-200 relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
@@ -154,7 +156,6 @@ export default function PedidosAliado() {
               </div>
             </div>
 
-            {/* Resultado de búsqueda dentro del banner */}
             {pedidoEncontrado && (
               <div className="mt-8 p-6 bg-white rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in duration-300">
                 <div className="flex items-center gap-5">
@@ -174,15 +175,15 @@ export default function PedidosAliado() {
                   >
                     Cancelar
                   </button>
-                  {pedidoEncontrado.estado !== 'Completado' ? (
+                  {pedidoEncontrado.estado.toLowerCase() !== 'entregado' && pedidoEncontrado.estado.toLowerCase() !== 'completado' ? (
                     <Button 
-                      onClick={() => confirmarEntrega(pedidoEncontrado.id)}
+                      onClick={() => ejecutarEntregaFinal(pedidoEncontrado.id)}
                       className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12"
                     >
                       Confirmar Entrega
                     </Button>
                   ) : (
-                    <Badge className="bg-slate-100 text-slate-400 py-3 px-6 rounded-xl font-black">YA ENTREGADO</Badge>
+                    <Badge className="bg-slate-100 text-slate-400 py-3 px-6 rounded-xl font-black border-none">YA ENTREGADO</Badge>
                   )}
                 </div>
               </div>
@@ -190,7 +191,7 @@ export default function PedidosAliado() {
           </div>
         </div>
 
-        {/* LISTADO DE PEDIDOS */}
+        {/* LISTADO PRINCIPAL DE PEDIDOS */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="animate-spin text-green-600 w-12 h-12 mb-4" />
@@ -207,75 +208,93 @@ export default function PedidosAliado() {
         ) : (
           <div className="grid gap-6">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2 px-4">Historial de Hoy</h2>
-            {pedidos.map((pedido) => (
-              <div 
-                key={pedido.id} 
-                className="bg-white p-8 rounded-[40px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-transparent hover:border-green-100 transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 group"
-              >
-                {/* Info Cliente y Producto */}
-                <div className="flex gap-6 items-center flex-1">
-                  <div className="relative">
-                    <div className="bg-slate-900 p-5 rounded-[28px] group-hover:bg-green-600 transition-colors">
-                      <ShoppingBag className="text-white w-8 h-8" />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[9px] uppercase px-2 py-0">
-                        {pedido.id % 2 === 0 ? 'Rescate Express' : 'Rescate Estándar'}
-                      </Badge>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {new Date(pedido.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2 group-hover:text-green-600 transition-colors">
-                      {pedido.nombre_producto}
-                    </h3>
-                    <div className="flex items-center gap-2 bg-slate-50 w-fit px-3 py-1.5 rounded-full">
-                      <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                        <User className="w-3 h-3 text-slate-500" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-600">{pedido.nombre_usuario}</span>
-                    </div>
-                  </div>
-                </div>
+            {pedidos.map((pedido) => {
+              const estadoNormalizado = pedido.estado ? pedido.estado.toLowerCase() : 'pendiente';
+              const esEntregado = estadoNormalizado === 'entregado' || estadoNormalizado === 'completado';
 
-                {/* Status y Código (Lado Derecho) */}
-                <div className="flex flex-wrap lg:flex-nowrap items-center gap-6 w-full lg:w-auto pt-6 lg:pt-0 border-t lg:border-t-0 border-slate-50">
-                  <div className="flex flex-col items-start lg:items-end flex-1 lg:flex-none">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1 text-right">Monto recibido</p>
-                    <span className="font-black text-2xl text-slate-900 tracking-tighter">
-                      ${pedido.precio_final.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-xl shadow-slate-200 group-hover:shadow-green-100 transition-all">
-                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID Pedido</span>
-                        <span className="font-mono text-lg font-black tracking-[0.2em] text-green-400 uppercase">
-                          {pedido.id}
-                        </span>
+              return (
+                <div 
+                  key={pedido.id} 
+                  className="bg-white p-8 rounded-[40px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-transparent hover:border-green-100 transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 group"
+                >
+                  {/* Info Cliente y Producto */}
+                  <div className="flex gap-6 items-center flex-1">
+                    <div className="relative">
+                      <div className={`p-5 rounded-[28px] text-white transition-colors ${esEntregado ? 'bg-slate-200 text-slate-400' : 'bg-slate-900 group-hover:bg-green-600'}`}>
+                        <ShoppingBag className="w-8 h-8" />
                       </div>
-                      <Ticket className="w-6 h-6 text-slate-700" />
                     </div>
                     
-                    <Badge className={`justify-center py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-none ${
-                      pedido.estado === 'Pendiente' 
-                      ? "bg-orange-100 text-orange-600" 
-                      : "bg-green-100 text-green-600"
-                    }`}>
-                      {pedido.estado}
-                    </Badge>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge className={`border-none font-black text-[9px] uppercase px-2 py-0 ${esEntregado ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}>
+                          {pedido.id % 2 === 0 ? 'Rescate Express' : 'Rescate Estándar'}
+                        </Badge>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {pedido.fecha ? new Date(pedido.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "En proceso"}
+                        </span>
+                      </div>
+                      <h3 className={`text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 transition-colors ${esEntregado ? 'text-slate-400 line-through' : 'text-slate-900 group-hover:text-green-600'}`}>
+                        {pedido.nombre_producto}
+                      </h3>
+                      <div className="flex items-center gap-2 bg-slate-50 w-fit px-3 py-1.5 rounded-full">
+                        <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                          <User className="w-3 h-3 text-slate-500" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600">{pedido.nombre_usuario}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <button className="hidden lg:flex w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center text-slate-300 hover:text-green-600 hover:bg-green-50 transition-all">
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
+                  {/* Status, Precios y Botón de Acción Directa */}
+                  <div className="flex flex-wrap lg:flex-nowrap items-center gap-6 w-full lg:w-auto pt-6 lg:pt-0 border-t lg:border-t-0 border-slate-50 justify-between lg:justify-end">
+                    <div className="flex flex-col items-start lg:items-end">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Monto recibido</p>
+                      <span className={`font-black text-2xl tracking-tighter ${esEntregado ? 'text-slate-400' : 'text-slate-900'}`}>
+                        ${Number(pedido.precio_final).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2 min-w-[140px]">
+                      <div className="flex items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-md">
+                        <div className="flex flex-col">
+                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">ID Pedido</span>
+                          <span className="font-mono text-sm font-black tracking-wider text-green-400 uppercase">#{pedido.id}</span>
+                        </div>
+                        <Ticket className="w-4 h-4 text-slate-600" />
+                      </div>
+                      
+                      <Badge className={`justify-center py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border-none ${
+                        esEntregado 
+                        ? "bg-slate-100 text-slate-400" 
+                        : estadoNormalizado === 'pagado' 
+                        ? "bg-green-100 text-green-600" 
+                        : "bg-orange-100 text-orange-600"
+                      }`}>
+                        {pedido.estado}
+                      </Badge>
+                    </div>
+
+                    {/* INTERVENCION AQUÍ: Si el pedido ya está pagado pero no se ha entregado, renderiza el botón de acción directa */}
+                    <div className="w-full lg:w-auto">
+                      {!esEntregado ? (
+                        <Button
+                          onClick={() => ejecutarEntregaFinal(pedido.id)}
+                          className="w-full lg:w-auto bg-green-600 hover:bg-slate-900 text-white font-black text-[10px] uppercase px-5 h-12 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                        >
+                          <Check size={14} strokeWidth={3} /> Entregar pedido
+                        </Button>
+                      ) : (
+                        <div className="hidden lg:flex w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center text-slate-300">
+                          <ChevronRight className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

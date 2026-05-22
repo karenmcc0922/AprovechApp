@@ -3,7 +3,6 @@ import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; 
 import { 
   AreaChart, 
   Area, 
@@ -21,20 +20,21 @@ import {
   Plus,
   BarChart3,
   TrendingUp,
-  Clock,
+  History,
   AlertCircle,
   X,
-  ShieldCheck,
-  Check // Icono para el botón de entrega
+  ShieldCheck 
 } from "lucide-react";
 
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
   const [productos, setProductos] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_rescates: 0, total_ganado: 0 });
-  const [pedidosPendientes, setPedidosPendientes] = useState<any[]>([]); // Cambiado para gestionar flujo real
+  const [actividad, setActividad] = useState<any[]>([]);
   const [datosGrafica, setDatosGrafica] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // NUEVOS ESTADOS PARA RESPONSABILIDAD SOCIAL
   const [aceptaResponsabilidad, setAceptaResponsabilidad] = useState(false);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -56,16 +56,16 @@ export default function Aliado() {
     if (!aliadoId) return;
 
     try {
-      const [resProd, resStats, resPedidos, resGrafica] = await Promise.all([
+      const [resProd, resStats, resAct, resGrafica] = await Promise.all([
         fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`),
         fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/estadisticas`),
-        fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/pedidos-pendientes`), // Ajusta esta URL según tu API
+        fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/actividad`),
         fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/ventas-semanales`)
       ]);
 
       if (resProd.ok) setProductos(await resProd.json());
       if (resStats.ok) setStats(await resStats.json());
-      if (resPedidos.ok) setPedidosPendientes(await resPedidos.json());
+      if (resAct.ok) setActividad(await resAct.json());
       if (resGrafica.ok) setDatosGrafica(await resGrafica.json());
       
     } catch (error) {
@@ -74,25 +74,6 @@ export default function Aliado() {
   };
 
   useEffect(() => { cargarTodo(); }, []);
-
-  // Función para que el comercio entregue el producto
-  const handleEntregarPedido = async (pedidoId: number) => {
-    try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${pedidoId}/entregar`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" }
-      });
-
-      if (res.ok) {
-        // Recargamos los datos para que desaparezca de la lista y se sume a las estadísticas
-        cargarTodo();
-      } else {
-        alert("No se pudo actualizar el estado del pedido");
-      }
-    } catch (error) {
-      console.error("Error al entregar pedido:", error);
-    }
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -299,6 +280,7 @@ export default function Aliado() {
                     <Input className="rounded-xl bg-slate-50 border-none font-bold" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
+                  {/* SELECTOR DE CATEGORÍA */}
                   <div className="space-y-1">
                     <LabelCustom>Categoría de Perecederos</LabelCustom>
                     <select 
@@ -329,6 +311,7 @@ export default function Aliado() {
                     <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
+                  {/* DECLARACIÓN DE RESPONSABILIDAD */}
                   <div className={`p-4 rounded-2xl transition-all border ${aceptaResponsabilidad ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input 
@@ -366,6 +349,7 @@ export default function Aliado() {
               <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
+                    {/* AJUSTE AQUÍ: Validación estricta y evento onError para usar la constante local de manera segura */}
                     <img 
                       src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA} 
                       className="w-14 h-14 rounded-2xl object-cover" 
@@ -388,38 +372,23 @@ export default function Aliado() {
             )) : <p className="text-xs font-bold text-slate-400 uppercase p-4 italic">No hay productos activos</p>}
           </div>
 
-          {/* NUEVA COLUMNA INTERACTIVA DE PEDIDOS POR ENTREGAR */}
           <div className="lg:col-span-3">
              <Card className="border-none shadow-sm rounded-[35px] bg-white p-6">
               <div className="flex items-center gap-3 mb-6">
-                <Clock className="w-4 h-4 text-amber-500" />
-                <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Por Entregar (Tarjeta)</h3>
+                <History className="w-4 h-4 text-slate-400" />
+                <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad Reciente</h3>
               </div>
-              <div className="space-y-4 relative">
-                {pedidosPendientes.length > 0 ? pedidosPendientes.map((pedido) => (
-                  <div key={pedido.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between gap-3">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase">Pedido #{pedido.id}</span>
-                        <span className="text-[8px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase">PAGADO</span>
-                      </div>
-                      <h4 className="text-xs font-black text-slate-800 uppercase leading-tight">{pedido.producto_nombre || "Pack Sorpresa"}</h4>
-                      <p className="text-[9px] font-bold text-slate-500 mt-0.5">Cliente: {pedido.cliente_nombre || "Usuario AprovechApp"}</p>
-                    </div>
-                    
-                    {/* Botón interactivo para completar la entrega */}
-                    <Button 
-                      onClick={() => handleEntregarPedido(pedido.id)}
-                      className="w-full bg-green-600 hover:bg-slate-900 text-white font-black text-[9px] uppercase py-2 h-7 rounded-xl flex items-center justify-center gap-1 shadow-sm transition-all"
-                    >
-                      <Check size={12} strokeWidth={3} /> Despachar / Entregado
-                    </Button>
+              <div className="space-y-6 relative">
+                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-50" />
+                {actividad.length > 0 ? actividad.map((log) => (
+                  <div key={log.id} className="relative pl-6">
+                    <div className="absolute left-0 top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm bg-green-500 z-10" />
+                    <p className="text-[10px] font-bold text-slate-800 leading-tight">{log.descripcion}</p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase mt-1">
+                      {new Date(log.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                )) : (
-                  <div className="py-6 text-center opacity-60">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase italic">Sin pedidos pendientes</p>
-                  </div>
-                )}
+                )) : <p className="text-[10px] font-bold text-slate-400 uppercase">Sin movimientos</p>}
               </div>
             </Card>
           </div>
@@ -429,6 +398,7 @@ export default function Aliado() {
   );
 }
 
+// Renombrado a LabelCustom para evitar conflictos si usas el import nativo de Shadcn UI arriba
 function LabelCustom({ children }: { children: React.ReactNode }) {
   return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
