@@ -3,6 +3,7 @@ import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // Añadido para asegurar compatibilidad con Shadcn
 import { 
   AreaChart, 
   Area, 
@@ -23,7 +24,7 @@ import {
   History,
   AlertCircle,
   X,
-  ShieldCheck // Nuevo icono para responsabilidad
+  ShieldCheck 
 } from "lucide-react";
 
 export default function Aliado() {
@@ -42,7 +43,7 @@ export default function Aliado() {
     precio_original: "",
     precio_rescate: "",
     stock: "",
-    categoria: "Preparados", // Valor por defecto
+    categoria: "Preparados", 
     descripcion: "Pack sorpresa de productos frescos",
     esSorpresa: true,
     imagen_url: ""
@@ -120,7 +121,7 @@ export default function Aliado() {
         precio_original: parseFloat(nuevoProducto.precio_original),
         precio_rescate: parseFloat(nuevoProducto.precio_rescate),
         stock: parseInt(nuevoProducto.stock),
-        categoria: nuevoProducto.categoria, // Enviamos categoría al backend
+        categoria: nuevoProducto.categoria, 
         imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url
       };
 
@@ -137,7 +138,7 @@ export default function Aliado() {
         });
         setImagePreview(null);
         setDescuentoManual("");
-        setAceptaResponsabilidad(false); // Reset del check
+        setAceptaResponsabilidad(false); 
         cargarTodo();
       }
     } catch (error) { 
@@ -276,13 +277,13 @@ export default function Aliado() {
                   )}
 
                   <div className="space-y-1">
-                    <Label>Producto</Label>
+                    <LabelCustom>Producto</LabelCustom>
                     <Input className="rounded-xl bg-slate-50 border-none font-bold" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
-                  {/* NUEVO SELECTOR DE CATEGORÍA */}
+                  {/* SELECTOR DE CATEGORÍA */}
                   <div className="space-y-1">
-                    <Label>Categoría de Perecederos</Label>
+                    <LabelCustom>Categoría de Perecederos</LabelCustom>
                     <select 
                       className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none"
                       value={nuevoProducto.categoria}
@@ -297,21 +298,21 @@ export default function Aliado() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>Precio Original</Label>
+                      <LabelCustom>Precio Original</LabelCustom>
                       <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
                     </div>
                     <div className="space-y-1">
-                      <Label>% Dcto</Label>
+                      <LabelCustom>% Dcto</LabelCustom>
                       <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
                   
                   <div className="space-y-1">
-                    <Label>Stock Disponible</Label>
+                    <LabelCustom>Stock Disponible</LabelCustom>
                     <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
-                  {/* NUEVA DECLARACIÓN DE RESPONSABILIDAD */}
+                  {/* DECLARACIÓN DE RESPONSABILIDAD */}
                   <div className={`p-4 rounded-2xl transition-all border ${aceptaResponsabilidad ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input 
@@ -349,7 +350,15 @@ export default function Aliado() {
               <Card key={prod.id} className="border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <img src={prod.imagen_url || IMG_SORPRESA} className="w-14 h-14 rounded-2xl object-cover" />
+                    {/* AJUSTE AQUÍ: Validación estricta y evento onError para usar la constante local de manera segura */}
+                    <img 
+                      src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA} 
+                      className="w-14 h-14 rounded-2xl object-cover" 
+                      alt={prod.nombre}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = IMG_SORPRESA;
+                      }}
+                    />
                     <div>
                       <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
                       <div className="flex gap-2 items-center">
@@ -390,6 +399,7 @@ export default function Aliado() {
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+// Renombrado a LabelCustom para evitar conflictos si usas el import nativo de Shadcn UI arriba
+function LabelCustom({ children }: { children: React.ReactNode }) {
   return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
