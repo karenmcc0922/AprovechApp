@@ -167,7 +167,6 @@ app.post('/api/pedidos/crear', (req, res) => {
   const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, estado } = req.body;
   const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   
-  // Normalizar el estado a minúsculas ("pendiente" o "pagado") para evitar conflictos de strings
   const estadoFormateado = (estado || "pendiente").toLowerCase();
   
   // Resta automática en inventario (RF-08)
@@ -185,7 +184,6 @@ app.post('/api/pedidos/crear', (req, res) => {
 app.patch('/api/pedidos/:id/estado', (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
-  // Guardamos en minúscula uniforme en BD
   const estadoFormateado = estado ? estado.toLowerCase() : 'completado';
   
   const sql = "UPDATE pedidos SET estado = ? WHERE id = ?";
@@ -223,6 +221,33 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
     if (err) return handleSQLError(res, err, "Error al validar código");
     if (results.length === 0) return res.status(404).json({ mensaje: "Código no encontrado o no pertenece a este local" });
     res.json(results[0]);
+  });
+});
+
+// NUEVO ENDPOINT 1: Obtener pedidos pagados con tarjeta y pendientes por entregar
+app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    SELECT p.id, p.nombre_producto, p.precio_final, p.estado, u.nombre AS cliente_nombre 
+    FROM pedidos p 
+    JOIN usuarios u ON p.usuario_id = u.id 
+    WHERE p.aliado_id = ? AND p.estado = 'pagado'
+    ORDER BY p.id DESC
+  `;
+  pool.query(sql, [id], (err, results) => {
+    if (err) return handleSQLError(res, err, "Error al obtener pedidos pendientes");
+    res.json(results || []);
+  });
+});
+
+// NUEVO ENDPOINT 2: Marcar pedido como entregado (Acción del comercio)
+app.put('/api/pedidos/:id/entregar', (req, res) => {
+  const { id } = req.params;
+  const sql = "UPDATE pedidos SET estado = 'entregado' WHERE id = ?";
+  pool.query(sql, [id], (err, result) => {
+    if (err) return handleSQLError(res, err, "Error al despachar/entregar el pedido");
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
+    res.json({ success: true, mensaje: "Pedido marcado como entregado correctamente" });
   });
 });
 
