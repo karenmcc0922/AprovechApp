@@ -13,7 +13,7 @@ import {
   ChevronRight,
   Search,
   CheckCircle2,
-  Check // Icono añadido para el despacho manual directo
+  Check 
 } from "lucide-react";
 
 export default function PedidosAliado() {
@@ -38,7 +38,7 @@ export default function PedidosAliado() {
         setPedidos(data);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error cargando pedidos:", error);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -71,7 +71,7 @@ export default function PedidosAliado() {
     }
   };
 
-  // FUNCIÓN REUTILIZABLE PARA CAMBIAR EL ESTADO A ENTREGADO (Desde buscador o desde la tarjeta)
+  // FUNCIÓN REUTILIZABLE PARA CAMBIAR EL ESTADO A ENTREGADO
   const ejecutarEntregaFinal = async (pedidoId: number) => {
     try {
       const res = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/${pedidoId}/entregar`, {
@@ -142,7 +142,7 @@ export default function PedidosAliado() {
                     className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12"
                     value={codigoBusqueda}
                     onChange={(e) => setCodigoBusqueda(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
+                    onKeyDown={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
                   />
                   <Ticket className="absolute left-4 top-4 text-slate-500 w-6 h-6" />
                 </div>
@@ -169,13 +169,13 @@ export default function PedidosAliado() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                   <button 
+                  <button 
                     onClick={() => setPedidoEncontrado(null)}
                     className="text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-widest"
                   >
                     Cancelar
                   </button>
-                  {pedidoEncontrado.estado.toLowerCase() !== 'entregado' && pedidoEncontrado.estado.toLowerCase() !== 'completado' ? (
+                  {pedidoEncontrado.estado && pedidoEncontrado.estado.toLowerCase() !== 'entregado' && pedidoEncontrado.estado.toLowerCase() !== 'completado' ? (
                     <Button 
                       onClick={() => ejecutarEntregaFinal(pedidoEncontrado.id)}
                       className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12"
@@ -209,7 +209,7 @@ export default function PedidosAliado() {
           <div className="grid gap-6">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2 px-4">Historial de Hoy</h2>
             {pedidos.map((pedido) => {
-              const estadoNormalizado = pedido.estado ? pedido.estado.toLowerCase() : 'pendiente';
+              const estadoNormalizado = pedido.estado ? String(pedido.estado).toLowerCase() : 'pendiente';
               const esEntregado = estadoNormalizado === 'entregado' || estadoNormalizado === 'completado';
 
               return (
@@ -251,7 +251,7 @@ export default function PedidosAliado() {
                     <div className="flex flex-col items-start lg:items-end">
                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Monto recibido</p>
                       <span className={`font-black text-2xl tracking-tighter ${esEntregado ? 'text-slate-400' : 'text-slate-900'}`}>
-                        ${Number(pedido.precio_final).toLocaleString()}
+                        ${Number(pedido.precio_final || 0).toLocaleString()}
                       </span>
                     </div>
 
@@ -271,11 +271,11 @@ export default function PedidosAliado() {
                         ? "bg-green-100 text-green-600" 
                         : "bg-orange-100 text-orange-600"
                       }`}>
-                        {pedido.estado}
+                        {pedido.estado || "Pendiente"}
                       </Badge>
                     </div>
 
-                    {/* INTERVENCION AQUÍ: Si el pedido ya está pagado pero no se ha entregado, renderiza el botón de acción directa */}
+                    {/* Botón de acción directa */}
                     <div className="w-full lg:w-auto">
                       {!esEntregado ? (
                         <Button

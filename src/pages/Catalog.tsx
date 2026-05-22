@@ -31,7 +31,10 @@ import {
   Clock,
   CreditCard,
   Banknote,
-  Lock
+  Lock,
+  Truck,
+  Store,
+  Sparkles
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
@@ -53,6 +56,10 @@ export default function Catalog() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [metodoPago, setMetodoPago] = useState<"wompi" | "efectivo">("wompi");
+
+  // NUEVOS ESTADOS LOGÍSTICOS
+  const [tipoEntrega, setTipoEntrega] = useState<"retiro" | "domicilio">("retiro");
+  const costoEnvioBase = 5000; // Costo por defecto del domicilio en Pereira
 
   // Estado para los inputs de la tarjeta simulada
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
@@ -80,7 +87,7 @@ export default function Catalog() {
     } catch (error) {
       console.error("Error cargando DB:", error);
     } finally {
-      setLoading(false);
+      loading && setLoading(false);
     }
   };
 
@@ -117,9 +124,38 @@ export default function Catalog() {
     });
   }, [productosDB, search, maxPrice, sortBy, selectedCategory]);
 
+  // CÁLCULOS DINÁMICOS DE BENEFICIOS DE PIONERO (Manejados de forma Reactiva)
+  const calculosCheckout = useMemo(() => {
+    if (!selectedProduct) return { subtotal: 0, descuento: 0, envio: 0, total: 0, esPioneroDescuento: false, esPioneroEnvio: false };
+    
+    const userStr = localStorage.getItem("usuario");
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    const esPioneroDescuento = user?.regalo_descuento === 1;
+    const esPioneroEnvio = user?.regalo_domicilio === 1;
+
+    const subtotal = selectedProduct.precioOferta;
+    const descuento = esPioneroDescuento ? Math.round(subtotal * 0.15) : 0;
+    
+    let envio = 0;
+    if (tipoEntrega === "domicilio") {
+      envio = esPioneroEnvio ? 0 : costoEnvioBase;
+    }
+
+    return {
+      subtotal,
+      descuento,
+      envio,
+      total: (subtotal - descuento) + envio,
+      esPioneroDescuento,
+      esPioneroEnvio
+    };
+  }, [selectedProduct, tipoEntrega]);
+
   const openRescate = (product: any) => {
     setSelectedProduct(product);
     setMetodoPago("wompi"); 
+    setTipoEntrega("retiro"); // Por defecto siempre inicia en retiro
     setStep("confirm");
     setTarjeta({ numero: "", fecha: "", cvc: "", nombre: "" });
     setIsModalOpen(true);
@@ -136,7 +172,7 @@ export default function Catalog() {
         return;
     }
 
-    // Si elige Wompi y está en la confirmación inicial, abrimos el formulario de tarjeta
+    // Si elige pagar online y está en confirmación, pasa al formulario espejo de Wompi
     if (metodoPago === "wompi" && step === "confirm") {
       setStep("wompi_form");
       return;
@@ -145,7 +181,6 @@ export default function Catalog() {
     setIsProcessing(true);
 
     if (metodoPago === "wompi" && step === "wompi_form") {
-      // 1. Limpiamos espacios para validar el número de tarjeta
       const numeroLimpio = tarjeta.numero.replace(/\s/g, "");
 
       if (!tarjeta.numero || !tarjeta.fecha || !tarjeta.cvc) {
@@ -154,7 +189,6 @@ export default function Catalog() {
         return;
       }
 
-      // 2. FILTRO REALISTA: Si meten una tarjeta que no sea la de pruebas oficial de Wompi (4242...)
       if (!numeroLimpio.startsWith("4242")) {
         setTimeout(() => {
           alert("Transacción Rechazada: Para el ambiente de pruebas (Sandbox) debes usar la tarjeta Visa de pruebas oficial: 4242 4242 4242 4242");
@@ -163,7 +197,7 @@ export default function Catalog() {
         return;
       }
 
-      // --- SIMULACIÓN DE PROCESAMIENTO BANCARIO EXITOSO ---
+      // --- SIMULACIÓN PASARELA DE PAGO ONLINE ---
       setTimeout(async () => {
         try {
           const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
@@ -175,15 +209,21 @@ export default function Catalog() {
               aliado_id: selectedProduct.aliado_id,
               nombre_usuario: user.nombre,
               nombre_producto: selectedProduct.nombre,
-              precio_final: selectedProduct.precioOferta,
+              precio_final: calculosCheckout.total, // Enviamos el total calculado con descuentos e IVA
               estado: "pagado", 
-              referencia_pago: `SIM-WMP-${Date.now()}` 
+              tipo_entrega: tipoEntrega,
+              costo_domicilio: calculosCheckout.envio
             })
           });
           
           const data = await response.json();
           
           if (response.ok) {
+            // Desactivamos los regalos en el LocalStorage local para que la UI se actualice de inmediato
+            user.regalo_descuento = 0;
+            user.regalo_domicilio = 0;
+            localStorage.setItem("usuario", JSON.stringify(user));
+
             setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
             setStep("success"); 
             fetchProductos();   
@@ -196,10 +236,10 @@ export default function Catalog() {
         } finally {
           setIsProcessing(false);
         }
-      }, 2000); // 2 segundos de pantalla de carga simulando al banco
+      }, 2000);
 
     } else {
-      // --- RESERVA EN EFECTIVO ---
+      // --- RESERVA DIRECTA EN EFECTIVO ---
       try {
         const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
             method: 'POST',
@@ -210,12 +250,19 @@ export default function Catalog() {
                 aliado_id: selectedProduct.aliado_id,
                 nombre_usuario: user.nombre,
                 nombre_producto: selectedProduct.nombre,
-                precio_final: selectedProduct.precioOferta,
-                estado: "pendiente" 
+                precio_final: calculosCheckout.total,
+                estado: "pendiente",
+                tipo_entrega: tipoEntrega,
+                costo_domicilio: calculosCheckout.envio
             })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
+
+        // Desactivamos los regalos locales al reservar con éxito
+        user.regalo_descuento = 0;
+        user.regalo_domicilio = 0;
+        localStorage.setItem("usuario", JSON.stringify(user));
 
         setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
         setStep("success");
@@ -261,7 +308,7 @@ export default function Catalog() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-10">
-          {/* Sidebar */}
+          {/* Sidebar de Filtros */}
           <aside className="w-full lg:w-72 space-y-8">
             <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-10">
               <div className="flex items-center justify-between">
@@ -298,7 +345,7 @@ export default function Catalog() {
             </div>
           </aside>
 
-          {/* Listado */}
+          {/* Listado Principal de Tarjetas */}
           <main className="flex-1 space-y-8">
             <div className="relative">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
@@ -352,7 +399,7 @@ export default function Catalog() {
                         <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                           <div>
                             <p className="text-slate-300 text-xs line-through font-bold mb-1">${prod.precioOriginal.toLocaleString()}</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta = prod.precioOferta.toLocaleString()}</p>
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
@@ -375,7 +422,7 @@ export default function Catalog() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           
-          {/* FASE 1: CONFIRMACIÓN Y SELECCIÓN DE MÉTODO */}
+          {/* FASE 1: CONFIRMACIÓN Y COMPONENTES DINÁMICOS */}
           {step === "confirm" && (
             <div className="p-10">
               <DialogHeader className="mb-6">
@@ -388,7 +435,9 @@ export default function Catalog() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
+              {/* Selector 1: Pasarela vs Efectivo */}
+              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">1. Medio de pago</Label>
+              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-4">
                 <button
                   type="button"
                   onClick={() => setMetodoPago("wompi")}
@@ -405,20 +454,50 @@ export default function Catalog() {
                 </button>
               </div>
 
+              {/* Selector 2: Retiro vs Domicilio Logístico */}
+              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">2. Método de entrega</Label>
+              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
+                <button
+                  type="button"
+                  onClick={() => setTipoEntrega("retiro")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoEntrega === "retiro" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                >
+                  <Store size={14} /> Recojo en local
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoEntrega("domicilio")}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoEntrega === "domicilio" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                >
+                  <Truck size={14} /> Domicilio
+                </button>
+              </div>
+
+              {/* DESGLOSE MATEMÁTICO TRANSPARENTE CON PILARES DE PIONERO */}
               <div className="bg-slate-50 p-6 rounded-[28px] mb-6 space-y-3 border border-slate-100">
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Establecimiento</span>
-                    <span className="font-black text-slate-900 uppercase truncate max-w-[180px]">{selectedProduct?.tienda}</span>
+                    <span className="text-slate-400 font-black uppercase">Precio Rescate</span>
+                    <span className="font-black text-slate-900">${calculosCheckout.subtotal.toLocaleString()}</span>
                 </div>
+
+                {/* Inyección visual de Descuento Pionero */}
+                {calculosCheckout.esPioneroDescuento && (
+                  <div className="flex justify-between items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-xl">
+                      <span className="font-black uppercase flex items-center gap-1 text-[10px]"><Sparkles size={12}/> Beneficio Pionero (15%)</span>
+                      <span className="font-black">-${calculosCheckout.descuento.toLocaleString()}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Flujo</span>
-                    <span className="font-black text-blue-600 uppercase">
-                      {metodoPago === "wompi" ? "Pasarela Segura" : "Pago contra entrega"}
+                    <span className="text-slate-400 font-black uppercase">Costo Domicilio</span>
+                    <span className="font-black text-slate-900">
+                      {tipoEntrega === "retiro" ? "$0" : calculosCheckout.esPioneroEnvio ? "Gratis 🎉" : `$${costoEnvioBase.toLocaleString()}`}
                     </span>
                 </div>
+                
                 <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
-                    <span className="text-slate-400 font-black uppercase text-[10px]">Total Neto</span>
-                    <span className="text-2xl font-black text-green-600">${selectedProduct?.precioOferta.toLocaleString()}</span>
+                    <span className="text-slate-400 font-black uppercase text-[10px]">Total a Pagar</span>
+                    <span className="text-2xl font-black text-green-600">${calculosCheckout.total.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -443,7 +522,7 @@ export default function Catalog() {
                 </div>
                 <DialogTitle className="text-xl font-black text-slate-900 mt-4">Tarjeta de Crédito / Débito</DialogTitle>
                 <DialogDescription className="text-[10px] text-slate-400 uppercase font-black tracking-wider">
-                  Pagarás ${selectedProduct?.precioOferta.toLocaleString()} COP a AprovechApp
+                  Pagarás ${calculosCheckout.total.toLocaleString()} COP a AprovechApp
                 </DialogDescription>
               </DialogHeader>
 
@@ -515,7 +594,7 @@ export default function Catalog() {
                     <div className="flex items-center gap-2">
                       <Loader2 className="animate-spin w-4 h-4" /> Procesando...
                     </div>
-                  ) : `PAGAR $${selectedProduct?.precioOferta.toLocaleString()}`}
+                  ) : `PAGAR $${calculosCheckout.total.toLocaleString()}`}
                 </Button>
               </div>
             </div>
@@ -529,7 +608,10 @@ export default function Catalog() {
               </div>
               <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">¡PROCESADO!</h2>
               <p className="text-slate-400 mb-10 text-xs font-black uppercase tracking-widest px-4 leading-relaxed">
-                  Boleto asignado. Visita a <span className="text-slate-900 underline">{selectedProduct?.tienda}</span> para reclamar tu pedido.
+                  {tipoEntrega === 'domicilio' 
+                    ? `Tu pedido va en camino a tu dirección. Monitorea tu entrega.` 
+                    : `Boleto asignado. Visita a ${selectedProduct?.tienda} para reclamar tu pedido.`
+                  }
               </p>
               
               <div className="bg-slate-900 p-10 rounded-[45px] mb-10 flex flex-col items-center shadow-2xl relative overflow-hidden">

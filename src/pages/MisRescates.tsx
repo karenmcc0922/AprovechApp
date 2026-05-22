@@ -40,10 +40,10 @@ export default function MisRescates() {
       if (response.ok) {
         const data = await response.json();
         
-        // Estandarizamos los estados a minúsculas para evitar colisiones String
+        // Estandarizamos los estados a minúsculas evitando errores si viene indefinido
         const datosFormateados = data.map((r: any) => ({
           ...r,
-          estado: (r.estado || "pendiente").toLowerCase()
+          estado: (r.estado ? String(r.estado).toLowerCase() : "pendiente")
         }));
         setRescates(datosFormateados);
       }
@@ -169,7 +169,7 @@ export default function MisRescates() {
                             </div>
                             <div className="text-right min-w-[80px]">
                               <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                                ${Number(rescate.precio_final || rescate.precio).toLocaleString()}
+                                ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
                               </p>
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
                             </div>
@@ -182,7 +182,7 @@ export default function MisRescates() {
                               </div>
                               <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
-                                <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado}</p>
+                                <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado || "Dirección no especificada"}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
@@ -240,7 +240,7 @@ export default function MisRescates() {
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
                       <span className="font-black text-slate-900 text-xl">
-                        ${Number(rescate.precio_final || rescate.precio).toLocaleString()}
+                        ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase">
@@ -301,7 +301,7 @@ function EmptyState({ icon, message }: { icon: React.ReactNode, message: string 
       </div>
       <p className="text-slate-400 font-black uppercase tracking-widest text-xs mb-6 px-10 leading-relaxed">{message}</p>
       <Button 
-        onClick={() => window.location.href='/catalog'}
+        onClick={() => window.location.assign('/catalog')}
         className="bg-slate-900 hover:bg-green-600 text-white rounded-full px-10 py-6 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-3 mx-auto"
       >
         Ir al catálogo <ArrowRight className="w-4 h-4" />
