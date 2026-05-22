@@ -30,7 +30,8 @@ import {
   Package2,
   Clock,
   CreditCard,
-  Banknote
+  Banknote,
+  Lock
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
@@ -45,12 +46,16 @@ export default function Catalog() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [step, setStep] = useState<"confirm" | "success">("confirm");
+  
+  // Estados para el flujo del Modal: "confirm" | "wompi_form" | "success"
+  const [step, setStep] = useState<"confirm" | "wompi_form" | "success">("confirm");
+  
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Método de pago seleccionado en el Modal ("wompi" o "efectivo")
   const [metodoPago, setMetodoPago] = useState<"wompi" | "efectivo">("wompi");
+
+  // Estado para los inputs de la tarjeta simulada
+  const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
 
   const getSemaforo = (categoria: string) => {
     switch(categoria) {
@@ -116,68 +121,74 @@ export default function Catalog() {
     setSelectedProduct(product);
     setMetodoPago("wompi"); 
     setStep("confirm");
+    setTarjeta({ numero: "", fecha: "", cvc: "", nombre: "" });
     setIsModalOpen(true);
   };
 
   const procesarCheckout = async () => {
     if (!selectedProduct) return;
-    setIsProcessing(true);
     
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
     
     if (!user || !user.id) {
         alert("Debes iniciar sesión para rescatar productos");
-        setIsProcessing(false);
         return;
     }
 
-    if (metodoPago === "wompi") {
-      // --- SIMULACIÓN CONTROLADA DE PASARELA (BLINDADO CONTRA ERRORES 401/422) ---
-      try {
-        // Simulamos un retraso de carga de red de 1.5 segundos
-        setTimeout(async () => {
-          try {
-            const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                usuario_id: user.id,
-                producto_id: selectedProduct.idReal,
-                aliado_id: selectedProduct.aliado_id,
-                nombre_usuario: user.nombre,
-                nombre_producto: selectedProduct.nombre,
-                precio_final: selectedProduct.precioOferta,
-                estado: "pagado", // Pasa directamente como pagado exitoso
-                referencia_pago: `SIM-WOMPI-${Date.now()}` // Crea una referencia de pasarela simulada
-              })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-              // Asignamos el QR generado por el Backend en Render
-              setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
-              setStep("success"); // Avanza al paso verde de éxito
-              fetchProductos();   // Sincroniza stock reduciendo la unidad (RF-08)
-            } else {
-              alert(data.error || "Error al procesar el pago simulado");
-            }
-          } catch (err) {
-            console.error("Error sincronizando pago simulado:", err);
-            alert("Hubo un problema registrando tu compra en el sistema.");
-          } finally {
-            setIsProcessing(false);
-          }
-        }, 1500);
+    // Si elige Wompi y está en confirmación, lo mandamos al formulario de la tarjeta
+    if (metodoPago === "wompi" && step === "confirm") {
+      setStep("wompi_form");
+      return;
+    }
 
-      } catch (error) {
-        console.error("Error general en pasarela simulada:", error);
+    setIsProcessing(true);
+
+    if (metodoPago === "wompi" && step === "wompi_form") {
+      // Validar campos mínimos de la tarjeta simulada
+      if (!tarjeta.numero || !tarjeta.fecha || !tarjeta.cvc) {
+        alert("Por favor completa los datos de la tarjeta de prueba");
         setIsProcessing(false);
+        return;
       }
 
+      // --- SIMULACIÓN DE PROCESAMIENTO BANCARIO ---
+      setTimeout(async () => {
+        try {
+          const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              usuario_id: user.id,
+              producto_id: selectedProduct.idReal,
+              aliado_id: selectedProduct.aliado_id,
+              nombre_usuario: user.nombre,
+              nombre_producto: selectedProduct.nombre,
+              precio_final: selectedProduct.precioOferta,
+              estado: "pagado", 
+              referencia_pago: `SIM-WMP-${Date.now()}` 
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
+            setStep("success"); 
+            fetchProductos();   
+          } else {
+            alert(data.error || "Error al procesar el pago simulado");
+          }
+        } catch (err) {
+          console.error("Error en API:", err);
+          alert("Hubo un problema registrando tu compra en el sistema.");
+        } finally {
+          setIsProcessing(false);
+        }
+      }, 2000); // 2 segundos de pantalla de carga simulando al banco
+
     } else {
-      // --- FLUJO RESERVA EN EFECTIVO ---
+      // --- RESERVA EN EFECTIVO ---
       try {
         const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
             method: 'POST',
@@ -274,14 +285,6 @@ export default function Catalog() {
                 </Select>
               </div>
             </div>
-
-            <div className="bg-green-600 rounded-[40px] p-8 text-white relative overflow-hidden group">
-                <div className="relative z-10">
-                    <p className="font-black text-xl leading-tight mb-2">Seguridad Garantizada</p>
-                    <p className="text-green-100 text-xs font-medium opacity-80">Validamos cada aliado para asegurar la calidad de tus rescates.</p>
-                </div>
-                <img src="/logo.png" className="absolute -right-4 -bottom-4 w-24 h-24 opacity-20 group-hover:scale-110 transition-transform" alt="AprovechApp Logo"/>
-            </div>
           </aside>
 
           {/* Listado */}
@@ -314,7 +317,6 @@ export default function Catalog() {
                     <div key={prod.id} className="group bg-white rounded-[44px] overflow-hidden border border-white shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
                       <div className="relative h-56 overflow-hidden">
                         <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        
                         <div className="absolute top-5 left-5 flex flex-col gap-2">
                           <Badge className="bg-white text-slate-900 border-none font-black px-4 py-2 rounded-full shadow-xl text-sm">
                             -{prod.descuento}%
@@ -335,9 +337,7 @@ export default function Catalog() {
                             {prod.tienda}
                           </button>
                         </div>
-                        
                         <h3 className="text-xl font-black text-slate-800 mb-6 group-hover:text-green-600 transition-colors uppercase truncate">{prod.nombre}</h3>
-                        
                         <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                           <div>
                             <p className="text-slate-300 text-xs line-through font-bold mb-1">${prod.precioOriginal.toLocaleString()}</p>
@@ -360,10 +360,12 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal de Confirmación Adaptado */}
+      {/* Modal Multifase Totalmente Controlado */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl">
-          {step === "confirm" ? (
+          
+          {/* FASE 1: CONFIRMACIÓN Y SELECCIÓN DE MÉTODO */}
+          {step === "confirm" && (
             <div className="p-10">
               <DialogHeader className="mb-6">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
@@ -375,7 +377,6 @@ export default function Catalog() {
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Selector de métodos */}
               <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
                 <button
                   type="button"
@@ -399,9 +400,9 @@ export default function Catalog() {
                     <span className="font-black text-slate-900 uppercase truncate max-w-[180px]">{selectedProduct?.tienda}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Flujo seleccionado</span>
+                    <span className="text-slate-400 font-black uppercase">Flujo</span>
                     <span className="font-black text-blue-600 uppercase">
-                      {metodoPago === "wompi" ? "Pasarela Wompi" : "Reserva Manual"}
+                      {metodoPago === "wompi" ? "Pasarela Segura" : "Pago contra entrega"}
                     </span>
                 </div>
                 <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
@@ -410,11 +411,107 @@ export default function Catalog() {
                 </div>
               </div>
 
-              <Button onClick={procesarCheckout} disabled={isProcessing} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-600 transition-all uppercase tracking-wider">
-                  {isProcessing ? <Loader2 className="animate-spin" /> : metodoPago === "wompi" ? "ABRIR PASARELA 💳" : "RESERVAR AHORA ⏳"}
+              <Button onClick={procesarCheckout} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-600 transition-all uppercase tracking-wider">
+                  {metodoPago === "wompi" ? "IR A PAGAR 💳" : "RESERVAR AHORA ⏳"}
               </Button>
             </div>
-          ) : (
+          )}
+
+          {/* FASE 2: EL FORMULARIO ESPEJO DE PASARELA WOMPI */}
+          {step === "wompi_form" && (
+            <div className="p-10">
+              <DialogHeader className="mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 bg-[#4A154B] text-white px-3 py-1.5 rounded-xl font-black text-[11px]">
+                    <span className="tracking-wide">wompi</span>
+                    <span className="text-[8px] bg-amber-400 text-slate-900 px-1 rounded font-bold">SANDBOX</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
+                    <Lock size={12} className="text-green-500" /> Seguro
+                  </div>
+                </div>
+                <DialogTitle className="text-xl font-black text-slate-900 mt-4">Tarjeta de Crédito / Débito</DialogTitle>
+                <DialogDescription className="text-[10px] text-slate-400 uppercase font-black tracking-wider">
+                  Pagarás ${selectedProduct?.precioOferta.toLocaleString()} COP a AprovechApp
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 my-6">
+                <div className="space-y-1.5">
+                  <Label className="text-[9px] uppercase font-black text-slate-400">Número de Tarjeta</Label>
+                  <Input 
+                    type="text" 
+                    placeholder="4242 4242 4242 4242" 
+                    maxLength={19}
+                    value={tarjeta.numero}
+                    onChange={(e) => setTarjeta({...tarjeta, numero: e.target.value})}
+                    className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[9px] uppercase font-black text-slate-400">Vencimiento</Label>
+                    <Input 
+                      type="text" 
+                      placeholder="MM/AA" 
+                      maxLength={5}
+                      value={tarjeta.fecha}
+                      onChange={(e) => setTarjeta({...tarjeta, fecha: e.target.value})}
+                      className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700 text-center"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[9px] uppercase font-black text-slate-400">CVC</Label>
+                    <Input 
+                      type="password" 
+                      placeholder="123" 
+                      maxLength={3}
+                      value={tarjeta.cvc}
+                      onChange={(e) => setTarjeta({...tarjeta, cvc: e.target.value})}
+                      className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700 text-center"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[9px] uppercase font-black text-slate-400">Nombre en la tarjeta</Label>
+                  <Input 
+                    type="text" 
+                    placeholder="EJ. JUAN PEREZ" 
+                    value={tarjeta.nombre}
+                    onChange={(e) => setTarjeta({...tarjeta, nombre: e.target.value.toUpperCase()})}
+                    className="rounded-xl py-5 border-slate-200 font-bold text-slate-700 text-xs uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setStep("confirm")} 
+                  disabled={isProcessing}
+                  className="rounded-2xl py-6 px-4 font-black text-xs text-slate-400 uppercase tracking-wider"
+                >
+                  Atrás
+                </Button>
+                <Button 
+                  onClick={procesarCheckout} 
+                  disabled={isProcessing}
+                  className="flex-1 bg-[#4A154B] hover:bg-[#350f36] text-white rounded-2xl py-6 font-black text-xs tracking-widest uppercase shadow-lg"
+                >
+                  {isProcessing ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="animate-spin w-4 h-4" /> Procesando...
+                    </div>
+                  ) : `PAGAR $${selectedProduct?.precioOferta.toLocaleString()}`}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* FASE 3: ÉXITO TOTAL Y ASIGNACIÓN DE QR */}
+          {step === "success" && (
             <div className="p-10 text-center">
               <div className="w-24 h-24 bg-green-50 rounded-[35px] flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
@@ -437,6 +534,7 @@ export default function Catalog() {
               </Button>
             </div>
           )}
+
         </DialogContent>
       </Dialog>
     </div>
