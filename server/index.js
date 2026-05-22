@@ -37,12 +37,34 @@ const handleSQLError = (res, err, message) => {
 };
 
 // --- ENDPOINTS DE USUARIOS ---
+
+// Registro inicial con validación exacta de Pioneros (Primeros 100) inmune a IDs altos
 app.post('/api/registro', (req, res) => {
   const { nombre, correo } = req.body;
-  const sql = "INSERT INTO usuarios (nombre, correo) VALUES (?, ?)";
-  pool.query(sql, [nombre, correo], (err) => {
-    if (err) return res.status(500).json({ error: err.code === 'ER_DUP_ENTRY' ? "Correo ya existe" : "Error DB" });
-    res.status(201).json({ mensaje: "Pre-registro exitoso" });
+  
+  // 1. Consultamos el conteo real de filas físicas en la base de datos
+  pool.query("SELECT COUNT(*) as total_usuarios FROM usuarios", (err, results) => {
+    if (err) {
+      console.error("❌ Error contando usuarios para validar pioneros:", err);
+      return res.status(500).json({ error: "Error interno en el servidor" });
+    }
+    
+    const totalActual = results[0].total_usuarios;
+    // Si hay menos de 100 registros en la BD, este nuevo califica como Pionero (true = 1)
+    const esPionero = totalActual < 100 ? 1 : 0;
+
+    const sql = "INSERT INTO usuarios (nombre, correo, regalo_descuento, regalo_domicilio) VALUES (?, ?, ?, ?)";
+    pool.query(sql, [nombre, correo, esPionero, esPionero], (err) => {
+      if (err) {
+        return res.status(500).json({ 
+          error: err.code === 'ER_DUP_ENTRY' ? "Correo ya existe" : "Error DB" 
+        });
+      }
+      res.status(201).json({ 
+        mensaje: "Pre-registro exitoso",
+        pionero: esPionero === 1
+      });
+    });
   });
 });
 
@@ -90,7 +112,7 @@ app.get('/api/aliados/:id/perfil', (req, res) => {
   const sqlAliado = "SELECT id, nombre_local, direccion, estado_calidad FROM aliados WHERE id = ?";
   
   const sqlProductos = `
-    SELECT * FROM productos_rescate 
+    SELECT * FROM productos_rescale 
     WHERE aliado_id = ? 
     AND stock > 0 
     AND (
@@ -162,20 +184,36 @@ app.get('/api/mis-productos/:id', (req, res) => {
   });
 });
 
-// --- GESTIÓN DE PEDIDOS (CON MEDIOS DE PAGO) ---
+// --- GESTIÓN DE PEDIDOS (CON MEDIOS DE PAGO Y DOMICILIO) ---
 app.post('/api/pedidos/crear', (req, res) => {
-  const { usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, estado } = req.body;
-  const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const { 
+    usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, 
+    precio_final, estado, tipo_entrega, costo_domicilio 
+  } = req.body;
   
+  const codigo_qr = Math.random().toString(36).substring(2, 8).toUpperCase();
   const estadoFormateado = (estado || "pendiente").toLowerCase();
   
   // Resta automática en inventario (RF-08)
   pool.query("UPDATE productos_rescate SET stock = stock - 1 WHERE id = ? AND stock > 0", [producto_id], (err, result) => {
     if (err || result.affectedRows === 0) return res.status(400).json({ error: "Sin stock disponible en el establecimiento" });
     
-    const sqlPedido = "INSERT INTO pedidos (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    pool.query(sqlPedido, [usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estadoFormateado], (err) => {
+    // Inserción incluyendo el control logístico del pedido
+    const sqlPedido = `INSERT INTO pedidos 
+      (usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, precio_final, codigo_qr, estado, tipo_entrega, costo_domicilio) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      
+    pool.query(sqlPedido, [
+      usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, 
+      precio_final, codigo_qr, estadoFormateado, tipo_entrega || 'retiro', costo_domicilio || 0
+    ], (err) => {
       if (err) return handleSQLError(res, err, "Error al registrar pedido");
+      
+      // Post-Verificación: Si consumió sus regalos de pionero, se los desactivamos para futuras compras
+      pool.query("UPDATE usuarios SET regalo_descuento = 0, regalo_domicilio = 0 WHERE id = ?", [usuario_id], (updateErr) => {
+        if (updateErr) console.error("⚠️ No se pudieron limpiar las banderas VIP del usuario:", updateErr);
+      });
+
       res.status(201).json({ mensaje: "Pedido guardado", codigo: codigo_qr });
     });
   });
@@ -224,11 +262,11 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   });
 });
 
-// NUEVO ENDPOINT 1: Obtener pedidos pagados con tarjeta y pendientes por entregar
+// Obtener pedidos pagados con tarjeta y pendientes por entregar
 app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   const { id } = req.params;
   const sql = `
-    SELECT p.id, p.nombre_producto, p.precio_final, p.estado, u.nombre AS cliente_nombre 
+    SELECT p.id, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
     FROM pedidos p 
     JOIN usuarios u ON p.usuario_id = u.id 
     WHERE p.aliado_id = ? AND p.estado = 'pagado'
@@ -240,7 +278,7 @@ app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   });
 });
 
-// NUEVO ENDPOINT 2: Marcar pedido como entregado (Acción del comercio)
+// Marcar pedido como entregado (Acción directa del comercio)
 app.put('/api/pedidos/:id/entregar', (req, res) => {
   const { id } = req.params;
   const sql = "UPDATE pedidos SET estado = 'entregado' WHERE id = ?";
@@ -313,7 +351,8 @@ app.post('/api/login', (req, res) => {
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   } else {
-    const sql = "SELECT id, nombre, correo FROM usuarios WHERE correo = ? AND password = ?";
+    // MODIFICADO: Retornamos las banderas de descuento y domicilio al frontend para procesar el carrito dinámico
+    const sql = "SELECT id, nombre, correo, regalo_descuento, regalo_domicilio FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
       if (err) return handleSQLError(res, err, "Error en Login Usuario");
       if (results?.length > 0) res.json({ mensaje: "OK", usuario: { ...results[0], role: 'user' } });
