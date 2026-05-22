@@ -136,7 +136,7 @@ export default function Catalog() {
         return;
     }
 
-    // Si elige Wompi y está en confirmación, lo mandamos al formulario de la tarjeta
+    // Si elige Wompi y está en la confirmación inicial, abrimos el formulario de tarjeta
     if (metodoPago === "wompi" && step === "confirm") {
       setStep("wompi_form");
       return;
@@ -145,14 +145,25 @@ export default function Catalog() {
     setIsProcessing(true);
 
     if (metodoPago === "wompi" && step === "wompi_form") {
-      // Validar campos mínimos de la tarjeta simulada
+      // 1. Limpiamos espacios para validar el número de tarjeta
+      const numeroLimpio = tarjeta.numero.replace(/\s/g, "");
+
       if (!tarjeta.numero || !tarjeta.fecha || !tarjeta.cvc) {
-        alert("Por favor completa los datos de la tarjeta de prueba");
+        alert("Por favor completa los datos de la tarjeta");
         setIsProcessing(false);
         return;
       }
 
-      // --- SIMULACIÓN DE PROCESAMIENTO BANCARIO ---
+      // 2. FILTRO REALISTA: Si meten una tarjeta que no sea la de pruebas oficial de Wompi (4242...)
+      if (!numeroLimpio.startsWith("4242")) {
+        setTimeout(() => {
+          alert("Transacción Rechazada: Para el ambiente de pruebas (Sandbox) debes usar la tarjeta Visa de pruebas oficial: 4242 4242 4242 4242");
+          setIsProcessing(false);
+        }, 1500);
+        return;
+      }
+
+      // --- SIMULACIÓN DE PROCESAMIENTO BANCARIO EXITOSO ---
       setTimeout(async () => {
         try {
           const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
