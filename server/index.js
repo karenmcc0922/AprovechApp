@@ -138,7 +138,7 @@ app.get('/api/aliados/:id/perfil', (req, res) => {
   });
 });
 
-// --- PRODUCTOS ---
+// --- PRODUCTOS (MODIFICADOS PARA GUARDAR CONSTANCIA EN EL HISTORIAL) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
   const catFinal = categoria || 'Preparados';
@@ -149,6 +149,15 @@ app.post('/api/productos', (req, res) => {
                
   pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal], (err, result) => {
     if (err) return handleSQLError(res, err, "Error al guardar producto en la base de datos");
+    
+    // GUARDAR CONSTANCIA DE CREACIÓN EN LA ACTIVIDAD RECIENTE
+    const mensajeActividad = `Publicó una nueva oferta: ${nombre} (${stock} und.)`;
+    const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
+    
+    pool.query(sqlHistorial, [aliado_id, mensajeActividad], (historialErr) => {
+      if (historialErr) console.error("⚠️ No se pudo registrar la creación en el historial:", historialErr);
+    });
+
     res.status(201).json({ mensaje: "Producto creado con éxito", id: result.insertId });
   });
 });
@@ -184,10 +193,10 @@ app.get('/api/mis-productos/:id', (req, res) => {
   });
 });
 
-// NUEVO: Editar un producto existente del aliado
+// Editar un producto existente del aliado con registro de actividad
 app.put('/api/productos/:id/actualizar', (req, res) => {
   const { id } = req.params;
-  const { nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
+  const { nombre, precio_original, precio_rescate, stock, imagen_url, categoria, aliado_id } = req.body;
   const catFinal = categoria || 'Preparados';
 
   const sql = `
@@ -199,19 +208,49 @@ app.put('/api/productos/:id/actualizar', (req, res) => {
   pool.query(sql, [nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, id], (err, result) => {
     if (err) return handleSQLError(res, err, "Error al actualizar el producto");
     if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
+    
+    // GUARDAR CONSTANCIA DE EDICIÓN EN LA ACTIVIDAD RECIENTE
+    if (aliado_id) {
+      const mensajeActividad = `Actualizó los datos de la oferta: ${nombre}`;
+      const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
+      
+      pool.query(sqlHistorial, [aliado_id, mensajeActividad], (historialErr) => {
+        if (historialErr) console.error("⚠️ No se pudo registrar la actualización en el historial:", historialErr);
+      });
+    }
+
     res.json({ success: true, mensaje: "Producto modificado con éxito" });
   });
 });
 
-// NUEVO: Eliminar físicamente un producto del catálogo
+// Eliminar un producto del catálogo con búsqueda previa para el registro de actividad
 app.delete('/api/productos/:id/eliminar', (req, res) => {
   const { id } = req.params;
-  const sql = "DELETE FROM productos_rescate WHERE id = ?";
 
-  pool.query(sql, [id], (err, result) => {
-    if (err) return handleSQLError(res, err, "Error al eliminar el producto");
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
-    res.json({ success: true, mensaje: "Producto eliminado correctamente" });
+  // 1. Buscamos los datos indispensables del producto antes de destruirlo
+  const sqlBuscar = "SELECT nombre, aliado_id FROM productos_rescate WHERE id = ?";
+  
+  pool.query(sqlBuscar, [id], (err, results) => {
+    if (err) return handleSQLError(res, err, "Error al buscar producto antes de eliminar");
+    if (results.length === 0) return res.status(404).json({ error: "Producto no encontrado" });
+
+    const { nombre, aliado_id } = results[0];
+
+    // 2. Procedemos a eliminar físicamente el producto
+    const sqlDelete = "DELETE FROM productos_rescate WHERE id = ?";
+    pool.query(sqlDelete, [id], (deleteErr, result) => {
+      if (deleteErr) return handleSQLError(res, deleteErr, "Error al eliminar el producto");
+      
+      // 3. GUARDAR CONSTANCIA DE ELIMINACIÓN EN LA ACTIVIDAD RECIENTE
+      const mensajeActividad = `Eliminó la oferta del catálogo: ${nombre}`;
+      const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
+      
+      pool.query(sqlHistorial, [aliado_id, mensajeActividad], (historialErr) => {
+        if (historialErr) console.error("⚠️ No se pudo registrar la eliminación en el historial:", historialErr);
+      });
+
+      res.json({ success: true, mensaje: "Producto eliminado correctamente" });
+    });
   });
 });
 
@@ -262,7 +301,6 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   });
 });
 
-// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/usuario/:id', (req, res) => {
   const sql = "SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
@@ -271,7 +309,6 @@ app.get('/api/pedidos/usuario/:id', (req, res) => {
   });
 });
 
-// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/aliado/:id', (req, res) => {
   const sql = "SELECT p.*, p.codigo_qr AS codigo, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
   pool.query(sql, [req.params.id], (err, results) => {
@@ -280,7 +317,6 @@ app.get('/api/pedidos/aliado/:id', (req, res) => {
   });
 });
 
-// MODIFICADO: Agregado alias 'p.codigo_qr AS codigo' para mapear directamente al front
 app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   const { codigo, aliadoId } = req.params;
   const sql = `
@@ -385,7 +421,6 @@ app.post('/api/login', (req, res) => {
       else res.status(401).json({ error: "Credenciales incorrectas" });
     });
   } else {
-    // MODIFICADO: Retornamos las banderas de descuento y domicilio al frontend para procesar el carrito dinámico
     const sql = "SELECT id, nombre, correo, regalo_descuento, regalo_domicilio FROM usuarios WHERE correo = ? AND password = ?";
     pool.query(sql, [correo, password], (err, results) => {
       if (err) return handleSQLError(res, err, "Error en Login Usuario");

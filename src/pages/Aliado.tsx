@@ -179,6 +179,7 @@ export default function Aliado() {
     setLoading(true);
 
     try {
+      // MODIFICADO: Incluye siempre el aliado_id para que el PUT registre el historial correctamente
       const payload = {
         aliado_id: parseInt(aliadoId),
         nombre: nuevoProducto.nombre,
@@ -503,6 +504,7 @@ export default function Aliado() {
   );
 }
 
+// Helper interno para estructurar los labels de los formularios
 function LabelCustom({ children }: { children: React.ReactNode }) {
   return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
