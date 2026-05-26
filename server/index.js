@@ -77,6 +77,25 @@ app.post('/api/completar-perfil', (req, res) => {
   });
 });
 
+// Actualizar información del perfil del usuario (Configuración de Cuenta)
+app.put('/api/usuarios/:id/actualizar', (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, direccion } = req.body;
+
+  if (!nombre || !telefono || !direccion) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+  }
+
+  const sql = "UPDATE usuarios SET nombre = ?, telefono = ?, direccion = ? WHERE id = ?";
+  
+  pool.query(sql, [nombre, telefono, direccion], (err, result) => {
+    if (err) return handleSQLError(res, err, "Error al actualizar la cuenta del usuario");
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    res.json({ success: true, mensaje: "Perfil actualizado con éxito" });
+  });
+});
+
 // --- ENDPOINTS DE ALIADOS ---
 app.post('/api/registro-aliado', (req, res) => {
   const { nombre_local, nit, correo, direccion, password } = req.body;
@@ -206,7 +225,7 @@ app.put('/api/productos/:id/actualizar', (req, res) => {
   `;
 
   pool.query(sql, [nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, id], (err, result) => {
-    if (err) return handleSQLError(res, err, "Error al actualizar el producto");
+    if (err) return handleSQLError(res, err, "Error al actualizar the product");
     if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
     
     // GUARDAR CONSTANCIA DE EDICIÓN EN LA ACTIVIDAD RECIENTE
@@ -254,7 +273,7 @@ app.delete('/api/productos/:id/eliminar', (req, res) => {
   });
 });
 
-// --- GESTIÓN DE PEDIDOS (CON MEDIOS DE PAGO Y DOMICILIO) ---
+// --- GESTIÓN DE PEDIDOS (MODIFICADO CON LEFT JOIN PARA EXTRACTO DE CALIFICACIÓN REAL) ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { 
     usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, 
@@ -301,11 +320,25 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   });
 });
 
+// ENDPOINT ESTRATÉGICO ACTUALIZADO: Une la tabla pedidos con la tabla calificaciones
 app.get('/api/pedidos/usuario/:id', (req, res) => {
-  const sql = "SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion FROM pedidos p JOIN aliados a ON p.aliado_id = a.id WHERE p.usuario_id = ? ORDER BY p.id DESC";
+  const sql = `
+    SELECT 
+      p.*, 
+      p.codigo_qr AS codigo, 
+      a.nombre_local, 
+      a.direccion,
+      c.puntuacion AS calificacion_guardada
+    FROM pedidos p 
+    JOIN aliados a ON p.aliado_id = a.id 
+    LEFT JOIN calificaciones c ON p.id = c.pedido_id
+    WHERE p.usuario_id = ? 
+    ORDER BY p.id DESC
+  `;
+  
   pool.query(sql, [req.params.id], (err, results) => {
-    if (err) return handleSQLError(res, err, "Error al obtener pedidos");
-    res.json(results);
+    if (err) return handleSQLError(res, err, "Error al obtener pedidos históricos del usuario");
+    res.json(results || []);
   });
 });
 
@@ -418,12 +451,10 @@ app.post('/api/calificaciones', (req, res) => {
     return res.status(400).json({ error: "Faltan campos obligatorios (pedido_id, aliado_id, puntuacion)" });
   }
 
-  // Intentamos insertar la calificación por primera vez
   const sqlInsert = "INSERT INTO calificaciones (pedido_id, aliado_id, puntuacion) VALUES (?, ?, ?)";
   
   pool.query(sqlInsert, [pedido_id, aliado_id, puntuacion], (err, result) => {
     if (err) {
-      // Si el registro ya existía (gracias al UNIQUE KEY), actualizamos la puntuación antigua
       if (err.code === 'ER_DUP_ENTRY' || err.errno === 1062) {
         const sqlUpdate = "UPDATE calificaciones SET puntuacion = ? WHERE pedido_id = ?";
         return pool.query(sqlUpdate, [puntuacion, pedido_id], (updateErr) => {
@@ -431,7 +462,6 @@ app.post('/api/calificaciones', (req, res) => {
           return res.status(200).json({ success: true, mensaje: "Calificación actualizada correctamente" });
         });
       }
-      // Cualquier otro error de base de datos (columnas mal escritas, etc.)
       return handleSQLError(res, err, "Error crítico al guardar en la tabla calificaciones");
     }
 

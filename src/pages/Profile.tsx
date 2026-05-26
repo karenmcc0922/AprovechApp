@@ -20,6 +20,14 @@ import {
   Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// Componentes UI de Radix/Shadcn para modularizar la configuración
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Profile() {
   const [historial, setHistorial] = useState<any[]>([]);
@@ -30,6 +38,13 @@ export default function Profile() {
   const userId = storedUser.id;
   const userName = storedUser.nombre || "Rescatista";
   const userEmail = storedUser.correo || "usuario@ejemplo.com";
+
+  // --- ESTADOS PARA MODAL DE CONFIGURACIÓN DE CUENTA (RF-02) ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editNombre, setEditNombre] = useState(userName);
+  const [editTelefono, setEditTelefono] = useState(storedUser.telefono || "");
+  const [editDireccion, setEditDireccion] = useState(storedUser.direccion || "");
+  const [isGuardando, setIsGuardando] = useState(false);
 
   useEffect(() => {
     const cargarHistorialDesdeDB = async () => {
@@ -51,6 +66,47 @@ export default function Profile() {
     };
     cargarHistorialDesdeDB();
   }, [userId]);
+
+  // --- FUNCIÓN PARA GUARDAR ACTUALIZACIÓN DE CUENTA ---
+  const guardarConfiguracion = async () => {
+    if (!editNombre.trim() || !editTelefono.trim() || !editDireccion.trim()) {
+      alert("Por favor, llena todos los campos obligatorios.");
+      return;
+    }
+
+    setIsGuardando(true);
+    try {
+      const response = await fetch(`https://aprovechapp-api.onrender.com/api/usuarios/${userId}/actualizar`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: editNombre,
+          telefono: editTelefono,
+          direccion: editDireccion
+        })
+      });
+
+      if (response.ok) {
+        // Actualización de estado persistente local en sesión del navegador
+        const usuarioActualizado = { 
+          ...storedUser, 
+          nombre: editNombre, 
+          telefono: editTelefono, 
+          direccion: editDireccion 
+        };
+        localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
+        setIsModalOpen(false);
+        window.location.reload(); // Sincroniza la interfaz de forma inmediata
+      } else {
+        alert("Hubo un error al guardar los cambios en el servidor.");
+      }
+    } catch (error) {
+      console.error("Error al actualizar la cuenta:", error);
+      alert("No se pudo establecer conexión con el servidor remoto.");
+    } finally {
+      setIsGuardando(false);
+    }
+  };
 
   // --- CÁLCULOS METRICOS ECOLÓGICOS (RF-12) ---
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio_final) || 0), 0);
@@ -105,7 +161,12 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button variant="ghost" className="w-full mt-10 rounded-2xl py-7 font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-all">
+              {/* Botón enlazado al estado del Modal */}
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsModalOpen(true)}
+                className="w-full mt-10 rounded-2xl py-7 font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-all"
+              >
                 <Settings className="w-4 h-4 mr-2" /> Configurar Cuenta
               </Button>
             </Card>
@@ -222,7 +283,7 @@ export default function Profile() {
                             </Badge>
                           </div>
                           
-                          {/* CONTROL MULTI-ESTADO INTEGRADO (SOPORTA FORMATOS EN MINÚSCULAS DESDE LA DB) */}
+                          {/* CONTROL MULTI-ESTADO CONECTADO AL LEFT JOIN DE LA DB */}
                           {(() => {
                             const estadoFormateado = (item.estado || "").toLowerCase();
                             if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado" || estadoFormateado === "pagado") {
@@ -230,7 +291,7 @@ export default function Profile() {
                                 <CalificacionPedido 
                                   pedidoId={item.id} 
                                   aliadoId={item.aliado_id} 
-                                  calificacionInicial={item.calificacion_usuario || 0} 
+                                  calificacionInicial={item.calificacion_guardada || 0} 
                                 />
                               );
                             }
@@ -273,6 +334,75 @@ export default function Profile() {
           </div>
         </div>
       </main>
+
+      {/* ============================================================================
+          MODAL INTERACTIVO: CONFIGURACIÓN DE CUENTA (LEY 1581 COMPLIANT)
+          ============================================================================ */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[450px] bg-white rounded-[35px] p-8 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 flex items-center gap-2">
+              <Settings className="w-6 h-6 text-green-600" /> Configurar Mi Cuenta
+            </DialogTitle>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mantén tus datos logísticos al día</p>
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre de Rescatista</label>
+              <input 
+                type="text" 
+                value={editNombre} 
+                onChange={(e) => setEditNombre(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-transparent focus:border-green-400 rounded-2xl text-sm font-bold text-slate-800 outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Teléfono Móvil</label>
+              <input 
+                type="text" 
+                value={editTelefono} 
+                onChange={(e) => setEditTelefono(e.target.value)}
+                placeholder="Ej: 3123456789"
+                className="w-full px-4 py-3 bg-slate-50 border border-transparent focus:border-green-400 rounded-2xl text-sm font-bold text-slate-800 outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dirección Residencial (Pereira)</label>
+              <input 
+                type="text" 
+                value={editDireccion} 
+                onChange={(e) => setEditDireccion(e.target.value)}
+                placeholder="Ej: Calle 20 # 5-12 Apto 301"
+                className="w-full px-4 py-3 bg-slate-50 border border-transparent focus:border-green-400 rounded-2xl text-sm font-bold text-slate-800 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsModalOpen(false)}
+              className="rounded-xl border-slate-200 text-slate-500 font-bold text-xs uppercase px-6"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={guardarConfiguracion}
+              disabled={isGuardando}
+              className="rounded-xl bg-slate-900 hover:bg-green-600 text-white font-bold text-xs uppercase px-6 transition-colors shadow-lg"
+            >
+              {isGuardando ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...
+                </>
+              ) : "Guardar Cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -298,7 +428,6 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
     if (guardado || enviando) return;
     
     setEnviando(true);
-    // Cambiamos el rating local de inmediato para ofrecer feedback visual instantáneo
     setRating(nota); 
     
     try {
