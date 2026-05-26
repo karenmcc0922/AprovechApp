@@ -214,7 +214,7 @@ export default function Profile() {
                       </div>
                       
                       <div className="flex items-center gap-8 mt-6 md:mt-0 w-full md:w-auto pt-6 md:pt-0 border-t md:border-t-0 border-slate-50">
-                        <div className="text-right space-y-3 min-w-[140px]">
+                        <div className="text-right space-y-3 min-w-[140px] w-full md:w-auto">
                           <div>
                             <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(item.precio_final).toLocaleString()}</p>
                             <Badge className="bg-green-100 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-widest border-none px-3 py-1">
@@ -222,15 +222,20 @@ export default function Profile() {
                             </Badge>
                           </div>
                           
-                          {/* INTEGRACIÓN REQUISITO RF-13: SISTEMA DE CALIFICACIONES */}
-                          {/* Se habilita solo si el pedido ya está en manos del consumidor */}
-                          {(item.estado === "completado" || item.estado === "entregado" || item.estado === "rescatado") && (
-                            <CalificacionPedido 
-                              pedidoId={item.id} 
-                              aliadoId={item.aliado_id} 
-                              calificacionInicial={item.calificacion_usuario || 0} 
-                            />
-                          )}
+                          {/* CONTROL MULTI-ESTADO INTEGRADO (SOPORTA "entregado", "rescatado" y "completado" EN MINÚSCULAS) */}
+                          {(() => {
+                            const estadoFormateado = (item.estado || "").toLowerCase();
+                            if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado") {
+                              return (
+                                <CalificacionPedido 
+                                  pedidoId={item.id} 
+                                  aliadoId={item.aliado_id} 
+                                  calificacionInicial={item.calificacion_usuario || 0} 
+                                />
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <ChevronRight className="text-slate-200 group-hover:text-green-600 group-hover:translate-x-2 transition-all hidden md:block" />
                       </div>
