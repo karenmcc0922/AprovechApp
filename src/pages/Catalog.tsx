@@ -34,7 +34,8 @@ import {
   Lock,
   Truck,
   Store,
-  Sparkles
+  Sparkles,
+  AlertTriangle
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
@@ -57,9 +58,12 @@ export default function Catalog() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [metodoPago, setMetodoPago] = useState<"wompi" | "efectivo">("wompi");
 
-  // NUEVOS ESTADOS LOGÍSTICOS
+  // ESTADOS LOGÍSTICOS
   const [tipoEntrega, setTipoEntrega] = useState<"retiro" | "domicilio">("retiro");
   const costoEnvioBase = 5000; // Costo por defecto del domicilio en Pereira
+
+  // ESTADO PARA EL TEMPORIZADOR DE LA RESERVA EN EFECTIVO (20 Minutos = 1200 Segundos)
+  const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(1200);
 
   // Estado para los inputs de la tarjeta simulada
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
@@ -95,6 +99,38 @@ export default function Catalog() {
     fetchProductos();
   }, []);
 
+  // REGLA DE NEGOCIO: Si se selecciona pago en el local, se fuerza la entrega a "retiro"
+  useEffect(() => {
+    if (metodoPago === "efectivo") {
+      setTipoEntrega("retiro");
+    }
+  }, [metodoPago]);
+
+  // MANEJO DEL TEMPORIZADOR CUANDO LA RESERVA EN EFECTIVO ESTÁ ACTIVA (RF-06)
+  useEffect(() => {
+    if (!isModalOpen || step !== "success" || metodoPago !== "efectivo") return;
+
+    if (reservaTimeLeft <= 0) {
+      setIsModalOpen(false);
+      alert(`🚨 Tu reserva para el producto "${selectedProduct?.nombre}" en el local expiró de forma automática. El stock ha sido liberado.`);
+      fetchProductos(); // Sincroniza stock actualizado
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setReservaTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isModalOpen, step, metodoPago, reservaTimeLeft, selectedProduct]);
+
+  // Formateador de segundos a MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
   const productosFinales = useMemo(() => {
     const todos = productosDB.map(p => ({
       id: `db-${p.id}`,
@@ -124,14 +160,12 @@ export default function Catalog() {
     });
   }, [productosDB, search, maxPrice, sortBy, selectedCategory]);
 
-  // CÁLCULOS DINÁMICOS DE BENEFICIOS DE PIONERO (Manejados de forma Reactiva)
   const calculosCheckout = useMemo(() => {
     if (!selectedProduct) return { subtotal: 0, descuento: 0, envio: 0, total: 0, esPioneroDescuento: false, esPioneroEnvio: false };
     
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
 
-    // RESPALDO: Activa por bandera regalo_descuento ó si explícitamente es el usuario con ID 1 o "1"
     const esPioneroDescuento = user?.regalo_descuento === 1 || user?.id === 1 || user?.id === "1";
     const esPioneroEnvio = user?.regalo_domicilio === 1 || user?.id === 1 || user?.id === "1";
 
@@ -156,8 +190,9 @@ export default function Catalog() {
   const openRescate = (product: any) => {
     setSelectedProduct(product);
     setMetodoPago("wompi"); 
-    setTipoEntrega("retiro"); // Por defecto siempre inicia en retiro
+    setTipoEntrega("retiro"); 
     setStep("confirm");
+    setReservaTimeLeft(1200); 
     setTarjeta({ numero: "", fecha: "", cvc: "", nombre: "" });
     setIsModalOpen(true);
   };
@@ -191,13 +226,13 @@ export default function Catalog() {
 
       if (!numeroLimpio.startsWith("4242")) {
         setTimeout(() => {
-          alert("Transacción Rechazada: Para el ambiente de pruebas (Sandbox) debes usar la tarjeta Visa de pruebas oficial: 4242 4242 4242 4242");
+          alert("Transacción device: Para pruebas usa la tarjeta Visa oficial: 4242 4242 4242 4242");
           setIsProcessing(false);
         }, 1500);
         return;
       }
 
-      // --- SIMULACIÓN PASARELA DE PAGO ONLINE ---
+      // --- SIMULACIÓN PASARELA ONLINE ---
       setTimeout(async () => {
         try {
           const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
@@ -209,7 +244,7 @@ export default function Catalog() {
               aliado_id: selectedProduct.aliado_id,
               nombre_usuario: user.nombre,
               nombre_producto: selectedProduct.nombre,
-              precio_final: calculosCheckout.total, // Enviamos el total con descuento
+              precio_final: calculosCheckout.total, 
               estado: "pagado", 
               tipo_entrega: tipoEntrega,
               costo_domicilio: calculosCheckout.envio
@@ -231,14 +266,14 @@ export default function Catalog() {
           }
         } catch (err) {
           console.error("Error en API:", err);
-          alert("Hubo un problema registrando tu compra en el sistema.");
+          alert("Hubo un problema registrando tu compra.");
         } finally {
           setIsProcessing(false);
         }
       }, 2000);
 
     } else {
-      // --- RESERVA DIRECTA EN EFECTIVO ---
+      // --- RESERVA DIRECTA EN EFECTIVO (RECOJO EXCLUSIVO) ---
       try {
         const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
             method: 'POST',
@@ -249,10 +284,10 @@ export default function Catalog() {
                 aliado_id: selectedProduct.aliado_id,
                 nombre_usuario: user.nombre,
                 nombre_producto: selectedProduct.nombre,
-                precio_final: calculosCheckout.total, // Enviamos el total con descuento
+                precio_final: calculosCheckout.total, 
                 estado: "pendiente",
-                tipo_entrega: tipoEntrega,
-                costo_domicilio: calculosCheckout.envio
+                tipo_entrega: "retiro", // Forzado por seguridad en backend
+                costo_domicilio: 0
             })
         });
         const data = await response.json();
@@ -397,7 +432,6 @@ export default function Catalog() {
                         <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                           <div>
                             <p className="text-slate-300 text-xs line-through font-bold mb-1">${prod.precioOriginal.toLocaleString()}</p>
-                            {/* CORREGIDO AQUÍ: Renderizado puro sin mutar el estado */}
                             <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta.toLocaleString()}</p>
                           </div>
                           <Button 
@@ -417,7 +451,7 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal Multifase Totalmente Controlado */}
+      {/* Modal Multifase */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl">
           
@@ -453,7 +487,7 @@ export default function Catalog() {
                 </button>
               </div>
 
-              {/* Selector 2: Retiro vs Domicilio Logístico */}
+              {/* Selector 2: Retiro vs Domicilio Logístico (Bloqueado reactivamente si es efectivo) */}
               <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">2. Método de entrega</Label>
               <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
                 <button
@@ -465,21 +499,28 @@ export default function Catalog() {
                 </button>
                 <button
                   type="button"
+                  disabled={metodoPago === "efectivo"}
                   onClick={() => setTipoEntrega("domicilio")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoEntrega === "domicilio" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${
+                    metodoPago === "efectivo" 
+                      ? "opacity-40 cursor-not-allowed text-slate-300" 
+                      : tipoEntrega === "domicilio" 
+                      ? "bg-white text-slate-900 shadow-md scale-102" 
+                      : "text-slate-400"
+                  }`}
+                  title={metodoPago === "efectivo" ? "Las reservas en el local requieren que recojas el producto tú mismo" : ""}
                 >
                   <Truck size={14} /> Domicilio
                 </button>
               </div>
 
-              {/* DESGLOSE MATEMÁTICO TRANSPARENTE CON PILARES DE PIONERO */}
+              {/* DESGLOSE MATEMÁTICO */}
               <div className="bg-slate-50 p-6 rounded-[28px] mb-6 space-y-3 border border-slate-100">
                 <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-400 font-black uppercase">Precio Rescate</span>
                     <span className="font-black text-slate-900">${calculosCheckout.subtotal.toLocaleString()}</span>
                 </div>
 
-                {/* Inyección visual de Descuento Pionero */}
                 {calculosCheckout.esPioneroDescuento && (
                   <div className="flex justify-between items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-xl">
                       <span className="font-black uppercase flex items-center gap-1 text-[10px]"><Sparkles size={12}/> Beneficio Pionero (15%)</span>
@@ -501,12 +542,12 @@ export default function Catalog() {
               </div>
 
               <Button onClick={procesarCheckout} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-600 transition-all uppercase tracking-wider">
-                  {metodoPago === "wompi" ? "IR A PAGAR 💳" : "RESERVAR AHORA ⏳"}
+                  {metodoPago === "wompi" ? "IR A PAGAR 💳" : "SEPARAR Y RECOGER ⏳"}
               </Button>
             </div>
           )}
 
-          {/* FASE 2: EL FORMULARIO ESPEJO DE PASARELA WOMPI */}
+          {/* FASE 2: FORMULARIO WOMPI */}
           {step === "wompi_form" && (
             <div className="p-10">
               <DialogHeader className="mb-4">
@@ -599,24 +640,41 @@ export default function Catalog() {
             </div>
           )}
 
-          {/* FASE 3: ÉXITO TOTAL Y ASIGNACIÓN DE QR */}
+          {/* FASE 3: ÉXITO TOTAL Y QR */}
           {step === "success" && (
             <div className="p-10 text-center">
               <div className="w-24 h-24 bg-green-50 rounded-[35px] flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">¡PROCESADO!</h2>
-              <p className="text-slate-400 mb-10 text-xs font-black uppercase tracking-widest px-4 leading-relaxed">
-                  {tipoEntrega === 'domicilio' 
-                    ? `Tu pedido va en camino a tu dirección. Monitorea tu entrega.` 
-                    : `Boleto asignado. Visita a ${selectedProduct?.tienda} para reclamar tu pedido.`
+              <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">
+                {metodoPago === "efectivo" ? "¡RESERVADO!" : "¡COMPRADO!"}
+              </h2>
+              
+              <p className="text-slate-400 mb-6 text-xs font-black uppercase tracking-widest px-4 leading-relaxed">
+                  {metodoPago === 'efectivo' 
+                    ? `Tienes el tiempo límite indicado abajo para asistir a ${selectedProduct?.tienda} y pagar en caja.`
+                    : tipoEntrega === 'domicilio' 
+                    ? `Tu pedido va en camino a tu dirección en Pereira.` 
+                    : `Boleto pagado. Visita a ${selectedProduct?.tienda} para reclamar.`
                   }
               </p>
+
+              {/* CONTADOR EN TIEMPO REAL (RESERVA EFECTIVO) */}
+              {metodoPago === "efectivo" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-6 flex flex-col items-center gap-1 animate-pulse">
+                  <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                    <AlertTriangle size={12} className="text-amber-600"/> Tiempo de recogida restante:
+                  </span>
+                  <span className="text-2xl font-mono font-black text-amber-700">
+                    {formatTime(reservaTimeLeft)}
+                  </span>
+                </div>
+              )}
               
               <div className="bg-slate-900 p-10 rounded-[45px] mb-10 flex flex-col items-center shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-green-500" />
+                <div className={`absolute top-0 left-0 w-full h-2 ${metodoPago === 'efectivo' ? 'bg-amber-500' : 'bg-green-500'}`} />
                 <QrCode className="w-32 h-32 text-white mb-6 opacity-90" />
-                <p className="text-green-400 font-mono font-black tracking-[0.3em] text-3xl uppercase">
+                <p className={`font-mono font-black tracking-[0.3em] text-3xl uppercase ${metodoPago === 'efectivo' ? 'text-amber-400' : 'text-green-400'}`}>
                     {selectedProduct?.codigoGenerated}
                 </p>
               </div>
