@@ -222,7 +222,7 @@ export default function Profile() {
                             </Badge>
                           </div>
                           
-                          {/* CONTROL MULTI-ESTADO INTEGRADO (SOPORTA "entregado", "rescatado" y "completado" EN MINÚSCULAS) */}
+                          {/* CONTROL MULTI-ESTADO INTEGRADO (SOPORTA FORMATOS EN MINÚSCULAS DESDE LA DB) */}
                           {(() => {
                             const estadoFormateado = (item.estado || "").toLowerCase();
                             if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado") {
@@ -280,33 +280,51 @@ export default function Profile() {
 // ============================================================================
 // SUB-COMPONENTE INTERNO: CALIFICACIÓN INTERACTIVA DE 5 ESTRELLAS (RF-13)
 // ============================================================================
-function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedidoId: number; aliadoId: number; calificacionInicial: number }) {
-  const [rating, setRating] = useState<number>(calificacionInicial);
+function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedidoId: any; aliadoId: any; calificacionInicial: number }) {
+  const notaInicial = Number(calificacionInicial) || 0;
+  
+  const [rating, setRating] = useState<number>(notaInicial);
   const [hover, setHover] = useState<number>(0);
   const [enviando, setEnviando] = useState<boolean>(false);
-  const [guardado, setGuardado] = useState<boolean>(calificacionInicial > 0);
+  const [guardado, setGuardado] = useState<boolean>(notaInicial > 0);
+
+  useEffect(() => {
+    const nota = Number(calificacionInicial) || 0;
+    setRating(nota);
+    setGuardado(nota > 0);
+  }, [calificacionInicial]);
 
   const procesarCalificacion = async (nota: number) => {
     if (guardado || enviando) return;
+    
     setEnviando(true);
+    // Cambiamos el rating local de inmediato para ofrecer feedback visual instantáneo
+    setRating(nota); 
     
     try {
       const response = await fetch("https://aprovechapp-api.onrender.com/api/calificaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pedido_id: pedidoId,
-          aliado_id: aliadoId,
+          pedido_id: Number(pedidoId) || pedidoId,
+          aliado_id: Number(aliadoId) || aliadoId,
           puntuacion: nota
         }),
       });
 
       if (response.ok) {
-        setRating(nota);
         setGuardado(true);
+        setHover(0);
+      } else {
+        console.error("El servidor rechazó la calificación");
+        setRating(notaInicial);
+        setGuardado(false);
+        alert("No se pudo guardar la calificación. Inténtalo de nuevo.");
       }
     } catch (error) {
       console.error("Error al registrar estrellas:", error);
+      setRating(notaInicial);
+      setGuardado(false);
     } finally {
       setEnviando(false);
     }
@@ -314,12 +332,14 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
 
   return (
     <div className="flex flex-col items-center md:items-end gap-1 pt-1">
-      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider transition-all">
         {guardado ? "Comercio Calificado" : "Califica el Comercio"}
       </span>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 h-5">
         {enviando ? (
-          <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+          <div className="flex items-center justify-center w-[78px]">
+            <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+          </div>
         ) : (
           [1, 2, 3, 4, 5].map((estrella) => {
             const activa = estrella <= (hover || rating);
@@ -331,11 +351,16 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
                 onClick={() => procesarCalificacion(estrella)}
                 onMouseEnter={() => !guardado && setHover(estrella)}
                 onMouseLeave={() => !guardado && setHover(0)}
-                className={`transition-all ${guardado ? "cursor-default" : "cursor-pointer hover:scale-125"}`}
+                className={`transition-all outline-none ${guardado ? "cursor-default" : "cursor-pointer hover:scale-125 active:scale-95"}`}
+                title={`Calificar con ${estrella} estrellas`}
               >
                 <Star
                   size={14}
-                  className={activa ? "text-amber-400 fill-amber-400" : "text-slate-200"}
+                  className={`transition-colors duration-150 ${
+                    activa 
+                      ? "text-amber-400 fill-amber-400" 
+                      : "text-slate-200 fill-transparent"
+                  }`}
                 />
               </button>
             );
