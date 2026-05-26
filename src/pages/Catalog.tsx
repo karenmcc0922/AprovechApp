@@ -62,7 +62,8 @@ export default function Catalog() {
   const [tipoEntrega, setTipoEntrega] = useState<"retiro" | "domicilio">("retiro");
   const costoEnvioBase = 5000; // Costo por defecto del domicilio en Pereira
 
-  // ESTADO PARA EL TEMPORIZADOR DE LA RESERVA EN EFECTIVO (1 hora = 3600 Segundos)
+  // ESTADO PARA LA EXPIRACIÓN REAL DE LA RESERVA
+  const [fechaExpiracionReserva, setFechaExpiracionReserva] = useState<number | null>(null);
   const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(3600);
 
   // Estado para los inputs de la tarjeta simulada
@@ -106,23 +107,26 @@ export default function Catalog() {
     }
   }, [metodoPago]);
 
-  // MANEJO DEL TEMPORIZADOR CUANDO LA RESERVA EN EFECTIVO ESTÁ ACTIVA (RF-06)
+  // MANEJO DEL TEMPORIZADOR COMPORTAMIENTO DINÁMICO REPARADO (RF-06)
   useEffect(() => {
-    if (!isModalOpen || step !== "success" || metodoPago !== "efectivo") return;
-
-    if (reservaTimeLeft <= 0) {
-      setIsModalOpen(false);
-      alert(`🚨 Tu reserva para el producto "${selectedProduct?.nombre}" en el local expiró de forma automática. El stock ha sido liberado.`);
-      fetchProductos(); // Sincroniza stock actualizado
-      return;
-    }
+    if (!isModalOpen || step !== "success" || metodoPago !== "efectivo" || !fechaExpiracionReserva) return;
 
     const interval = setInterval(() => {
-      setReservaTimeLeft((prev) => prev - 1);
+      const ahora = new Date().getTime();
+      const diferenciaSegundos = Math.max(0, Math.floor((fechaExpiracionReserva - ahora) / 1000));
+
+      setReservaTimeLeft(diferenciaSegundos);
+
+      if (diferenciaSegundos <= 0) {
+        clearInterval(interval);
+        setIsModalOpen(false);
+        alert(`🚨 Tu reserva para el producto "${selectedProduct?.nombre}" en el local expiró de forma automática. El stock ha sido liberado.`);
+        fetchProductos(); // Sincroniza stock actualizado
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isModalOpen, step, metodoPago, reservaTimeLeft, selectedProduct]);
+  }, [isModalOpen, step, metodoPago, fechaExpiracionReserva, selectedProduct]);
 
   // Formateador de segundos a MM:SS
   const formatTime = (seconds: number) => {
@@ -192,7 +196,8 @@ export default function Catalog() {
     setMetodoPago("wompi"); 
     setTipoEntrega("retiro"); 
     setStep("confirm");
-    setReservaTimeLeft(1200); 
+    setFechaExpiracionReserva(null);
+    setReservaTimeLeft(3600); 
     setTarjeta({ numero: "", fecha: "", cvc: "", nombre: "" });
     setIsModalOpen(true);
   };
@@ -226,7 +231,7 @@ export default function Catalog() {
 
       if (!numeroLimpio.startsWith("4242")) {
         setTimeout(() => {
-          alert("Transacción device: Para pruebas usa la tarjeta Visa oficial: 4242 4242 4242 4242");
+          alert("Transacción declinada: Para pruebas usa la tarjeta Visa oficial: 4242 4242 4242 4242");
           setIsProcessing(false);
         }, 1500);
         return;
@@ -286,7 +291,7 @@ export default function Catalog() {
                 nombre_producto: selectedProduct.nombre,
                 precio_final: calculosCheckout.total, 
                 estado: "pendiente",
-                tipo_entrega: "retiro", // Forzado por seguridad en backend
+                tipo_entrega: "retiro",
                 costo_domicilio: 0
             })
         });
@@ -296,6 +301,12 @@ export default function Catalog() {
         user.regalo_descuento = 0;
         user.regalo_domicilio = 0;
         localStorage.setItem("usuario", JSON.stringify(user));
+
+        // PARSEO DE FECHA SINCRONIZADA CON EL BACKEND PARA EL CRONÓMETRO DE EFECTIVO
+        // Forzamos una marca de expiración de 1 hora relativa a este instante exacto para evitar desfases UTC
+        const momentoExpiracion = new Date().getTime() + (60 * 60 * 1000);
+        setFechaExpiracionReserva(momentoExpiracion);
+        setReservaTimeLeft(3600);
 
         setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
         setStep("success");
@@ -487,7 +498,7 @@ export default function Catalog() {
                 </button>
               </div>
 
-              {/* Selector 2: Retiro vs Domicilio Logístico (Bloqueado reactivamente si es efectivo) */}
+              {/* Selector 2: Retiro vs Domicilio Logístico */}
               <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">2. Método de entrega</Label>
               <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
                 <button
@@ -659,7 +670,7 @@ export default function Catalog() {
                   }
               </p>
 
-              {/* CONTADOR EN TIEMPO REAL (RESERVA EFECTIVO) */}
+              {/* CONTADOR CORREGIDO EN TIEMPO REAL */}
               {metodoPago === "efectivo" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-6 flex flex-col items-center gap-1 animate-pulse">
                   <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1">
