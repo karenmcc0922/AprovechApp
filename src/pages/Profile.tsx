@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter"; // Reemplazamos window.location por el hook de wouter
 import AppNavbar from "../components/AppNavbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,8 @@ import {
   Settings, 
   QrCode, 
   BadgeCheck, 
-  TrendingDown, 
+  Droplet, // Icono para el agua virtual
+  Scale,   // Icono para los kilogramos de comida
   Leaf,
   Loader2,
   ChevronRight,
@@ -21,6 +23,7 @@ import { Button } from "@/components/ui/button";
 export default function Profile() {
   const [historial, setHistorial] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [, setLocation] = useLocation(); // Hook de navegación fluida
   
   const storedUser = JSON.parse(localStorage.getItem("usuario") || "{}");
   const userId = storedUser.id;
@@ -48,8 +51,13 @@ export default function Profile() {
     cargarHistorialDesdeDB();
   }, [userId]);
 
+  // --- CÁLCULOS METRICOS ECOLÓGICOS (RF-12) ---
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio_final) || 0), 0);
-  const co2Ahorrado = (historial.length * 2.5).toFixed(1);
+  
+  // Constantes de impacto basadas en métricas globales de la FAO
+  const co2Ahorrado = (historial.length * 2.5).toFixed(1); // 2.5 kg por pack
+  const aguaAhorrada = (historial.length * 1200).toLocaleString(); // 1,200 litros por pack
+  const comidaSalvada = (historial.length * 1.0).toFixed(1); // 1.0 kg de alimento por pack
 
   return (
     <div className="min-h-screen bg-[#FBFDFF] flex flex-col">
@@ -103,7 +111,7 @@ export default function Profile() {
             </Card>
 
             <Card className="border-none shadow-2xl bg-slate-900 rounded-[45px] text-white p-10 flex flex-col items-center text-center group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-green-500/20 transition-colors" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-green-50/20 transition-colors" />
               
               <div className="bg-white p-6 rounded-[35px] mb-8 shadow-2xl transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                 <QrCode className="w-20 h-20 text-slate-900" />
@@ -116,34 +124,54 @@ export default function Profile() {
             </Card>
           </div>
 
-          {/* --- COLUMNA DERECHA: DASHBOARD DE IMPACTO --- */}
+          {/* --- COLUMNA DERECHA: DASHBOARD DE IMPACTO AMBIENTAL (RF-12) --- */}
           <div className="lg:col-span-8 space-y-10">
             
-            {/* CARDS DE IMPACTO */}
+            {/* CARDS DE IMPACTO AMBIENTAL EXPANDIDO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group">
+              {/* Tarjeta 1: Dióxido de carbono */}
+              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-green-500">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Target className="w-6 h-6 text-green-600" />
+                  <Leaf className="w-6 h-6 text-green-600" />
                 </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Packs Rescatados</p>
-                <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{historial.length}</p>
-              </div>
-
-              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <TrendingDown className="w-6 h-6 text-blue-600" />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inversión Total</p>
-                <p className="text-4xl font-black text-slate-900 tracking-tighter italic">${totalGastado.toLocaleString()}</p>
-              </div>
-
-              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group">
-                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Leaf className="w-6 h-6 text-emerald-600" />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Impacto CO2</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Impacto CO₂ Evitado</p>
                 <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{co2Ahorrado} kg</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-2 leading-tight">Gases de efecto invernadero que no llegaron a la atmósfera.</p>
               </div>
+
+              {/* Tarjeta 2: Agua Virtual */}
+              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-blue-500">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Droplet className="w-6 h-6 text-blue-600" />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Agua Virtual Salvada</p>
+                <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{aguaAhorrada} L</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-2 leading-tight">Líquido vital optimizado en toda la cadena de producción.</p>
+              </div>
+
+              {/* Tarjeta 3: Masa de comida salvada */}
+              <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-amber-500">
+                <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Scale className="w-6 h-6 text-amber-600" />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Alimentos Rescatados</p>
+                <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{comidaSalvada} kg</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-2 leading-tight">Comida de alta calidad que no terminó en desperdicio.</p>
+              </div>
+            </div>
+
+            {/* CARD SECUNDARIO: INVERSIÓN INTELIGENTE */}
+            <div className="bg-white p-6 rounded-[35px] shadow-sm border border-slate-50 flex items-center justify-between px-8">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center">
+                  <Target size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Inversión Inteligente</h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Dinero acumulado en compras de rescate</p>
+                </div>
+              </div>
+              <p className="text-2xl font-black text-slate-900 italic">${totalGastado.toLocaleString()}</p>
             </div>
 
             {/* LISTADO DE ACTIVIDAD */}
@@ -206,7 +234,7 @@ export default function Profile() {
                     </div>
                     <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Tu historial está vacío por ahora</p>
                     <Button 
-                      onClick={() => window.location.href='/catalog'}
+                      onClick={() => setLocation("/catalog")} // Navegación fluida SPA mediante wouter
                       variant="link" 
                       className="text-green-600 font-black mt-4 uppercase text-[10px] tracking-widest"
                     >
@@ -214,6 +242,17 @@ export default function Profile() {
                     </Button>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* --- EXCLUSIVO CUMPLIMIENTO REGULATORIO: LEY 1581 (RN-2) --- */}
+            <div className="bg-slate-50 rounded-[25px] p-5 flex gap-4 items-start border border-slate-100">
+              <ShieldCheck className="text-slate-400 flex-shrink-0 mt-0.5" size={18} />
+              <div className="space-y-1">
+                <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Aviso Legal de Protección de Datos (Ley 1581 de 2012)</h5>
+                <p className="text-[10px] text-slate-400 font-bold leading-normal">
+                  En **AprovechApp** garantizamos el tratamiento lícito de tu información. Tus datos personales, compras e historial ecológico están protegidos bajo estrictos esquemas de seguridad y confidencialidad en Colombia. El uso de esta información es estrictamente transaccional y estadístico para la medición de tu impacto verde.
+                </p>
               </div>
             </div>
 
