@@ -77,7 +77,7 @@ app.post('/api/completar-perfil', (req, res) => {
   });
 });
 
-// Actualizar información del perfil del usuario (Configuración de Cuenta)
+// Actualizar información del perfil del usuario (Configuración de Cuenta - Optimizado)
 app.put('/api/usuarios/:id/actualizar', (req, res) => {
   const { id } = req.params;
   const { nombre, telefono, direccion } = req.body;
@@ -88,9 +88,16 @@ app.put('/api/usuarios/:id/actualizar', (req, res) => {
 
   const sql = "UPDATE usuarios SET nombre = ?, telefono = ?, direccion = ? WHERE id = ?";
   
-  pool.query(sql, [nombre, telefono, direccion], (err, result) => {
-    if (err) return handleSQLError(res, err, "Error al actualizar la cuenta del usuario");
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+  pool.query(sql, [nombre, telefono, direccion, id], (err, result) => {
+    if (err) {
+      // Almacena el log exacto en la consola de Render para auditoría del desarrollador
+      console.error("❌ Error detallado al actualizar usuario en BD:", err);
+      return handleSQLError(res, err, "Error interno en el servidor al actualizar la cuenta");
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
     res.json({ success: true, mensaje: "Perfil actualizado con éxito" });
   });

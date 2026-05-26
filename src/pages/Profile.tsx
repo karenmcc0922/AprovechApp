@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription, // <-- Ajuste de accesibilidad integrado
   DialogFooter,
 } from "@/components/ui/dialog";
 
@@ -45,6 +46,16 @@ export default function Profile() {
   const [editTelefono, setEditTelefono] = useState(storedUser.telefono || "");
   const [editDireccion, setEditDireccion] = useState(storedUser.direccion || "");
   const [isGuardando, setIsGuardando] = useState(false);
+
+  // Sincronizar los estados del formulario con la información guardada al abrir el modal
+  useEffect(() => {
+    if (isModalOpen) {
+      const usuarioActual = JSON.parse(localStorage.getItem("usuario") || "{}");
+      setEditNombre(usuarioActual.nombre || "");
+      setEditTelefono(usuarioActual.telefono || "");
+      setEditDireccion(usuarioActual.direccion || "");
+    }
+  }, [isModalOpen]);
 
   useEffect(() => {
     const cargarHistorialDesdeDB = async () => {
@@ -344,7 +355,10 @@ export default function Profile() {
             <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 flex items-center gap-2">
               <Settings className="w-6 h-6 text-green-600" /> Configurar Mi Cuenta
             </DialogTitle>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mantén tus datos logísticos al día</p>
+            {/* Ajustado con DialogDescription para silenciar el warning de consola */}
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              Mantén tus datos logísticos al día
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-4">
@@ -397,7 +411,7 @@ export default function Profile() {
               {isGuardando ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...
-                </>
+                </                >
               ) : "Guardar Cambios"}
             </Button>
           </DialogFooter>
@@ -411,12 +425,12 @@ export default function Profile() {
 // SUB-COMPONENTE INTERNO: CALIFICACIÓN INTERACTIVA DE 5 ESTRELLAS (RF-13)
 // ============================================================================
 function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedidoId: any; aliadoId: any; calificacionInicial: number }) {
-  const notaInicial = Number(calificacionInicial) || 0;
+  const noteInicial = Number(calificacionInicial) || 0;
   
-  const [rating, setRating] = useState<number>(notaInicial);
+  const [rating, setRating] = useState<number>(noteInicial);
   const [hover, setHover] = useState<number>(0);
   const [enviando, setEnviando] = useState<boolean>(false);
-  const [guardado, setGuardado] = useState<boolean>(notaInicial > 0);
+  const [guardado, setGuardado] = useState<boolean>(noteInicial > 0);
 
   useEffect(() => {
     const nota = Number(calificacionInicial) || 0;
@@ -446,13 +460,13 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
         setHover(0);
       } else {
         console.error("El servidor rechazó la calificación");
-        setRating(notaInicial);
+        setRating(noteInicial);
         setGuardado(false);
         alert("No se pudo guardar la calificación. Inténtalo de nuevo.");
       }
     } catch (error) {
       console.error("Error al registrar estrellas:", error);
-      setRating(notaInicial);
+      setRating(noteInicial);
       setGuardado(false);
     } finally {
       setEnviando(false);
