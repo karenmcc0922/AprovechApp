@@ -225,7 +225,7 @@ export default function Profile() {
                           {/* CONTROL MULTI-ESTADO INTEGRADO (SOPORTA FORMATOS EN MINÚSCULAS DESDE LA DB) */}
                           {(() => {
                             const estadoFormateado = (item.estado || "").toLowerCase();
-                            if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado") {
+                            if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado" || estadoFormateado === "pagado") {
                               return (
                                 <CalificacionPedido 
                                   pedidoId={item.id} 
