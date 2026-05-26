@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter"; // Reemplazamos window.location por el hook de wouter
+import { useLocation } from "wouter"; 
 import AppNavbar from "../components/AppNavbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,19 +11,20 @@ import {
   Settings, 
   QrCode, 
   BadgeCheck, 
-  Droplet, // Icono para el agua virtual
-  Scale,   // Icono para los kilogramos de comida
+  Droplet, 
+  Scale,  
   Leaf,
   Loader2,
   ChevronRight,
-  Target
+  Target,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Profile() {
   const [historial, setHistorial] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setLocation] = useLocation(); // Hook de navegación fluida
+  const [, setLocation] = useLocation(); 
   
   const storedUser = JSON.parse(localStorage.getItem("usuario") || "{}");
   const userId = storedUser.id;
@@ -54,10 +55,9 @@ export default function Profile() {
   // --- CÁLCULOS METRICOS ECOLÓGICOS (RF-12) ---
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio_final) || 0), 0);
   
-  // Constantes de impacto basadas en métricas globales de la FAO
-  const co2Ahorrado = (historial.length * 2.5).toFixed(1); // 2.5 kg por pack
-  const aguaAhorrada = (historial.length * 1200).toLocaleString(); // 1,200 litros por pack
-  const comidaSalvada = (historial.length * 1.0).toFixed(1); // 1.0 kg de alimento por pack
+  const co2Ahorrado = (historial.length * 2.5).toFixed(1); 
+  const aguaAhorrada = (historial.length * 1200).toLocaleString(); 
+  const comidaSalvada = (historial.length * 1.0).toFixed(1); 
 
   return (
     <div className="min-h-screen bg-[#FBFDFF] flex flex-col">
@@ -129,7 +129,6 @@ export default function Profile() {
             
             {/* CARDS DE IMPACTO AMBIENTAL EXPANDIDO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Tarjeta 1: Dióxido de carbono */}
               <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-green-500">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Leaf className="w-6 h-6 text-green-600" />
@@ -139,17 +138,15 @@ export default function Profile() {
                 <p className="text-[9px] font-bold text-slate-400 mt-2 leading-tight">Gases de efecto invernadero que no llegaron a la atmósfera.</p>
               </div>
 
-              {/* Tarjeta 2: Agua Virtual */}
               <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-blue-500">
                 <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Droplet className="w-6 h-6 text-blue-600" />
                 </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Agua Virtual Salvada</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Agua Salvada</p>
                 <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{aguaAhorrada} L</p>
                 <p className="text-[9px] font-bold text-slate-400 mt-2 leading-tight">Líquido vital optimizado en toda la cadena de producción.</p>
               </div>
 
-              {/* Tarjeta 3: Masa de comida salvada */}
               <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-amber-500">
                 <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Scale className="w-6 h-6 text-amber-600" />
@@ -217,11 +214,23 @@ export default function Profile() {
                       </div>
                       
                       <div className="flex items-center gap-8 mt-6 md:mt-0 w-full md:w-auto pt-6 md:pt-0 border-t md:border-t-0 border-slate-50">
-                        <div className="text-right">
-                          <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(item.precio_final).toLocaleString()}</p>
-                          <Badge className="bg-green-100 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-widest border-none px-3 py-1">
-                            {item.estado || 'Rescatado'}
-                          </Badge>
+                        <div className="text-right space-y-3 min-w-[140px]">
+                          <div>
+                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${Number(item.precio_final).toLocaleString()}</p>
+                            <Badge className="bg-green-100 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-widest border-none px-3 py-1">
+                              {item.estado || 'Rescatado'}
+                            </Badge>
+                          </div>
+                          
+                          {/* INTEGRACIÓN REQUISITO RF-13: SISTEMA DE CALIFICACIONES */}
+                          {/* Se habilita solo si el pedido ya está en manos del consumidor */}
+                          {(item.estado === "Completado" || item.estado === "Entregado" || item.estado === "Rescatado") && (
+                            <CalificacionPedido 
+                              pedidoId={item.id} 
+                              aliadoId={item.aliado_id} 
+                              calificacionInicial={item.calificacion_usuario || 0} 
+                            />
+                          )}
                         </div>
                         <ChevronRight className="text-slate-200 group-hover:text-green-600 group-hover:translate-x-2 transition-all hidden md:block" />
                       </div>
@@ -234,7 +243,7 @@ export default function Profile() {
                     </div>
                     <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Tu historial está vacío por ahora</p>
                     <Button 
-                      onClick={() => setLocation("/catalog")} // Navegación fluida SPA mediante wouter
+                      onClick={() => setLocation("/catalog")} 
                       variant="link" 
                       className="text-green-600 font-black mt-4 uppercase text-[10px] tracking-widest"
                     >
@@ -259,6 +268,75 @@ export default function Profile() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+// ============================================================================
+// SUB-COMPONENTE INTERNO: CALIFICACIÓN INTERACTIVA DE 5 ESTRELLAS (RF-13)
+// ============================================================================
+function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedidoId: number; aliadoId: number; calificacionInicial: number }) {
+  const [rating, setRating] = useState<number>(calificacionInicial);
+  const [hover, setHover] = useState<number>(0);
+  const [enviando, setEnviando] = useState<boolean>(false);
+  const [guardado, setGuardado] = useState<boolean>(calificacionInicial > 0);
+
+  const procesarCalificacion = async (nota: number) => {
+    if (guardado || enviando) return;
+    setEnviando(true);
+    
+    try {
+      const response = await fetch("https://aprovechapp-api.onrender.com/api/calificaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pedido_id: pedidoId,
+          aliado_id: aliadoId,
+          puntuacion: nota
+        }),
+      });
+
+      if (response.ok) {
+        setRating(nota);
+        setGuardado(true);
+      }
+    } catch (error) {
+      console.error("Error al registrar estrellas:", error);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center md:items-end gap-1 pt-1">
+      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+        {guardado ? "Comercio Calificado" : "Califica el Comercio"}
+      </span>
+      <div className="flex items-center gap-0.5">
+        {enviando ? (
+          <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+        ) : (
+          [1, 2, 3, 4, 5].map((estrella) => {
+            const activa = estrella <= (hover || rating);
+            return (
+              <button
+                key={estrella}
+                type="button"
+                disabled={guardado}
+                onClick={() => procesarCalificacion(estrella)}
+                onMouseEnter={() => !guardado && setHover(estrella)}
+                onMouseLeave={() => !guardado && setHover(0)}
+                className={`transition-all ${guardado ? "cursor-default" : "cursor-pointer hover:scale-125"}`}
+              >
+                <Star
+                  size={14}
+                  className={activa ? "text-amber-400 fill-amber-400" : "text-slate-200"}
+                />
+              </button>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
