@@ -62,8 +62,8 @@ export default function Catalog() {
   const [tipoEntrega, setTipoEntrega] = useState<"retiro" | "domicilio">("retiro");
   const costoEnvioBase = 5000; // Costo por defecto del domicilio en Pereira
 
-  // ESTADO PARA EL TEMPORIZADOR DE LA RESERVA EN EFECTIVO (20 Minutos = 1200 Segundos)
-  const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(1200);
+  // ESTADO PARA EL TEMPORIZADOR DE LA RESERVA EN EFECTIVO (1 hora = 3600 Segundos)
+  const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(3600);
 
   // Estado para los inputs de la tarjeta simulada
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });

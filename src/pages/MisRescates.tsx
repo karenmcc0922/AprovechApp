@@ -17,12 +17,205 @@ import {
   Maximize2
 } from "lucide-react";
 
+// ==========================================
+// COMPONENTE: CONTADOR / TEMPORIZADOR INTERNO
+// ==========================================
+function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
+  const [tiempoRestante, setTiempoRestante] = useState<string>("Calculando...");
+
+  useEffect(() => {
+    if (!fechaCreacion) {
+      setTiempoRestante("Expirado");
+      return;
+    }
+
+    const calcularTiempo = () => {
+      const ahora = new Date().getTime();
+      const inicio = new Date(fechaCreacion).getTime();
+      
+      // Ejemplo: El rescate dura 2 horas (2 * 60 * 60 * 1000 ms) desde que se crea
+      const tiempoLimite = inicio + (2 * 60 * 60 * 1000); 
+      const diferencia = tiempoLimite - ahora;
+
+      if (diferencia <= 0) {
+        setTiempoRestante("Tiempo Expirado");
+        return;
+      }
+
+      const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+      const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+
+      const formatoHoras = horas > 0 ? `${horas}h ` : "";
+      setTiempoRestante(`${formatoHoras}${minutos}m ${segundos}s`);
+    };
+
+    calcularTiempo(); // Ejecución inicial
+    const intervalo = setInterval(calcularTiempo, 1000);
+
+    return () => clearInterval(intervalo);
+  }, [fechaCreacion]);
+
+  return (
+    <span className="font-mono text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md animate-pulse">
+      ⏳ {tiempoRestante}
+    </span>
+  );
+}
+
+// ==========================================
+// COMPONENTE: TARJETA DE RESCATE ACTIVO
+// ==========================================
+function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModalQr: (r: any) => void }) {
+  return (
+    <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[45px] overflow-hidden bg-white">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row">
+          {/* Sección Ticket / QR */}
+          <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
+            <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4 z-10">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="w-6 h-6 rounded-full bg-[#F8FAFC]" />
+              ))}
+            </div>
+
+            <div 
+              onClick={() => abrirModalQr(rescate)}
+              className="bg-white p-5 rounded-[35px] mb-6 shadow-2xl rotate-2 hover:rotate-0 transition-all duration-500 cursor-pointer group relative"
+            >
+              <QrCode className="w-36 h-36 text-slate-900 group-hover:opacity-40 transition-opacity" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Maximize2 className="w-8 h-8 text-slate-900" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">CÓDIGO DE RESCATE</p>
+              <p className="font-mono text-2xl font-black tracking-widest text-green-400 uppercase">
+                {rescate.codigo || rescate.codigo_qr || "RESCATE"}
+              </p>
+            </div>
+          </div>
+
+          {/* Información */}
+          <div className="p-10 flex-1 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-6 gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <Badge className={`border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
+                      rescate.estado === "pagado" 
+                      ? "bg-emerald-100 text-emerald-800" 
+                      : "bg-orange-100 text-orange-800"
+                    }`}>
+                      {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : "RESERVADO (PAGA ALLÁ)"}
+                    </Badge>
+                    {/* 👇 El contador aparece aquí arriba en los activos */}
+                    <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
+                  </div>
+                  <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
+                    {rescate.nombre_producto || rescate.producto}
+                  </h3>
+                  <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
+                    <Ticket className="w-4 h-4" /> {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
+                  </p>
+                </div>
+                <div className="text-right min-w-[80px]">
+                  <p className="text-3xl font-black text-slate-900 tracking-tighter">
+                    ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 py-6 border-y border-slate-50">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
+                    <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado || "Dirección no especificada"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Horario de retiro</p>
+                    <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
+              <p className="text-[11px] font-black uppercase text-slate-600 tracking-tight">
+                Presenta este boleto en el local 🏪
+              </p>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                El encargado escaneará o validará tu código para procesar la entrega.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ==========================================
+// COMPONENTE: TARJETA DE RESCATE EN HISTORIAL
+// ==========================================
+function RescateHistorialCard({ rescate }: { rescate: any }) {
+  return (
+    <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 hover:shadow-xl transition-all group border border-transparent hover:border-slate-100">
+      <div className="flex justify-between items-center mb-6">
+        <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+          <CheckCircle2 className="w-6 h-6 text-green-600" />
+        </div>
+        <div className="flex items-center gap-2">
+          {/* 👇 El contador también aparece aquí en el Historial para revisar cuánto tiempo le quedó o si caducó */}
+          {rescate.estado !== "entregado" && rescate.estado !== "completado" && (
+            <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
+          )}
+          <Badge className={`border-none font-black text-[9px] px-3 py-1 uppercase ${
+            rescate.estado === "cancelado" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"
+          }`}>
+            {rescate.estado === "cancelado" ? "CANCELADO" : "ENTREGADO"}
+          </Badge>
+        </div>
+      </div>
+      <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">
+        {rescate.nombre_producto || rescate.producto}
+      </h4>
+      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">
+        {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
+      </p>
+      
+      <div className="flex justify-between items-center pt-6 border-t border-slate-50">
+        <div>
+          <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
+          <span className="font-black text-slate-900 text-xl">
+            ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
+          </span>
+        </div>
+        <span className="text-[10px] font-bold text-slate-400 uppercase">
+          {rescate.fecha_creacion ? new Date(rescate.fecha_creacion).toLocaleDateString() : 'Historial'}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+// ==========================================
+// VISTA / COMPONENTE PRINCIPAL: MIS RESCATES
+// ==========================================
 export default function MisRescates() {
   const [rescates, setRescates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
   
-  // Estado para expandir el QR en un Modal
   const [selectedRescate, setSelectedRescate] = useState<any>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
@@ -40,7 +233,6 @@ export default function MisRescates() {
       if (response.ok) {
         const data = await response.json();
         
-        // Estandarizamos los estados a minúsculas evitando errores si viene indefinido
         const datosFormateados = data.map((r: any) => ({
           ...r,
           estado: (r.estado ? String(r.estado).toLowerCase() : "pendiente")
@@ -63,10 +255,7 @@ export default function MisRescates() {
     setIsQrModalOpen(true);
   };
 
-  // Clasificación de estados unificada (Wompi y Reserva Local)
-  // Activos: "pendiente" (reserva) o "pagado" (wompi listo para recoger)
   const pendientes = rescates.filter(r => r.estado === "pendiente" || r.estado === "pagado");
-  // Historial: "completado", "entregado" o "cancelado"
   const completados = rescates.filter(r => r.estado === "completado" || r.estado === "entregado" || r.estado === "cancelado");
 
   return (
@@ -119,96 +308,11 @@ export default function MisRescates() {
           <div className="space-y-8">
             {pendientes.length > 0 ? (
               pendientes.map((rescate) => (
-                <Card key={rescate.id} className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[45px] overflow-hidden bg-white">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col md:flex-row">
-                      {/* Sección Ticket / QR */}
-                      <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
-                        {/* Troquelado lateral de ticket */}
-                        <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4 z-10">
-                          {[...Array(8)].map((_, i) => (
-                            <div key={i} className="w-6 h-6 rounded-full bg-[#F8FAFC]" />
-                          ))}
-                        </div>
-
-                        <div 
-                          onClick={() => abrirModalQr(rescate)}
-                          className="bg-white p-5 rounded-[35px] mb-6 shadow-2xl rotate-2 hover:rotate-0 transition-all duration-500 cursor-pointer group relative"
-                        >
-                          <QrCode className="w-36 h-36 text-slate-900 group-hover:opacity-40 transition-opacity" />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Maximize2 className="w-8 h-8 text-slate-900" />
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">CÓDIGO DE RESCATE</p>
-                          <p className="font-mono text-2xl font-black tracking-widest text-green-400 uppercase">
-                            {rescate.codigo || rescate.codigo_qr || "RESCATE"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Información */}
-                      <div className="p-10 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start mb-6 gap-4">
-                            <div>
-                              <Badge className={`border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider mb-3 ${
-                                rescate.estado === "pagado" 
-                                ? "bg-emerald-100 text-emerald-800" 
-                                : "bg-orange-100 text-orange-800"
-                              }`}>
-                                {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : "RESERVADO (PAGA ALLÁ)"}
-                              </Badge>
-                              <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
-                                {rescate.nombre_producto || rescate.producto}
-                              </h3>
-                              <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
-                                <Ticket className="w-4 h-4" /> {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
-                              </p>
-                            </div>
-                            <div className="text-right min-w-[80px]">
-                              <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                                ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
-                              </p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-4 py-6 border-y border-slate-50">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-                                <MapPin className="w-5 h-5 text-slate-400" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
-                                <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado || "Dirección no especificada"}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-                                <Clock className="w-5 h-5 text-slate-400" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase">Horario de retiro</p>
-                                <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-8 bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
-                          <p className="text-[11px] font-black uppercase text-slate-600 tracking-tight">
-                            Presenta este boleto en el local 🏪
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                            El encargado escaneará o validará tu código para procesar la entrega.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <RescateActivoCard 
+                  key={rescate.id} 
+                  rescate={rescate} 
+                  abrirModalQr={abrirModalQr} 
+                />
               ))
             ) : (
               <EmptyState icon={<ShoppingBag />} message="No tienes rescates activos en este momento." />
@@ -218,36 +322,10 @@ export default function MisRescates() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {completados.length > 0 ? (
               completados.map((rescate) => (
-                <Card key={rescate.id} className="border-none shadow-sm rounded-[35px] bg-white p-8 hover:shadow-xl transition-all group border border-transparent hover:border-slate-100">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <CheckCircle2 className="w-6 h-6 text-green-600" />
-                    </div>
-                    <Badge className={`border-none font-black text-[9px] px-3 py-1 uppercase ${
-                      rescate.estado === "cancelado" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"
-                    }`}>
-                      {rescate.estado === "cancelado" ? "CANCELADO" : "ENTREGADO"}
-                    </Badge>
-                  </div>
-                  <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">
-                    {rescate.nombre_producto || rescate.producto}
-                  </h4>
-                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">
-                    {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
-                  </p>
-                  
-                  <div className="flex justify-between items-center pt-6 border-t border-slate-50">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
-                      <span className="font-black text-slate-900 text-xl">
-                        ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">
-                      {rescate.fecha_creacion ? new Date(rescate.fecha_creacion).toLocaleDateString() : 'Historial'}
-                    </span>
-                  </div>
-                </Card>
+                <RescateHistorialCard 
+                  key={rescate.id} 
+                  rescate={rescate} 
+                />
               ))
             ) : (
               <div className="col-span-full">
