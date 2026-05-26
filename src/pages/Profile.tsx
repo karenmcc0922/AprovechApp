@@ -224,7 +224,7 @@ export default function Profile() {
                           
                           {/* INTEGRACIÓN REQUISITO RF-13: SISTEMA DE CALIFICACIONES */}
                           {/* Se habilita solo si el pedido ya está en manos del consumidor */}
-                          {(item.estado === "Completado" || item.estado === "Entregado" || item.estado === "Rescatado") && (
+                          {(item.estado === "completado" || item.estado === "entregado" || item.estado === "rescatado") && (
                             <CalificacionPedido 
                               pedidoId={item.id} 
                               aliadoId={item.aliado_id} 
