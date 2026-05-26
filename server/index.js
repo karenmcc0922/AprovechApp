@@ -410,39 +410,32 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   });
 });
 
-// --- ENDPOINT DE CALIFICACIONES (RF-13) ---
+// --- ENDPOINT DE CALIFICACIONES CON TABLA PROPIA (RF-13) ---
 app.post('/api/calificaciones', (req, res) => {
   const { pedido_id, aliado_id, puntuacion } = req.body;
 
-  // Validación básica de datos
   if (!pedido_id || !aliado_id || !puntuacion) {
     return res.status(400).json({ error: "Faltan campos obligatorios (pedido_id, aliado_id, puntuacion)" });
   }
 
-  // 1. Insertamos o actualizamos la calificación en la base de datos
-  // (Usamos un INSERT simple, asumiendo que tu tabla se llama 'calificaciones')
+  // Intentamos insertar la calificación por primera vez
   const sqlInsert = "INSERT INTO calificaciones (pedido_id, aliado_id, puntuacion) VALUES (?, ?, ?)";
   
   pool.query(sqlInsert, [pedido_id, aliado_id, puntuacion], (err, result) => {
     if (err) {
-      // Si el error es por duplicado (ya calificó), puedes manejarlo o actualizarlo
-      if (err.code === 'ER_DUP_ENTRY') {
+      // Si el registro ya existía (gracias al UNIQUE KEY), actualizamos la puntuación antigua
+      if (err.code === 'ER_DUP_ENTRY' || err.errno === 1062) {
         const sqlUpdate = "UPDATE calificaciones SET puntuacion = ? WHERE pedido_id = ?";
         return pool.query(sqlUpdate, [puntuacion, pedido_id], (updateErr) => {
-          if (updateErr) return handleSQLError(res, updateErr, "Error al actualizar calificación existente");
-          return res.status(200).json({ mensaje: "Calificación actualizada con éxito" });
+          if (updateErr) return handleSQLError(res, updateErr, "Error al actualizar la estrella existente");
+          return res.status(200).json({ success: true, mensaje: "Calificación actualizada correctamente" });
         });
       }
-      return handleSQLError(res, err, "Error al guardar la calificación en la base de datos");
+      // Cualquier otro error de base de datos (columnas mal escritas, etc.)
+      return handleSQLError(res, err, "Error crítico al guardar en la tabla calificaciones");
     }
 
-    // 2. [OPCIONAL] Si guardas la calificación en la misma fila del pedido, actualizamos también la tabla pedidos
-    const sqlPedido = "UPDATE pedidos SET calificacion_usuario = ? WHERE id = ?";
-    pool.query(sqlPedido, [puntuacion, pedido_id], (pedidoErr) => {
-      if (pedidoErr) console.error("⚠️ No se pudo actualizar el campo calificacion_usuario en el pedido:", pedidoErr);
-    });
-
-    res.status(201).json({ mensaje: "Calificación registrada con éxito", id: result.insertId });
+    res.status(201).json({ success: true, mensaje: "Calificación creada con éxito", id: result.insertId });
   });
 });
 
