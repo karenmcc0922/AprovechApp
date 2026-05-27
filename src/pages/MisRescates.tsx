@@ -69,11 +69,11 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
       }
 
       const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+      const minutes = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
       const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
 
       const formatoHoras = horas > 0 ? `${horas}h ` : "";
-      setTiempoRestante(`${formatoHoras}${minutos}m ${segundos}s`);
+      setTiempoRestante(`${formatoHoras}${minutes}m ${segundos}s`);
       setEsExpirado(false);
     };
 
@@ -202,26 +202,30 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
 // COMPONENTE: TARJETA DE RESCATE EN HISTORIAL
 // ==========================================
 function RescateHistorialCard({ rescate }: { rescate: any }) {
-  // Función interna para formatear de forma segura la fecha de la base de datos
+  // Ajustado con calibración de zona horaria nativa para Colombia
   const formatearFechaHistorial = (fechaRaw: string) => {
     if (!fechaRaw) return "Historial";
     try {
-      // Extraemos año, mes y día de manera limpia mediante expresiones regulares
-      const partes = String(fechaRaw).split(/[^0-9]/).filter(p => p.length > 0);
-      if (partes.length >= 3) {
-        const anio = parseInt(partes[0], 10);
-        const mes = parseInt(partes[1], 10) - 1;
-        const dia = parseInt(partes[2], 10);
-        
-        // Creamos el objeto Date con formato UTC absoluto
-        const fechaObjeto = new Date(Date.UTC(anio, mes, dia));
-        
-        // Retornamos el string en formato Colombia sin alteraciones por la hora del dispositivo
-        return fechaObjeto.toLocaleDateString("es-CO", {
-          timeZone: "UTC"
-        });
+      let stringFecha = String(fechaRaw).trim();
+      
+      // Si el formato viene como "YYYY-MM-DD HH:mm:ss", inyectamos la T estándar para JavaScript
+      if (stringFecha.includes(" ") && !stringFecha.includes("T")) {
+        stringFecha = stringFecha.replace(" ", "T");
       }
-      return "Historial";
+
+      const fechaObjeto = new Date(stringFecha);
+      
+      if (isNaN(fechaObjeto.getTime())) {
+        return "Historial";
+      }
+      
+      // Renderizado final corregido según la zona local
+      return fechaObjeto.toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "America/Bogota"
+      });
     } catch (e) {
       return "Historial";
     }
@@ -255,7 +259,6 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
             ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
           </span>
         </div>
-        {/* AJUSTE EFECTUADO AQUÍ: Imprime la fecha local formateada con éxito */}
         <span className="text-[10px] font-bold text-slate-400 uppercase">
           {formatearFechaHistorial(rescate.fecha)}
         </span>
