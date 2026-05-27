@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 // ========================================================
-// COMPONENTE: CONTADOR INTEGRADO (BLINDADO CONTRA PARSEO UTC)
+// COMPONENTE: CONTADOR INTEGRADO (CORREGIDO PARA ZONA UTC DE LA BD)
 // ========================================================
 function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
   const [tiempoRestante, setTiempoRestante] = useState<string>("Calculando...");
@@ -33,35 +33,29 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 
     const calcularTiempo = () => {
       const ahora = new Date().getTime();
+      const stringFecha = String(fechaCreacion);
 
-      // Convertir a string seguro
-      const formatoTexto = String(fechaCreacion);
+      // Extraemos los números de la fecha (Año, Mes, Día, Hora, Minuto, Segundo)
+      const partes = stringFecha.split(/[^0-9]/).filter(p => p.length > 0);
+      let inicio: number = 0;
 
-      // Dividir la cadena por cualquier carácter no numérico (guiones, espacios, dos puntos, puntos, 'T', 'Z')
-      const partes = formatoTexto.split(/[^0-9]/);
-      
-      // Filtrar posiciones vacías que dejen caracteres especiales al final
-      const numeros = partes.filter(p => p.length > 0);
+      if (partes.length >= 5) {
+        const anio = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10) - 1;
+        const dia = parseInt(partes[2], 10);
+        const hora = parseInt(partes[3], 10);
+        const minuto = parseInt(partes[4], 10);
+        const segundo = partes[5] ? parseInt(partes[5], 10) : 0;
 
-      let inicio: number;
-
-      if (numeros.length >= 5) {
-        // Extraer los componentes individuales de forma estricta
-        const anio = parseInt(numeros[0], 10);
-        const mes = parseInt(numeros[1], 10) - 1; // Los meses en JavaScript van de 0 a 11
-        const dia = parseInt(numeros[2], 10);
-        const hora = parseInt(numeros[3], 10);
-        const minuto = parseInt(numeros[4], 10);
-        const segundo = numeros[5] ? parseInt(numeros[5], 10) : 0;
-
-        // Forzar la creación de la fecha basándose en la zona horaria local del dispositivo del usuario
-        inicio = new Date(anio, mes, dia, hora, minuto, segundo).getTime();
+        // SOLUCIÓN AL DESFASE: Forzamos la creación de la fecha usando Date.UTC
+        // Esto le dice a JavaScript: "Esta hora es de Greenwich, conviértela a mi hora local"
+        inicio = Date.UTC(anio, mes, dia, hora, minuto, segundo);
       } else {
-        // Fallback en caso de formatos inesperados
-        inicio = new Date(formatoTexto.replace(/-/g, "/")).getTime();
+        // Fallback por si la cadena cambia de formato
+        inicio = new Date(stringFecha.replace(/-/g, "/")).getTime();
       }
 
-      // Definición exacta del límite de reserva: 2 horas desde su creación
+      // Definición del límite: 2 horas de reserva (2 * 60 * 60 * 1000 ms)
       const tiempoLimite = inicio + (2 * 60 * 60 * 1000); 
       const diferencia = tiempoLimite - ahora;
 
@@ -176,8 +170,9 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Horario de retiro</p>
-                    {rescate.estado === "pendiente" ? (
-                      <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
+                    {rescate.estado === "pendiente" || rescate.estado === "reserva" || rescate.estado === "reservado" ? (
+                      /* AJUSTE CLAVE: Pasamos rescate.fecha porque así se llama en tu Base de Datos */
+                      <ContadorRescate fechaCreacion={rescate.fecha} />
                     ) : (
                       <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
                     )}
@@ -234,7 +229,7 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
           </span>
         </div>
         <span className="text-[10px] font-bold text-slate-400 uppercase">
-          {rescate.fecha_creacion ? new Date(String(rescate.fecha_creacion).replace(/-/g, "/")).toLocaleDateString() : 'Historial'}
+          {rescate.fecha ? new Date(String(rescate.fecha).replace(/-/g, "/")).toLocaleDateString() : 'Historial'}
         </span>
       </div>
     </Card>
@@ -268,7 +263,7 @@ export default function MisRescates() {
         
         const datosFormateados = data.map((r: any) => ({
           ...r,
-          estado: (r.estado ? String(r.estado).toLowerCase() : "pendiente")
+          estado: (r.estado ? String(r.estado).toLowerCase().trim() : "pendiente")
         }));
         setRescates(datosFormateados);
       }
@@ -288,7 +283,7 @@ export default function MisRescates() {
     setIsQrModalOpen(true);
   };
 
-  const pendientes = rescates.filter(r => r.estado === "pendiente" || r.estado === "pagado");
+  const pendientes = rescates.filter(r => r.estado === "pendiente" || r.estado === "pagado" || r.estado === "reserva" || r.estado === "reservado");
   const completados = rescates.filter(r => r.estado === "completado" || r.estado === "entregado" || r.estado === "cancelado");
 
   return (
