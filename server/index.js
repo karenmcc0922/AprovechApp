@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const nodemailer = require('nodemailer'); // IMPORTADO: Para el envío de notificaciones por correo
 require('dotenv').config();
 
 const app = express();
@@ -28,6 +29,15 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000
+});
+
+// 3. CONFIGURACIÓN DEL TRANSPORTADOR DE NODEMAILER (Para Alertas del Sistema)
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // Puedes cambiarlo si usas otro servicio (ej. SendGrid, Mailtrap, etc.)
+  auth: {
+    user: process.env.EMAIL_USER, // Tu correo configurado en las variables de entorno de Render
+    pass: process.env.EMAIL_PASS  // Tu contraseña de aplicación de 16 dígitos de Google
+  }
 });
 
 // Helper para logs de error más limpios
@@ -164,7 +174,7 @@ app.get('/api/aliados/:id/perfil', (req, res) => {
   });
 });
 
-// --- PRODUCTOS (MODIFICADOS PARA GUARDAR CONSTANCIA EN EL HISTORIAL) ---
+// --- PRODUCTOS (ACTUALIZADO: ENVÍA CORREO Y GUARDA HISTORIAL) ---
 app.post('/api/productos', (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
   const catFinal = categoria || 'Preparados';
@@ -176,7 +186,7 @@ app.post('/api/productos', (req, res) => {
   pool.query(sql, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal], (err, result) => {
     if (err) return handleSQLError(res, err, "Error al guardar producto en la base de datos");
     
-    // GUARDAR CONSTANCIA DE CREACIÓN EN LA ACTIVIDAD RECIENTE
+    // 1. GUARDAR CONSTANCIA DE CREACIÓN EN LA ACTIVIDAD RECIENTE
     const mensajeActividad = `Publicó una nueva oferta: ${nombre} (${stock} und.)`;
     const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
     
@@ -184,6 +194,51 @@ app.post('/api/productos', (req, res) => {
       if (historialErr) console.error("⚠️ No se pudo registrar la creación en el historial:", historialErr);
     });
 
+    // 2. DISPARAR NOTIFICACIÓN ELECTRÓNICA PERSONALIZADA AL COMERCIO
+    const sqlBuscarAliado = "SELECT nombre_local, correo_corporativo FROM aliados WHERE id = ?";
+    pool.query(sqlBuscarAliado, [aliado_id], (errAliado, resultadosAliado) => {
+      if (errAliado || resultadosAliado.length === 0) {
+        console.error("⚠️ No se pudo obtener el correo corporativo del aliado para la notificación.");
+      } else {
+        const { nombre_local, correo_corporativo } = resultadosAliado[0];
+
+        const mailOptions = {
+          from: `"AprovechApp" <${process.env.EMAIL_USER}>`,
+          to: correo_corporativo,
+          subject: `¡Tu oferta "${nombre}" ya está publicada en AprovechApp! 🚀`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f1f5f9; padding: 20px; border-radius: 20px;">
+              <h2 style="color: #16a34a; text-transform: uppercase;">¡Hola, ${nombre_local}!</h2>
+              <p style="color: #334155; font-size: 14px;">Queremos confirmarte que tu oferta ha sido publicada exitosamente de manera segura en nuestra plataforma.</p>
+              
+              <div style="background-color: #f8fafc; padding: 15px; border-radius: 15px; margin: 20px 0;">
+                <h4 style="margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Detalles de la publicación:</h4>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Producto/Pack:</strong> ${nombre}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Categoría:</strong> ${catFinal}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Unidades Disponibles:</strong> ${stock}</p>
+                <p style="margin: 5px 0; font-size: 14px; color: #16a34a;"><strong>Precio de Rescate:</strong> $${Number(precio_rescate).toLocaleString()}</p>
+              </div>
+
+              <p style="color: #64748b; font-size: 11px; line-height: 1.4;">
+                Certificaste que esta oferta cumple con las normas de salud vigentes y es apta para consumo inmediato. Te notificaremos en cuanto un usuario decida rescatarla.
+              </p>
+              <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+              <p style="font-size: 12px; font-weight: bold; color: #94a3b8; text-align: center; text-transform: uppercase;">AprovechApp - Combatiendo el Desperdicio de Alimentos</p>
+            </div>
+          `
+        };
+
+        transporter.sendMail(mailOptions, (errorMail, info) => {
+          if (errorMail) {
+            console.error("❌ Error de Nodemailer al enviar correo:", errorMail);
+          } else {
+            console.log(`📧 Correo de notificación enviado con éxito a: ${correo_corporativo}`);
+          }
+        });
+      }
+    });
+
+    // Responder de inmediato al cliente para garantizar una interfaz fluida
     res.status(201).json({ mensaje: "Producto creado con éxito", id: result.insertId });
   });
 });
@@ -280,7 +335,7 @@ app.delete('/api/productos/:id/eliminar', (req, res) => {
   });
 });
 
-// --- GESTIÓN DE PEDIDOS (MODIFICADO CON LEFT JOIN PARA EXTRACTO DE CALIFICACIÓN REAL) ---
+// --- GESTIÓN DE PEDIDOS ---
 app.post('/api/pedidos/crear', (req, res) => {
   const { 
     usuario_id, producto_id, aliado_id, nombre_usuario, nombre_producto, 
@@ -327,7 +382,6 @@ app.patch('/api/pedidos/:id/estado', (req, res) => {
   });
 });
 
-// ENDPOINT ESTRATÉGICO ACTUALIZADO: Une la tabla pedidos con la tabla calificaciones
 app.get('/api/pedidos/usuario/:id', (req, res) => {
   const sql = `
     SELECT 
@@ -372,7 +426,6 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', (req, res) => {
   });
 });
 
-// Obtener pedidos pagados con tarjeta y pendientes por entregar
 app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   const { id } = req.params;
   const sql = `
@@ -388,7 +441,6 @@ app.get('/api/aliados/:id/pedidos-pendientes', (req, res) => {
   });
 });
 
-// Marcar pedido como entregado (Acción directa del comercio por medio del ID oculto)
 app.put('/api/pedidos/:id/entregar', (req, res) => {
   const { id } = req.params;
   const sql = "UPDATE pedidos SET estado = 'entregado' WHERE id = ?";
@@ -417,7 +469,7 @@ app.post('/api/reportar-calidad', (req, res) => {
   });
 });
 
-// --- ANALÍTICAS (MÉTRICAS UNIFICADAS EN MINÚSCULAS) ---
+// --- ANALÍTICAS ---
 app.get('/api/aliados/:id/estadisticas', (req, res) => {
   const { id } = req.params;
   const sql = "SELECT COUNT(*) as total_rescates, SUM(precio_final) as total_ganado FROM pedidos WHERE aliado_id = ? AND (estado = 'completado' OR estado = 'entregado')";
@@ -450,7 +502,7 @@ app.get('/api/aliados/:id/actividad', (req, res) => {
   });
 });
 
-// --- ENDPOINT DE CALIFICACIONES CON TABLA PROPIA (RF-13) ---
+// --- ENDPOINT DE CALIFICACIONES CON TABLA PROPIA ---
 app.post('/api/calificaciones', (req, res) => {
   const { pedido_id, aliado_id, puntuacion } = req.body;
 
