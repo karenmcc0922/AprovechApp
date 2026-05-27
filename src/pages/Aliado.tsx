@@ -179,7 +179,7 @@ export default function Aliado() {
     setLoading(true);
 
     try {
-      // MODIFICADO: Incluye siempre el aliado_id para que el PUT registre el historial correctamente
+      // Incluye siempre el aliado_id para que el PUT registre el historial correctamente
       const payload = {
         aliado_id: parseInt(aliadoId),
         nombre: nuevoProducto.nombre,
