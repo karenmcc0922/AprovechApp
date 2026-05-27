@@ -26,9 +26,29 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // <-- Ajuste de accesibilidad integrado
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+// --- FUNCIÓN AUXILIAR PARA CORREGIR "INVALID DATE" ---
+const formatearFecha = (fechaRaw: any): string => {
+  if (!fechaRaw) return "Fecha no disponible";
+  
+  // Reemplazar espacios por 'T' en formatos planos de BD tipo "YYYY-MM-DD HH:mm:ss"
+  let stringFecha = String(fechaRaw).trim();
+  if (stringFecha.includes(" ") && !stringFecha.includes("T")) {
+    stringFecha = stringFecha.replace(" ", "T");
+  }
+
+  const fechaObjeto = new Date(stringFecha);
+  
+  // Validar si el objeto Date es correcto
+  if (isNaN(fechaObjeto.getTime())) {
+    return "Fecha reciente";
+  }
+
+  return fechaObjeto.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+};
 
 export default function Profile() {
   const [historial, setHistorial] = useState<any[]>([]);
@@ -98,7 +118,6 @@ export default function Profile() {
       });
 
       if (response.ok) {
-        // Actualización de estado persistente local en sesión del navegador
         const usuarioActualizado = { 
           ...storedUser, 
           nombre: editNombre, 
@@ -107,7 +126,7 @@ export default function Profile() {
         };
         localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
         setIsModalOpen(false);
-        window.location.reload(); // Sincroniza la interfaz de forma inmediata
+        window.location.reload();
       } else {
         alert("Hubo un error al guardar los cambios en el servidor.");
       }
@@ -119,7 +138,7 @@ export default function Profile() {
     }
   };
 
-  // --- CÁLCULOS METRICOS ECOLÓGICOS (RF-12) ---
+  // --- CÁLCULOS MÉTRICOS ECOLÓGICOS (RF-12) ---
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio_final) || 0), 0);
   
   const co2Ahorrado = (historial.length * 2.5).toFixed(1); 
@@ -172,7 +191,6 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Botón enlazado al estado del Modal */}
               <Button 
                 variant="ghost" 
                 onClick={() => setIsModalOpen(true)}
@@ -199,7 +217,6 @@ export default function Profile() {
           {/* --- COLUMNA DERECHA: DASHBOARD DE IMPACTO AMBIENTAL (RF-12) --- */}
           <div className="lg:col-span-8 space-y-10">
             
-            {/* CARDS DE IMPACTO AMBIENTAL EXPANDIDO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-50 hover:shadow-xl transition-all group border-l-4 border-green-500">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -229,7 +246,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* CARD SECUNDARIO: INVERSIÓN INTELIGENTE */}
             <div className="bg-white p-6 rounded-[35px] shadow-sm border border-slate-50 flex items-center justify-between px-8">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center">
@@ -273,7 +289,8 @@ export default function Profile() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                              {new Date(item.fecha_pedido).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                              {/* --- LLAMADA A LA FUNCIÓN DE CONTROL DE ERRORES --- */}
+                              {formatearFecha(item.fecha_pedido)}
                             </span>
                           </div>
                           <h4 className="font-black text-slate-800 uppercase italic text-xl tracking-tighter leading-none group-hover:text-green-600 transition-colors">
@@ -294,7 +311,6 @@ export default function Profile() {
                             </Badge>
                           </div>
                           
-                          {/* CONTROL MULTI-ESTADO CONECTADO AL LEFT JOIN DE LA DB */}
                           {(() => {
                             const estadoFormateado = (item.estado || "").toLowerCase();
                             if (estadoFormateado === "entregado" || estadoFormateado === "rescatado" || estadoFormateado === "completado" || estadoFormateado === "pagado") {
@@ -303,7 +319,7 @@ export default function Profile() {
                                   pedidoId={item.id} 
                                   aliadoId={item.aliado_id} 
                                   calificacionInicial={item.calificacion_guardada || 0} 
-                                />
+                               />
                               );
                             }
                             return null;
@@ -346,16 +362,12 @@ export default function Profile() {
         </div>
       </main>
 
-      {/* ============================================================================
-          MODAL INTERACTIVO: CONFIGURACIÓN DE CUENTA (LEY 1581 COMPLIANT)
-          ============================================================================ */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[450px] bg-white rounded-[35px] p-8 border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 flex items-center gap-2">
               <Settings className="w-6 h-6 text-green-600" /> Configurar Mi Cuenta
             </DialogTitle>
-            {/* Ajustado con DialogDescription para silenciar el warning de consola */}
             <DialogDescription className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
               Mantén tus datos logísticos al día
             </DialogDescription>
@@ -411,7 +423,7 @@ export default function Profile() {
               {isGuardando ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...
-                </                >
+                </>
               ) : "Guardar Cambios"}
             </Button>
           </DialogFooter>

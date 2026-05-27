@@ -202,6 +202,31 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
 // COMPONENTE: TARJETA DE RESCATE EN HISTORIAL
 // ==========================================
 function RescateHistorialCard({ rescate }: { rescate: any }) {
+  // Función interna para formatear de forma segura la fecha de la base de datos
+  const formatearFechaHistorial = (fechaRaw: string) => {
+    if (!fechaRaw) return "Historial";
+    try {
+      // Extraemos año, mes y día de manera limpia mediante expresiones regulares
+      const partes = String(fechaRaw).split(/[^0-9]/).filter(p => p.length > 0);
+      if (partes.length >= 3) {
+        const anio = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10) - 1;
+        const dia = parseInt(partes[2], 10);
+        
+        // Creamos el objeto Date con formato UTC absoluto
+        const fechaObjeto = new Date(Date.UTC(anio, mes, dia));
+        
+        // Retornamos el string en formato Colombia sin alteraciones por la hora del dispositivo
+        return fechaObjeto.toLocaleDateString("es-CO", {
+          timeZone: "UTC"
+        });
+      }
+      return "Historial";
+    } catch (e) {
+      return "Historial";
+    }
+  };
+
   return (
     <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 hover:shadow-xl transition-all group border border-transparent hover:border-slate-100">
       <div className="flex justify-between items-center mb-6">
@@ -230,8 +255,9 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
             ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
           </span>
         </div>
+        {/* AJUSTE EFECTUADO AQUÍ: Imprime la fecha local formateada con éxito */}
         <span className="text-[10px] font-bold text-slate-400 uppercase">
-          {rescate.fecha ? new Date(String(rescate.fecha).replace(/-/g, "/")).toLocaleDateString() : 'Historial'}
+          {formatearFechaHistorial(rescate.fecha)}
         </span>
       </div>
     </Card>
