@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 // ========================================================
-// COMPONENTE: CONTADOR INTEGRADO (CORREGIDO PARA ZONA UTC DE LA BD)
+// COMPONENTE: CONTADOR INTEGRADO (CALIBRADO Y SIN DESFASE)
 // ========================================================
 function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
   const [tiempoRestante, setTiempoRestante] = useState<string>("Calculando...");
@@ -41,22 +41,25 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 
       if (partes.length >= 5) {
         const anio = parseInt(partes[0], 10);
-        const mes = parseInt(partes[1], 10) - 1;
+        const mes = parseInt(partes[1], 10) - 1; 
         const dia = parseInt(partes[2], 10);
         const hora = parseInt(partes[3], 10);
         const minuto = parseInt(partes[4], 10);
         const segundo = partes[5] ? parseInt(partes[5], 10) : 0;
 
-        // SOLUCIÓN AL DESFASE: Forzamos la creación de la fecha usando Date.UTC
-        // Esto le dice a JavaScript: "Esta hora es de Greenwich, conviértela a mi hora local"
+        // Interpretamos como UTC Greenwich estándar
         inicio = Date.UTC(anio, mes, dia, hora, minuto, segundo);
       } else {
-        // Fallback por si la cadena cambia de formato
         inicio = new Date(stringFecha.replace(/-/g, "/")).getTime();
       }
 
-      // Definición del límite: 2 horas de reserva (2 * 60 * 60 * 1000 ms)
-      const tiempoLimite = inicio + (2 * 60 * 60 * 1000); 
+      // -----------------------------------------------------------------
+      // AJUSTE DE CALIBRACIÓN REQUERIDO:
+      // Tu reserva dura 2 horas originalmente: +(2 * 60 * 60 * 1000)
+      // Como el servidor inyecta una hora extra, le restamos una hora: -(1 * 60 * 60 * 1000)
+      // El resultado neto es sumarle exactamente 1 hora al tiempo base UTC.
+      // -----------------------------------------------------------------
+      const tiempoLimite = inicio + (1 * 60 * 60 * 1000); 
       const diferencia = tiempoLimite - ahora;
 
       if (isNaN(inicio) || diferencia <= 0) {
@@ -171,7 +174,6 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Horario de retiro</p>
                     {rescate.estado === "pendiente" || rescate.estado === "reserva" || rescate.estado === "reservado" ? (
-                      /* AJUSTE CLAVE: Pasamos rescate.fecha porque así se llama en tu Base de Datos */
                       <ContadorRescate fechaCreacion={rescate.fecha} />
                     ) : (
                       <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
