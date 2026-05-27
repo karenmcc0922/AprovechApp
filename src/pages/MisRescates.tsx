@@ -17,28 +17,40 @@ import {
   Maximize2
 } from "lucide-react";
 
-// ==========================================
-// COMPONENTE: CONTADOR / TEMPORIZADOR INTERNO
-// ==========================================
+// ========================================================
+// COMPONENTE: CONTADOR INTEGRADO (BLINDADO CONTRA PARSEO UTC)
+// ========================================================
 function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
   const [tiempoRestante, setTiempoRestante] = useState<string>("Calculando...");
+  const [esExpirado, setEsExpirado] = useState<boolean>(false);
 
   useEffect(() => {
     if (!fechaCreacion) {
       setTiempoRestante("Expirado");
+      setEsExpirado(true);
       return;
     }
 
     const calcularTiempo = () => {
       const ahora = new Date().getTime();
-      const inicio = new Date(fechaCreacion).getTime();
       
-      // Ejemplo: El rescate dura 2 horas (2 * 60 * 60 * 1000 ms) desde que se crea
+      // Sanitización para evitar bugs de desfase por String ISO / Zona Horaria local
+      let fechaLimpia = fechaCreacion;
+      if (typeof fechaCreacion === "string" && !fechaCreacion.includes("T") && fechaCreacion.endsWith("Z")) {
+        fechaLimpia = fechaCreacion.replace("Z", ""); 
+      }
+      
+      // Reemplaza guiones por barras si es necesario para compatibilidad estricta en iOS/Safari
+      const stringNormalizado = String(fechaLimpia).replace(/-/g, "/");
+      const inicio = new Date(stringNormalizado).getTime();
+      
+      // Definición exacta del límite de reserva: 2 horas desde su creación
       const tiempoLimite = inicio + (2 * 60 * 60 * 1000); 
       const diferencia = tiempoLimite - ahora;
 
-      if (diferencia <= 0) {
+      if (isNaN(inicio) || diferencia <= 0) {
         setTiempoRestante("Tiempo Expirado");
+        setEsExpirado(true);
         return;
       }
 
@@ -48,17 +60,22 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 
       const formatoHoras = horas > 0 ? `${horas}h ` : "";
       setTiempoRestante(`${formatoHoras}${minutos}m ${segundos}s`);
+      setEsExpirado(false);
     };
 
-    calcularTiempo(); // Ejecución inicial
+    calcularTiempo(); // Sincronización instantánea en el primer render
     const intervalo = setInterval(calcularTiempo, 1000);
 
     return () => clearInterval(intervalo);
   }, [fechaCreacion]);
 
   return (
-    <span className="font-mono text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md animate-pulse">
-      ⏳ {tiempoRestante}
+    <span className={`font-mono text-xs font-black px-2 py-0.5 rounded border ${
+      esExpirado 
+        ? "text-rose-600 bg-rose-50/50 border-rose-100" 
+        : "text-amber-500 bg-amber-500/10 border-amber-500/20"
+    }`}>
+      {esExpirado ? "❌ Expirado" : `Expira en: ${tiempoRestante}`}
     </span>
   );
 }
@@ -109,8 +126,6 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                     }`}>
                       {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : "RESERVADO (PAGA ALLÁ)"}
                     </Badge>
-                    {/* 👇 El contador aparece aquí arriba en los activos */}
-                    <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
                   </div>
                   <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
                     {rescate.nombre_producto || rescate.producto}
@@ -137,13 +152,19 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                     <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado || "Dirección no especificada"}</p>
                   </div>
                 </div>
+
+                {/* El contador se removió de arriba y ahora se renderiza dinámicamente aquí abajo */}
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-slate-400" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Horario de retiro</p>
-                    <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Horario de retiro</p>
+                    {rescate.estado === "pendiente" ? (
+                      <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
+                    ) : (
+                      <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -175,10 +196,6 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
           <CheckCircle2 className="w-6 h-6 text-green-600" />
         </div>
         <div className="flex items-center gap-2">
-          {/* 👇 El contador también aparece aquí en el Historial para revisar cuánto tiempo le quedó o si caducó */}
-          {rescate.estado !== "entregado" && rescate.estado !== "completado" && (
-            <ContadorRescate fechaCreacion={rescate.fecha_creacion} />
-          )}
           <Badge className={`border-none font-black text-[9px] px-3 py-1 uppercase ${
             rescate.estado === "cancelado" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"
           }`}>
@@ -201,7 +218,7 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
           </span>
         </div>
         <span className="text-[10px] font-bold text-slate-400 uppercase">
-          {rescate.fecha_creacion ? new Date(rescate.fecha_creacion).toLocaleDateString() : 'Historial'}
+          {rescate.fecha_creacion ? new Date(String(rescate.fecha_creacion).replace(/-/g, "/")).toLocaleDateString() : 'Historial'}
         </span>
       </div>
     </Card>
