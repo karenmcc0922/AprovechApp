@@ -33,17 +33,34 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 
     const calcularTiempo = () => {
       const ahora = new Date().getTime();
+
+      // Convertir a string seguro
+      const formatoTexto = String(fechaCreacion);
+
+      // Dividir la cadena por cualquier carácter no numérico (guiones, espacios, dos puntos, puntos, 'T', 'Z')
+      const partes = formatoTexto.split(/[^0-9]/);
       
-      // Sanitización para evitar bugs de desfase por String ISO / Zona Horaria local
-      let fechaLimpia = fechaCreacion;
-      if (typeof fechaCreacion === "string" && !fechaCreacion.includes("T") && fechaCreacion.endsWith("Z")) {
-        fechaLimpia = fechaCreacion.replace("Z", ""); 
+      // Filtrar posiciones vacías que dejen caracteres especiales al final
+      const numeros = partes.filter(p => p.length > 0);
+
+      let inicio: number;
+
+      if (numeros.length >= 5) {
+        // Extraer los componentes individuales de forma estricta
+        const anio = parseInt(numeros[0], 10);
+        const mes = parseInt(numeros[1], 10) - 1; // Los meses en JavaScript van de 0 a 11
+        const dia = parseInt(numeros[2], 10);
+        const hora = parseInt(numeros[3], 10);
+        const minuto = parseInt(numeros[4], 10);
+        const segundo = numeros[5] ? parseInt(numeros[5], 10) : 0;
+
+        // Forzar la creación de la fecha basándose en la zona horaria local del dispositivo del usuario
+        inicio = new Date(anio, mes, dia, hora, minuto, segundo).getTime();
+      } else {
+        // Fallback en caso de formatos inesperados
+        inicio = new Date(formatoTexto.replace(/-/g, "/")).getTime();
       }
-      
-      // Reemplaza guiones por barras si es necesario para compatibilidad estricta en iOS/Safari
-      const stringNormalizado = String(fechaLimpia).replace(/-/g, "/");
-      const inicio = new Date(stringNormalizado).getTime();
-      
+
       // Definición exacta del límite de reserva: 2 horas desde su creación
       const tiempoLimite = inicio + (2 * 60 * 60 * 1000); 
       const diferencia = tiempoLimite - ahora;
@@ -63,7 +80,7 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
       setEsExpirado(false);
     };
 
-    calcularTiempo(); // Sincronización instantánea en el primer render
+    calcularTiempo(); 
     const intervalo = setInterval(calcularTiempo, 1000);
 
     return () => clearInterval(intervalo);
@@ -153,7 +170,6 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                   </div>
                 </div>
 
-                {/* El contador se removió de arriba y ahora se renderiza dinámicamente aquí abajo */}
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-slate-400" />
