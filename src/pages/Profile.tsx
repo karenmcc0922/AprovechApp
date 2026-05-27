@@ -290,7 +290,7 @@ export default function Profile() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                               {/* --- LLAMADA A LA FUNCIÓN DE CONTROL DE ERRORES --- */}
-                              {formatearFecha(item.fecha_pedido)}
+                              {formatearFecha(item.fecha)}
                             </span>
                           </div>
                           <h4 className="font-black text-slate-800 uppercase italic text-xl tracking-tighter leading-none group-hover:text-green-600 transition-colors">
