@@ -250,12 +250,10 @@ app.post('/api/productos', async (req, res) => {
               local: nombre_local,
               PRODUCTO: nombre,          
               producto: nombre,
-              nombre_producto: nombre,                             
+              nombre_producto: nombre,                                     
               precio_oferta: Number(precio_rescate).toLocaleString(), 
               precio_original: Number(precio_original).toLocaleString(),
               nombre_local: nombre_local,
-              nombre_producto: nombre,
-              precio_rescate: Number(precio_rescate).toLocaleString(),
               stock_disponible: stock,
               categoria_producto: catFinal
             };
@@ -267,7 +265,7 @@ app.post('/api/productos', async (req, res) => {
                 service_id: process.env.EMAILJS_SERVICE_ID,
                 template_id: 'template_m2ehwtb',
                 user_id: process.env.EMAILJS_PUBLIC_KEY, 
-                accessToken: process.env.EMAILJS_PRIVATE_KEY, // 🔒 CORREGIDO: cambiado de private_key a accessToken
+                accessToken: process.env.EMAILJS_PRIVATE_KEY, 
                 template_params: templateParams
               })
             })
@@ -404,14 +402,27 @@ app.patch('/api/pedidos/:id/estado', async (req, res) => {
 });
 
 app.get('/api/pedidos/usuario/:id', async (req, res) => {
-  const sql = `
-    SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion, c.puntuacion AS calificacion_guardada
-    FROM pedidos p 
-    JOIN aliados a ON p.aliado_id = a.id 
-    LEFT JOIN calificaciones c ON p.id = c.pedido_id
-    WHERE p.usuario_id = ? ORDER BY p.id DESC`;
+  const usuarioId = req.params.id;
   try {
-    const [results] = await promisePool.query(sql, [req.params.id]);
+    // 🌟 LIMPIEZA AUTOMÁTICA EN TIEMPO REAL: Los pedidos 'pagados'/'pendientes' que superen 
+    // las 2 horas de antigüedad pasan automáticamente a estado 'expirado'.
+    const sqlLimpieza = `
+      UPDATE pedidos 
+      SET estado = 'expirado' 
+      WHERE usuario_id = ? 
+      AND (estado = 'pagado' OR estado = 'pendiente')
+      AND NOW() >= DATE_ADD(fecha, INTERVAL 2 HOUR)`;
+    await promisePool.query(sqlLimpieza, [usuarioId]);
+
+    // Ejecuta la consulta de lectura normal. Al haber actualizado arriba, los vencidos saldrán con su nuevo estado
+    const sql = `
+      SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion, c.puntuacion AS calificacion_guardada
+      FROM pedidos p 
+      JOIN aliados a ON p.aliado_id = a.id 
+      LEFT JOIN calificaciones c ON p.id = c.pedido_id
+      WHERE p.usuario_id = ? ORDER BY p.id DESC`;
+
+    const [results] = await promisePool.query(sql, [usuarioId]);
     res.json(results || []);
   } catch (err) {
     return handleSQLError(res, err, "Error al obtener pedidos históricos del usuario");
@@ -419,9 +430,19 @@ app.get('/api/pedidos/usuario/:id', async (req, res) => {
 });
 
 app.get('/api/pedidos/aliado/:id', async (req, res) => {
-  const sql = "SELECT p.*, p.codigo_qr AS codigo, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
+  const { id } = req.params;
   try {
-    const [results] = await promisePool.query(sql, [req.params.id]);
+    // 🌟 Mantenemos también el historial del aliado limpio y sincronizado al consultarlo
+    const sqlLimpiezaAliado = `
+      UPDATE pedidos 
+      SET estado = 'expirado' 
+      WHERE aliado_id = ? 
+      AND (estado = 'pagado' OR estado = 'pendiente')
+      AND NOW() >= DATE_ADD(fecha, INTERVAL 2 HOUR)`;
+    await promisePool.query(sqlLimpiezaAliado, [id]);
+
+    const sql = "SELECT p.*, p.codigo_qr AS codigo, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
+    const [results] = await promisePool.query(sql, [id]);
     res.json(results || []);
   } catch (err) {
     return handleSQLError(res, err, "Error al obtener pedidos del aliado");
@@ -442,7 +463,16 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', async (req, res) => {
 
 app.get('/api/aliados/:id/pedidos-pendientes', async (req, res) => {
   const { id } = req.params;
-  const sql = `SELECT p.id, p.codigo_qr AS codigo, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? AND p.estado = 'pagado' ORDER BY p.id DESC`;
+  // 🌟 CORREGIDO: Excluimos de la vista de ventas activas del comercio cualquier pedido que 
+  // ya haya cumplido u superado las 2 horas de margen de recogida.
+  const sql = `
+    SELECT p.id, p.codigo_qr AS codigo, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
+    FROM pedidos p 
+    JOIN usuarios u ON p.usuario_id = u.id 
+    WHERE p.aliado_id = ? 
+    AND p.estado = 'pagado' 
+    AND NOW() < DATE_ADD(p.fecha, INTERVAL 2 HOUR)
+    ORDER BY p.id DESC`;
   try {
     const [results] = await promisePool.query(sql, [id]);
     res.json(results || []);
@@ -454,8 +484,23 @@ app.get('/api/aliados/:id/pedidos-pendientes', async (req, res) => {
 app.put('/api/pedidos/:id/entregar', async (req, res) => {
   const { id } = req.params;
   try {
+    // 1. Validamos en backend si el pedido no se ha pasado de su ventana de tiempo asignada (2 horas)
+    const sqlCheck = "SELECT fecha, estado FROM pedidos WHERE id = ?";
+    const [pedido] = await promisePool.query(sqlCheck, [id]);
+
+    if (pedido.length === 0) return res.status(404).json({ error: "Pedido no encontrado" });
+
+    const fechaPedido = new Date(pedido[0].fecha);
+    const ahora = new Date();
+    const diferenciaHoras = (ahora - fechaPedido) / (1000 * 60 * 60);
+
+    // Si pasaron más de 2 horas o la base de datos ya lo marcó como expirado, bloqueamos la acción
+    if (diferenciaHoras > 2 || pedido[0].estado === 'expirado') {
+      return res.status(400).json({ error: "Operación inválida. El tiempo límite de recogida ha expirado." });
+    }
+
+    // 2. Si todo está en regla, procedemos con el cambio de estado tradicional
     const [result] = await promisePool.query("UPDATE pedidos SET estado = 'entregado' WHERE id = ?", [id]);
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Pedido no encontrado" });
     res.json({ success: true, mensaje: "Pedido marcado como entregado correctamente" });
   } catch (err) {
     return handleSQLError(res, err, "Error al entregar el pedido");
