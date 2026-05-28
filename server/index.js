@@ -56,7 +56,7 @@ const handleSQLError = (res, err, message) => {
 // --- ENDPOINTS DE USUARIOS ---
 
 app.post('/api/registro', async (req, res) => {
-  const { nombre, correo } = req.body; // 🔄 CORREGIDO: Sintaxis limpia aquí
+  const { nombre, correo } = req.body; 
   try {
     const [rows] = await promisePool.query("SELECT COUNT(*) as total_usuarios FROM usuarios");
     const totalActual = rows[0].total_usuarios;
@@ -259,7 +259,7 @@ app.post('/api/productos', async (req, res) => {
                 service_id: process.env.EMAILJS_SERVICE_ID,
                 template_id: 'template_m2ehwtb',
                 user_id: process.env.EMAILJS_PUBLIC_KEY, 
-                private_key: process.env.EMAILJS_PRIVATE_KEY, // 🔒 Seguridad para el modo estricto añadida
+                accessToken: process.env.EMAILJS_PRIVATE_KEY, // 🔒 CORREGIDO: cambiado de private_key a accessToken
                 template_params: templateParams
               })
             })
