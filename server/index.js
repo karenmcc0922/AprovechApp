@@ -404,17 +404,23 @@ app.patch('/api/pedidos/:id/estado', async (req, res) => {
 app.get('/api/pedidos/usuario/:id', async (req, res) => {
   const usuarioId = req.params.id;
   try {
-    // 🌟 LIMPIEZA AUTOMÁTICA EN TIEMPO REAL: Los pedidos 'pagados'/'pendientes' que superen 
-    // las 2 horas de antigüedad pasan automáticamente a estado 'expirado'.
-    const sqlLimpieza = `
-      UPDATE pedidos 
-      SET estado = 'expirado' 
-      WHERE usuario_id = ? 
-      AND (estado = 'pagado' OR estado = 'pendiente')
-      AND NOW() >= DATE_ADD(fecha, INTERVAL 2 HOUR)`;
-    await promisePool.query(sqlLimpieza, [usuarioId]);
+    // 🌟 LIMPIEZA AUTOMÁTICA CON JAVASCRIPT: Se evalúan de forma exacta las 2 horas de expiración.
+    const [pedidosActivos] = await promisePool.query(
+      "SELECT id, fecha FROM pedidos WHERE usuario_id = ? AND (estado = 'pagado' OR estado = 'pendiente')", 
+      [usuarioId]
+    );
 
-    // Ejecuta la consulta de lectura normal. Al haber actualizado arriba, los vencidos saldrán con su nuevo estado
+    const ahora = new Date();
+    for (const pedido of pedidosActivos) {
+      const fechaPedido = new Date(pedido.fecha);
+      const diferenciaHoras = (ahora - fechaPedido) / (1000 * 60 * 60);
+
+      if (diferenciaHoras >= 2) {
+        await promisePool.query("UPDATE pedidos SET estado = 'expirado' WHERE id = ?", [pedido.id]);
+      }
+    }
+
+    // Ejecuta la consulta de lectura normal. Al haber actualizado arriba, los vencidos saldrán con el estado correcto.
     const sql = `
       SELECT p.*, p.codigo_qr AS codigo, a.nombre_local, a.direccion, c.puntuacion AS calificacion_guardada
       FROM pedidos p 
@@ -432,14 +438,21 @@ app.get('/api/pedidos/usuario/:id', async (req, res) => {
 app.get('/api/pedidos/aliado/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    // 🌟 Mantenemos también el historial del aliado limpio y sincronizado al consultarlo
-    const sqlLimpiezaAliado = `
-      UPDATE pedidos 
-      SET estado = 'expirado' 
-      WHERE aliado_id = ? 
-      AND (estado = 'pagado' OR estado = 'pendiente')
-      AND NOW() >= DATE_ADD(fecha, INTERVAL 2 HOUR)`;
-    await promisePool.query(sqlLimpiezaAliado, [id]);
+    // 🌟 LIMPIEZA AUTOMÁTICA CON JAVASCRIPT para el historial del aliado
+    const [pedidosActivos] = await promisePool.query(
+      "SELECT id, fecha FROM pedidos WHERE aliado_id = ? AND (estado = 'pagado' OR estado = 'pendiente')", 
+      [id]
+    );
+
+    const ahora = new Date();
+    for (const pedido of pedidosActivos) {
+      const fechaPedido = new Date(pedido.fecha);
+      const diferenciaHoras = (ahora - fechaPedido) / (1000 * 60 * 60);
+
+      if (diferenciaHoras >= 2) {
+        await promisePool.query("UPDATE pedidos SET estado = 'expirado' WHERE id = ?", [pedido.id]);
+      }
+    }
 
     const sql = "SELECT p.*, p.codigo_qr AS codigo, u.nombre AS nombre_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.aliado_id = ? ORDER BY p.id DESC";
     const [results] = await promisePool.query(sql, [id]);
@@ -463,17 +476,32 @@ app.get('/api/pedidos/validar/:codigo/:aliadoId', async (req, res) => {
 
 app.get('/api/aliados/:id/pedidos-pendientes', async (req, res) => {
   const { id } = req.params;
-  // 🌟 CORREGIDO: Excluimos de la vista de ventas activas del comercio cualquier pedido que 
-  // ya haya cumplido u superado las 2 horas de margen de recogida.
-  const sql = `
-    SELECT p.id, p.codigo_qr AS codigo, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
-    FROM pedidos p 
-    JOIN usuarios u ON p.usuario_id = u.id 
-    WHERE p.aliado_id = ? 
-    AND p.estado = 'pagado' 
-    AND NOW() < DATE_ADD(p.fecha, INTERVAL 2 HOUR)
-    ORDER BY p.id DESC`;
   try {
+    // 🌟 LIMPIEZA PREVIA EN JS: Antes de consultar activos, limpiamos la base de datos para quitar el botón al aliado.
+    const [pedidosActivos] = await promisePool.query(
+      "SELECT id, fecha FROM pedidos WHERE aliado_id = ? AND (estado = 'pagado' OR estado = 'pendiente')", 
+      [id]
+    );
+
+    const ahora = new Date();
+    for (const pedido of pedidosActivos) {
+      const fechaPedido = new Date(pedido.fecha);
+      const diferenciaHoras = (ahora - fechaPedido) / (1000 * 60 * 60);
+      
+      if (diferenciaHoras >= 2) {
+        await promisePool.query("UPDATE pedidos SET estado = 'expirado' WHERE id = ?", [pedido.id]);
+      }
+    }
+
+    // Traemos solo los que sigan estando realmente 'pagados' (los expirados no saldrán aquí ni tendrán botón habilitado)
+    const sql = `
+      SELECT p.id, p.codigo_qr AS codigo, p.nombre_producto, p.precio_final, p.estado, p.tipo_entrega, p.costo_domicilio, u.nombre AS cliente_nombre 
+      FROM pedidos p 
+      JOIN usuarios u ON p.usuario_id = u.id 
+      WHERE p.aliado_id = ? 
+      AND p.estado = 'pagado' 
+      ORDER BY p.id DESC`;
+
     const [results] = await promisePool.query(sql, [id]);
     res.json(results || []);
   } catch (err) {
@@ -484,7 +512,7 @@ app.get('/api/aliados/:id/pedidos-pendientes', async (req, res) => {
 app.put('/api/pedidos/:id/entregar', async (req, res) => {
   const { id } = req.params;
   try {
-    // 1. Validamos en backend si el pedido no se ha pasado de su ventana de tiempo asignada (2 horas)
+    // 1. Validamos si el pedido no se ha pasado de su ventana de tiempo asignada (2 horas)
     const sqlCheck = "SELECT fecha, estado FROM pedidos WHERE id = ?";
     const [pedido] = await promisePool.query(sqlCheck, [id]);
 
@@ -494,8 +522,10 @@ app.put('/api/pedidos/:id/entregar', async (req, res) => {
     const ahora = new Date();
     const diferenciaHoras = (ahora - fechaPedido) / (1000 * 60 * 60);
 
-    // Si pasaron más de 2 horas o la base de datos ya lo marcó como expirado, bloqueamos la acción
-    if (diferenciaHoras > 2 || pedido[0].estado === 'expirado') {
+    // 🌟 CONTROL TOTAL EN EL BACKEND: Si pasaron más de 2 horas o ya está guardado como expirado, bloqueamos la acción.
+    if (diferenciaHoras >= 2 || pedido[0].estado === 'expirado') {
+      // Sincronizamos la DB por seguridad
+      await promisePool.query("UPDATE pedidos SET estado = 'expirado' WHERE id = ?", [id]);
       return res.status(400).json({ error: "Operación inválida. El tiempo límite de recogida ha expirado." });
     }
 
