@@ -56,7 +56,7 @@ const handleSQLError = (res, err, message) => {
 // --- ENDPOINTS DE USUARIOS ---
 
 app.post('/api/registro', async (req, res) => {
-  const { nombre, correo } = req.body;
+  const { nombre, correo } = req.body; // 🔄 CORREGIDO: Sintaxis limpia aquí
   try {
     const [rows] = await promisePool.query("SELECT COUNT(*) as total_usuarios FROM usuarios");
     const totalActual = rows[0].total_usuarios;
@@ -178,7 +178,7 @@ app.post('/api/productos', async (req, res) => {
   }
 
   try {
-    // 1. Guardar el producto en la Base de Datos (Esto se ejecutará sí o sí)
+    // 1. Guardar el producto en la Base de Datos
     const sqlInsert = `INSERT INTO productos_rescate 
       (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
       VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -190,7 +190,7 @@ app.post('/api/productos', async (req, res) => {
     const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
     await promisePool.query(sqlHistorial, [aliado_id, mensajeActividad]).catch(e => console.error("⚠️ Error historial:", e.message));
 
-    // 3. Flujo de Notificaciones protegido por Try/Catch para evitar errores 500 si fallan las llaves
+    // 3. Flujo de Notificaciones protegido por Try/Catch
     try {
       const sqlBuscarAliado = "SELECT nombre_local, correo_corporativo FROM aliados WHERE id = ?";
       const [resultadosAliado] = await promisePool.query(sqlBuscarAliado, [aliado_id]);
@@ -259,6 +259,7 @@ app.post('/api/productos', async (req, res) => {
                 service_id: process.env.EMAILJS_SERVICE_ID,
                 template_id: 'template_m2ehwtb',
                 user_id: process.env.EMAILJS_PUBLIC_KEY, 
+                private_key: process.env.EMAILJS_PRIVATE_KEY, // 🔒 Seguridad para el modo estricto añadida
                 template_params: templateParams
               })
             })
@@ -279,11 +280,9 @@ app.post('/api/productos', async (req, res) => {
         }
       }
     } catch (emailError) {
-      // Captura fallas de variables faltantes sin detener el flujo principal
       console.error("⚠️ Los correos no pudieron procesarse, pero el producto fue guardado:", emailError.message);
     }
 
-    // Respuesta exitosa asegurada para el Frontend
     return res.status(201).json({ mensaje: "Producto creado correctamente en catálogo", id: resultInsert.insertId });
 
   } catch (err) {
