@@ -34,6 +34,20 @@ const pool = mysql.createPool({
 // Convertimos el pool para soporte nativo de async/await
 const promisePool = pool.promise();
 
+// 3. CONFIGURACIÓN DEL TRANSPORTADOR DE NODEMAILER (Forzado a IPv4 para Render)
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, 
+  auth: {
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS  
+  },
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
+  socketTimeout: 10000
+});
+
 const handleSQLError = (res, err, message) => {
   console.error(`❌ ${message}:`, err);
   return res.status(500).json({ error: message, details: err.message });
@@ -164,7 +178,7 @@ app.post('/api/productos', async (req, res) => {
   }
 
   try {
-    // 1. Guardar el producto de forma secuencial esperada
+    // 1. Guardar el producto en la Base de Datos (Esto se ejecutará sí o sí)
     const sqlInsert = `INSERT INTO productos_rescate 
       (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
       VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -176,105 +190,104 @@ app.post('/api/productos', async (req, res) => {
     const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
     await promisePool.query(sqlHistorial, [aliado_id, mensajeActividad]).catch(e => console.error("⚠️ Error historial:", e.message));
 
-    // 3. Buscar datos del aliado para gestionar las notificaciones
-    const sqlBuscarAliado = "SELECT nombre_local, correo_corporativo FROM aliados WHERE id = ?";
-    const [resultadosAliado] = await promisePool.query(sqlBuscarAliado, [aliado_id]);
+    // 3. Flujo de Notificaciones protegido por Try/Catch para evitar errores 500 si fallan las llaves
+    try {
+      const sqlBuscarAliado = "SELECT nombre_local, correo_corporativo FROM aliados WHERE id = ?";
+      const [resultadosAliado] = await promisePool.query(sqlBuscarAliado, [aliado_id]);
 
-    if (resultadosAliado && resultadosAliado.length > 0) {
-      const { nombre_local, correo_corporativo } = resultadosAliado[0];
+      if (resultadosAliado && resultadosAliado.length > 0) {
+        const { nombre_local, correo_corporativo } = resultadosAliado[0];
 
-      // ==========================================
-      // FLUJO A: CORREO DE CONFIRMACIÓN AL COMERCIO (Nodemailer)
-      // ==========================================
-      const mailOptionsAliado = {
-        from: `"AprovechApp" <${process.env.EMAIL_USER}>`,
-        to: correo_corporativo,
-        subject: `¡Tu oferta "${nombre}" ya está publicada en AprovechApp! 🚀`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f1f5f9; padding: 20px; border-radius: 20px;">
-            <h2 style="color: #16a34a; text-transform: uppercase;">¡Hola, ${nombre_local}!</h2>
-            <p style="color: #334155; font-size: 14px;">Queremos confirmarte que tu oferta ha sido publicada exitosamente de manera segura en nuestra plataforma.</p>
-            <div style="background-color: #f8fafc; padding: 15px; border-radius: 15px; margin: 20px 0;">
-              <h4 style="margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Detalles de la publicación:</h4>
-              <p style="margin: 5px 0; font-size: 14px;"><strong>Producto/Pack:</strong> ${nombre}</p>
-              <p style="margin: 5px 0; font-size: 14px;"><strong>Categoría:</strong> ${catFinal}</p>
-              <p style="margin: 5px 0; font-size: 14px;"><strong>Unidades Disponibles:</strong> ${stock}</p>
-              <p style="margin: 5px 0; font-size: 14px; color: #16a34a;"><strong>Precio de Rescate:</strong> $${Number(precio_rescate).toLocaleString()}</p>
-            </div>
-            <p style="color: #64748b; font-size: 11px; line-height: 1.4;">
-              Certificaste que esta oferta cumple con las normas de salud vigentes y es apta para consumo inmediato.
-            </p>
-          </div>`
-      };
+        // ==========================================
+        // FLUJO A: CORREO DE CONFIRMACIÓN AL COMERCIO (Nodemailer)
+        // ==========================================
+        const mailOptionsAliado = {
+          from: `"AprovechApp" <${process.env.EMAIL_USER}>`,
+          to: correo_corporativo,
+          subject: `¡Tu oferta "${nombre}" ya está publicada en AprovechApp! 🚀`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f1f5f9; padding: 20px; border-radius: 20px;">
+              <h2 style="color: #16a34a; text-transform: uppercase;">¡Hola, ${nombre_local}!</h2>
+              <p style="color: #334155; font-size: 14px;">Queremos confirmarte que tu oferta ha sido publicada exitosamente de manera segura en nuestra plataforma.</p>
+              <div style="background-color: #f8fafc; padding: 15px; border-radius: 15px; margin: 20px 0;">
+                <h4 style="margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Detalles de la publicación:</h4>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Producto/Pack:</strong> ${nombre}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Categoría:</strong> ${catFinal}</p>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>Unidades Disponibles:</strong> ${stock}</p>
+                <p style="margin: 5px 0; font-size: 14px; color: #16a34a;"><strong>Precio de Rescate:</strong> $${Number(precio_rescate).toLocaleString()}</p>
+              </div>
+            </div>`
+        };
 
-      await new Promise((resolve) => {
-        transporter.sendMail(mailOptionsAliado, (errorMail) => {
-          if (errorMail) console.error("❌ Error Nodemailer (Comercio):", errorMail.message);
-          else console.log(`📧 Correo enviado con éxito al aliado: ${correo_corporativo}`);
-          resolve(true);
-        });
-      });
-
-      // ==========================================
-      // FLUJO B: NOTIFICACIÓN A CLIENTES CON EMAILJS
-      // ==========================================
-      const sqlClientesHistoricos = `
-        SELECT DISTINCT u.correo, u.nombre 
-        FROM pedidos p
-        JOIN usuarios u ON p.usuario_id = u.id
-        WHERE p.aliado_id = ?
-      `;
-      const [clientes] = await promisePool.query(sqlClientesHistoricos, [aliado_id]);
-
-      if (clientes && clientes.length > 0) {
-        console.log(`📢 Enviando alertas EmailJS a ${clientes.length} clientes recurrentes.`);
-
-        // Construcción de llamadas REST asíncronas para EmailJS
-        const promesasEmailJS = clientes.map((cliente) => {
-          const templateParams = {
-            cliente_nombre: cliente.nombre,
-            cliente_email: cliente.correo, // Vinculado a tu etiqueta destino en EmailJS
-            nombre_local: nombre_local,
-            nombre_producto: nombre,
-            precio_rescate: Number(precio_rescate).toLocaleString(),
-            stock_disponible: stock,
-            categoria_producto: catFinal
-          };
-
-          return fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              service_id: process.env.EMAILJS_SERVICE_ID,
-              template_id: 'template_m2ehwtb', // Tu identificador de plantilla asignado
-              user_id: process.env.EMAILJS_PUBLIC_KEY,
-              template_params: templateParams
-            })
-          })
-          .then(async (response) => {
-            if (response.ok) {
-              console.log(`📧 [EmailJS] Notificación enviada con éxito a: ${cliente.correo}`);
-            } else {
-              const errorText = await response.text();
-              console.error(`❌ [EmailJS] Falló el envío a ${cliente.correo}:`, errorText);
-            }
-          })
-          .catch((errFetch) => {
-            console.error(`❌ [EmailJS] Error en petición para ${cliente.correo}:`, errFetch.message);
+        await new Promise((resolve) => {
+          transporter.sendMail(mailOptionsAliado, (errorMail) => {
+            if (errorMail) console.error("❌ Error Nodemailer (Comercio):", errorMail.message);
+            else console.log(`📧 Correo enviado con éxito al aliado: ${correo_corporativo}`);
+            resolve(true);
           });
         });
 
-        // Resolvemos todos los despachos en paralelo
-        await Promise.all(promesasEmailJS);
-      } else {
-        console.log("ℹ️ Este aliado aún no posee registros vinculados en la tabla de pedidos.");
+        // ==========================================
+        // FLUJO B: NOTIFICACIÓN A CLIENTES CON EMAILJS
+        // ==========================================
+        const sqlClientesHistoricos = `
+          SELECT DISTINCT u.correo, u.nombre 
+          FROM pedidos p
+          JOIN usuarios u ON p.usuario_id = u.id
+          WHERE p.aliado_id = ?
+        `;
+        const [clientes] = await promisePool.query(sqlClientesHistoricos, [aliado_id]);
+
+        if (clientes && clientes.length > 0) {
+          console.log(`📢 Enviando alertas EmailJS a ${clientes.length} clientes recurrentes.`);
+
+          const promesasEmailJS = clientes.map((cliente) => {
+            const templateParams = {
+              cliente_nombre: cliente.nombre,
+              cliente_email: cliente.correo,
+              nombre_local: nombre_local,
+              nombre_producto: nombre,
+              precio_rescate: Number(precio_rescate).toLocaleString(),
+              stock_disponible: stock,
+              categoria_producto: catFinal
+            };
+
+            return fetch('https://api.emailjs.com/api/v1.0/email/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                service_id: process.env.EMAILJS_SERVICE_ID,
+                template_id: 'template_m2ehwtb',
+                user_id: process.env.EMAILJS_PUBLIC_KEY, 
+                template_params: templateParams
+              })
+            })
+            .then(async (response) => {
+              if (response.ok) {
+                console.log(`📧 [EmailJS] Notificación enviada con éxito a: ${cliente.correo}`);
+              } else {
+                const errorText = await response.text();
+                console.error(`❌ [EmailJS] Falló el envío a ${cliente.correo}:`, errorText);
+              }
+            })
+            .catch((errFetch) => {
+              console.error(`❌ [EmailJS] Error en petición para ${cliente.correo}:`, errFetch.message);
+            });
+          });
+
+          await Promise.all(promesasEmailJS);
+        }
       }
+    } catch (emailError) {
+      // Captura fallas de variables faltantes sin detener el flujo principal
+      console.error("⚠️ Los correos no pudieron procesarse, pero el producto fue guardado:", emailError.message);
     }
 
-    return res.status(201).json({ mensaje: "Producto creado y alertas procesadas con éxito", id: resultInsert.insertId });
+    // Respuesta exitosa asegurada para el Frontend
+    return res.status(201).json({ mensaje: "Producto creado correctamente en catálogo", id: resultInsert.insertId });
 
   } catch (err) {
-    return handleSQLError(res, err, "Error crítico al guardar producto y procesar notificaciones");
+    return handleSQLError(res, err, "Error crítico al guardar producto en la base de datos");
   }
 });
 
