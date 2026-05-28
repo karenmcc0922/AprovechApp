@@ -3,25 +3,27 @@ import { useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { 
-  Lock, 
-  User, 
-  Calendar, 
-  Phone, 
-  MapPin, 
-  Eye, 
-  EyeOff, 
+import {
+  Lock,
+  User,
+  Calendar,
+  Phone,
+  MapPin,
+  Eye,
+  EyeOff,
   ChevronRight,
   ShieldCheck,
   Map
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 
 export default function CompleteProfile() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [password, setPassword] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -35,9 +37,6 @@ export default function CompleteProfile() {
     const emailParam = params.get("email");
     if (emailParam) {
       setEmail(emailParam);
-    } else {
-      // Si no hay email en la URL, mejor mandarlos al login por seguridad
-      console.warn("No se encontró email en la URL");
     }
   }, []);
 
@@ -46,35 +45,24 @@ export default function CompleteProfile() {
     setLoading(true);
 
     try {
-      // IMPORTANTE: La URL y el método deben coincidir con tu index.js en Render
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/completar-perfil", {
-        method: 'POST', 
+      const response = await fetch(`${API_BASE}/api/completar-perfil`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email, // Se enviará como 'email' y el backend lo usará para buscar 'correo'
-          password, 
-          telefono, 
-          direccion, 
-          municipio, 
-          departamento, 
-          pais, 
-          fechaNacimiento 
-        })
+        body: JSON.stringify({ email, password, telefono, direccion, municipio, departamento, pais, fechaNacimiento })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert("¡Perfil completado con éxito! ✨");
-        // Opcional: Guardar sesión para que entre directo
+        toast.success("¡Perfil completado con éxito!");
         localStorage.setItem("usuario", JSON.stringify({ correo: email, nombre: email.split('@')[0] }));
-        setLocation("/catalog"); 
+        setLocation("/catalog");
       } else {
-        alert(data.error || "Error al guardar los datos.");
+        toast.error(data.error || "Error al guardar los datos.");
       }
     } catch (error) {
       console.error("Error en la petición:", error);
-      alert("Hubo un problema de conexión con el servidor.");
+      toast.error("Hubo un problema de conexión con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -83,13 +71,12 @@ export default function CompleteProfile() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 py-16">
       <div className="w-full max-w-xl">
-        
-        {/* Header con Branding */}
+
         <div className="text-center mb-10">
           <div className="relative inline-block">
-            <img 
-              src="/logo.png" 
-              alt="AprovechApp" 
+            <img
+              src="/logo.png"
+              alt="AprovechApp"
               className="w-20 h-20 mx-auto mb-4 drop-shadow-2xl object-contain"
             />
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-4 border-white" />
@@ -122,14 +109,13 @@ export default function CompleteProfile() {
 
           <CardContent className="p-10">
             <form onSubmit={handleSubmit} className="space-y-8">
-              
-              {/* SECCIÓN SEGURIDAD */}
+
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                    <ShieldCheck className="w-4 h-4 text-green-600" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Seguridad y Contacto</h3>
+                  <ShieldCheck className="w-4 h-4 text-green-600" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Seguridad y Contacto</h3>
                 </div>
-                
+
                 <div className="group relative">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
                   <input
@@ -162,24 +148,23 @@ export default function CompleteProfile() {
                 </div>
               </div>
 
-              {/* SECCIÓN UBICACIÓN */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                    <Map className="w-4 h-4 text-blue-600" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">¿Dónde te encuentras?</h3>
+                  <Map className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">¿Dónde te encuentras?</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <select 
-                    value={pais} 
+                  <select
+                    value={pais}
                     onChange={(e) => setPais(e.target.value)}
                     className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500/20 outline-none font-bold text-slate-600 appearance-none cursor-pointer"
                   >
                     <option value="Colombia">Colombia 🇨🇴</option>
                   </select>
 
-                  <select 
-                    value={departamento} 
+                  <select
+                    value={departamento}
                     onChange={(e) => setDepartamento(e.target.value)}
                     className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500/20 outline-none font-bold text-slate-600 appearance-none cursor-pointer"
                   >
@@ -188,8 +173,8 @@ export default function CompleteProfile() {
                     <option value="Caldas">Caldas</option>
                   </select>
 
-                  <select 
-                    value={municipio} 
+                  <select
+                    value={municipio}
                     onChange={(e) => setMunicipio(e.target.value)}
                     className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500/20 outline-none font-bold text-slate-600 appearance-none cursor-pointer"
                   >
@@ -212,11 +197,10 @@ export default function CompleteProfile() {
                 </div>
               </div>
 
-              {/* FECHA NACIMIENTO */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                    <Calendar className="w-4 h-4 text-orange-500" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha de Nacimiento</h3>
+                  <Calendar className="w-4 h-4 text-orange-500" />
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fecha de Nacimiento</h3>
                 </div>
                 <div className="group relative">
                   <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
@@ -231,7 +215,7 @@ export default function CompleteProfile() {
               </div>
 
               <div className="pt-6">
-                <Button 
+                <Button
                   type="submit"
                   disabled={loading}
                   className="group w-full py-9 rounded-[30px] bg-slate-900 hover:bg-green-600 text-white text-sm font-black transition-all shadow-2xl shadow-slate-200 uppercase tracking-[0.2em] relative overflow-hidden"
@@ -245,9 +229,9 @@ export default function CompleteProfile() {
             </form>
           </CardContent>
         </Card>
-        
+
         <p className="text-center mt-8 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-            Al continuar, aceptas nuestros términos de servicio
+          Al continuar, aceptas nuestros términos de servicio
         </p>
       </div>
     </div>

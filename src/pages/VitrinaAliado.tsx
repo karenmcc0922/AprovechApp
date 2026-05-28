@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
+import { API_BASE } from "../lib/api";
 import MapaAliado from "../components/MapaAliado"; // Importamos tu nuevo mapa interactivo
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export default function VitrinaAliado() {
     const cargarVitrina = async () => {
       try {
         // 2. Llamamos al backend para traer la info de este comercio específico y sus productos activos
-        const res = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/perfil`);
+        const res = await fetch(`${API_BASE}/api/aliados/${aliadoId}/perfil`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -96,9 +97,9 @@ export default function VitrinaAliado() {
               </div>
 
               {/* Llamado al nuevo componente Leaflet pasando las coordenadas dinámicas */}
-              <MapaAliado 
-                lat={aliado.latitud ? Number(aliado.latitud) : 4.6097} 
-                lng={aliado.longitud ? Number(aliado.longitud) : -74.0817} 
+              <MapaAliado
+                lat={aliado.latitud ? Number(aliado.latitud) : 4.8133}
+                lng={aliado.longitud ? Number(aliado.longitud) : -75.6961}
                 nombreLocal={aliado.nombre_local || "Comercio Aliado"}
                 direccion={aliado.direccion}
               />

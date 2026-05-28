@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLocation } from "wouter"; 
+import { useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +86,7 @@ export default function Catalog() {
 
   const fetchProductos = async () => {
     try {
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/productos-todos");
+      const response = await fetch(`${API_BASE}/api/productos-todos`);
       if (response.ok) {
         const data = await response.json();
         setProductosDB(data);
@@ -209,8 +211,8 @@ export default function Catalog() {
     const user = userStr ? JSON.parse(userStr) : null;
     
     if (!user || !user.id) {
-        alert("Debes iniciar sesión para rescatar productos");
-        return;
+      toast.error("Debes iniciar sesión para rescatar productos");
+      return;
     }
 
     if (metodoPago === "wompi" && step === "confirm") {
@@ -231,7 +233,7 @@ export default function Catalog() {
 
       if (!numeroLimpio.startsWith("4242")) {
         setTimeout(() => {
-          alert("Transacción declinada: Para pruebas usa la tarjeta Visa oficial: 4242 4242 4242 4242");
+          toast.error("Transacción declinada: Para pruebas usa la tarjeta Visa: 4242 4242 4242 4242");
           setIsProcessing(false);
         }, 1500);
         return;
@@ -240,7 +242,7 @@ export default function Catalog() {
       // --- SIMULACIÓN PASARELA ONLINE ---
       setTimeout(async () => {
         try {
-          const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+          const response = await fetch(`${API_BASE}/api/pedidos/crear`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -267,11 +269,11 @@ export default function Catalog() {
             setStep("success"); 
             fetchProductos();   
           } else {
-            alert(data.error || "Error al procesar el pago simulado");
+            toast.error(data.error || "Error al procesar el pago simulado");
           }
         } catch (err) {
           console.error("Error en API:", err);
-          alert("Hubo un problema registrando tu compra.");
+          toast.error("Hubo un problema registrando tu compra.");
         } finally {
           setIsProcessing(false);
         }
@@ -280,7 +282,7 @@ export default function Catalog() {
     } else {
       // --- RESERVA DIRECTA EN EFECTIVO (RECOJO EXCLUSIVO) ---
       try {
-        const response = await fetch("https://aprovechapp-api.onrender.com/api/pedidos/crear", {
+        const response = await fetch(`${API_BASE}/api/pedidos/crear`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -312,7 +314,7 @@ export default function Catalog() {
         setStep("success");
         fetchProductos();
       } catch (error: any) {
-        alert(error.message || "Error al crear la reserva");
+        toast.error(error.message || "Error al crear la reserva");
       } finally {
         setIsProcessing(false);
       }

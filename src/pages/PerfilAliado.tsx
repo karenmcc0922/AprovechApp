@@ -3,20 +3,22 @@ import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Store, 
-  MapPin, 
-  Mail, 
-  Hash, 
-  ShieldCheck, 
-  Loader2, 
-  Clock, 
-  CheckCircle, 
+import {
+  Store,
+  MapPin,
+  Mail,
+  Hash,
+  ShieldCheck,
+  Loader2,
+  Clock,
+  CheckCircle,
   AlertCircle,
   Camera,
   Save,
   X
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 
 export default function PerfilAliado() {
   const aliadoId = localStorage.getItem("aliado_id");
@@ -34,8 +36,7 @@ export default function PerfilAliado() {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        // Corregido para usar la ruta unificada del backend
-        const response = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/panel-privado`);
+        const response = await fetch(`${API_BASE}/api/aliados/${aliadoId}/panel-privado`);
         if (response.ok) {
           const data = await response.json();
           setPerfil({
@@ -57,8 +58,7 @@ export default function PerfilAliado() {
   const handleUpdate = async () => {
     setUpdating(true);
     try {
-      // Corregido apuntando al endpoint de actualización adecuado
-      const response = await fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/actualizar`, {
+      const response = await fetch(`${API_BASE}/api/aliados/${aliadoId}/actualizar`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,14 +69,11 @@ export default function PerfilAliado() {
 
       if (!response.ok) throw new Error("Error en servidor");
 
-      setTimeout(() => {
-        setEditMode(false);
-        setUpdating(false);
-        alert("¡Información actualizada con éxito! 🥑");
-      }, 800);
-      
+      setEditMode(false);
+      toast.success("¡Información actualizada con éxito! 🥑");
     } catch (error) {
-      alert("Error al conectar con el servidor o actualizar datos");
+      toast.error("Error al conectar con el servidor o actualizar datos");
+    } finally {
       setUpdating(false);
     }
   };
@@ -94,19 +91,19 @@ export default function PerfilAliado() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
-      
+
       <main className="container mx-auto px-6 pt-32 pb-20 max-w-6xl">
-        
-        {/* --- HERO BANNER --- */}
+
+        {/* HERO BANNER */}
         <div className="relative h-64 w-full bg-slate-900 rounded-[50px] mb-20 overflow-hidden shadow-2xl shadow-slate-200">
           <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1556742044-3c52d6e88c62?q=80&w=2070')] bg-cover bg-center" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
-          
+
           <div className="absolute -bottom-10 left-12 flex items-end gap-8">
             <div className="relative group">
               <div className="h-44 w-44 bg-white rounded-[40px] shadow-2xl flex items-center justify-center border-[8px] border-white overflow-hidden relative">
                 <div className="bg-green-50 w-full h-full flex items-center justify-center">
-                   <Store className="w-20 h-20 text-green-600" />
+                  <Store className="w-20 h-20 text-green-600" />
                 </div>
               </div>
               <button className="absolute bottom-2 right-2 bg-slate-900 text-white p-3 rounded-2xl shadow-xl hover:bg-green-600 transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0">
@@ -131,8 +128,8 @@ export default function PerfilAliado() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
-          {/* --- SIDEBAR INFO --- */}
+
+          {/* SIDEBAR INFO */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[40px] bg-white p-10">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Información Legal</p>
@@ -150,15 +147,15 @@ export default function PerfilAliado() {
                   </p>
                 </div>
                 <div className="pt-8 border-t border-slate-50">
-                   <div className="flex items-center gap-3 bg-green-50 text-green-700 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest">
-                     <ShieldCheck className="w-5 h-5" /> Aliado Estratégico
-                   </div>
+                  <div className="flex items-center gap-3 bg-green-50 text-green-700 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest">
+                    <ShieldCheck className="w-5 h-5" /> Aliado Estratégico
+                  </div>
                 </div>
               </div>
             </Card>
 
             <Card className="border-none shadow-sm rounded-[35px] bg-indigo-900 p-8 text-white relative overflow-hidden">
-               <div className="relative z-10">
+              <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertCircle className="w-5 h-5 text-indigo-300" />
                   <h3 className="font-black text-[10px] uppercase tracking-widest">Atención</h3>
@@ -166,12 +163,12 @@ export default function PerfilAliado() {
                 <p className="text-sm font-bold leading-relaxed text-indigo-100">
                   ¿Vas a cambiar de dirección? Recuerda avisar a tus rescatistas frecuentes para que no pierdan tus ofertas.
                 </p>
-               </div>
-               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
             </Card>
           </div>
 
-          {/* --- MAIN FORM --- */}
+          {/* MAIN FORM */}
           <Card className="lg:col-span-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[50px] bg-white overflow-hidden">
             <CardHeader className="p-12 pb-0">
               <div className="flex justify-between items-center">
@@ -180,8 +177,8 @@ export default function PerfilAliado() {
                   <p className="text-slate-400 font-bold text-xs uppercase mt-2 tracking-widest">Personaliza tu presencia en la app</p>
                 </div>
                 {!editMode && (
-                  <Button 
-                    onClick={() => setEditMode(true)} 
+                  <Button
+                    onClick={() => setEditMode(true)}
                     className="bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-[20px] font-black px-8 py-6 border-none shadow-none transition-all active:scale-95"
                   >
                     Editar Perfil
@@ -194,16 +191,16 @@ export default function PerfilAliado() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nombre Comercial</label>
-                  <Input 
-                    disabled={!editMode} 
-                    value={perfil.nombre_local} 
+                  <Input
+                    disabled={!editMode}
+                    value={perfil.nombre_local}
                     onChange={(e) => setPerfil({...perfil, nombre_local: e.target.value})}
                     className={`py-8 rounded-[25px] border-none font-black text-xl transition-all ${
                       editMode ? "bg-slate-50 ring-2 ring-green-500/20 shadow-inner" : "bg-slate-50/50 text-slate-500"
                     }`}
                   />
                 </div>
-                
+
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Código Interno</label>
                   <div className="py-5 px-8 rounded-[25px] bg-slate-100/50 text-slate-400 font-mono text-xs border border-slate-50 flex items-center justify-between">
@@ -217,8 +214,8 @@ export default function PerfilAliado() {
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Punto de Recogida Principal</label>
                 <div className="relative group">
                   <MapPin className={`absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 transition-colors ${editMode ? "text-green-600" : "text-slate-300"}`} />
-                  <Input 
-                    disabled={!editMode} 
+                  <Input
+                    disabled={!editMode}
                     value={perfil.direccion}
                     onChange={(e) => setPerfil({...perfil, direccion: e.target.value})}
                     className={`pl-16 py-8 rounded-[25px] border-none font-bold text-slate-700 transition-all ${
@@ -227,31 +224,30 @@ export default function PerfilAliado() {
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter ml-2">
-                   * Esta dirección será visible para todos los rescatistas en el mapa principal.
+                  * Esta dirección será visible para todos los rescatistas en el mapa principal.
                 </p>
               </div>
 
-              {/* BOTONES DE ACCIÓN DINÁMICOS */}
               {editMode && (
                 <div className="pt-10 flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <Button 
+                  <Button
                     disabled={updating}
-                    onClick={() => setEditMode(false)} 
-                    variant="ghost" 
+                    onClick={() => setEditMode(false)}
+                    variant="ghost"
                     className="flex-1 py-8 rounded-[25px] font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
                   >
                     <X size={18} className="mr-2" /> Cancelar
                   </Button>
-                  <Button 
+                  <Button
                     disabled={updating}
-                    onClick={handleUpdate} 
+                    onClick={handleUpdate}
                     className="flex-[2] bg-slate-900 hover:bg-green-600 text-white py-8 rounded-[25px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 transition-all active:scale-95"
                   >
                     {updating ? (
                       <Loader2 className="animate-spin w-5 h-5 mr-2" />
                     ) : (
                       <span className="flex items-center gap-2">
-                         <Save size={18} /> Guardar Configuración
+                        <Save size={18} /> Guardar Configuración
                       </span>
                     )}
                   </Button>

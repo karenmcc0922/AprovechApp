@@ -53,6 +53,9 @@ const handleSQLError = (res, err, message) => {
   return res.status(500).json({ error: message, details: err.message });
 };
 
+// --- PING (WARM-UP para Render free tier) ---
+app.get('/api/ping', (_req, res) => res.json({ status: 'ok' }));
+
 // --- ENDPOINTS DE USUARIOS ---
 
 app.post('/api/registro', async (req, res) => {
@@ -606,19 +609,67 @@ app.post('/api/calificaciones', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { correo, password, role } = req.body;
   try {
+    if (role === 'repartidor') {
+      // Credencial de demo para la simulación del repartidor
+      if (correo === 'repartidor@aprovechapp.com' && password === 'repartidor2025') {
+        return res.json({ mensaje: "OK", usuario: { id: 0, nombre: "Repartidor AprovechApp", role: 'repartidor', correo } });
+      }
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
     if (role === 'vendor') {
       const sql = "SELECT id, nombre_local AS nombre, correo_corporativo AS correo FROM aliados WHERE correo_corporativo = ? AND password_hash = ?";
       const [results] = await promisePool.query(sql, [correo, password]);
       if (results.length > 0) return res.json({ mensaje: "OK", usuario: { ...results[0], role: 'vendor' } });
-      else return res.status(401).json({ error: "Credenciales incorrectas" });
-    } else {
-      const sql = "SELECT id, nombre, correo, regalo_descuento, regalo_domicilio FROM usuarios WHERE correo = ? AND password = ?";
-      const [results] = await promisePool.query(sql, [correo, password]);
-      if (results.length > 0) return res.json({ mensaje: "OK", usuario: { ...results[0], role: 'user' } });
-      else return res.status(401).json({ error: "Credenciales incorrectas" });
+      return res.status(401).json({ error: "Credenciales incorrectas" });
     }
+
+    // Rol usuario (rescatista)
+    const sql = "SELECT id, nombre, correo, regalo_descuento, regalo_domicilio FROM usuarios WHERE correo = ? AND password = ?";
+    const [results] = await promisePool.query(sql, [correo, password]);
+    if (results.length > 0) return res.json({ mensaje: "OK", usuario: { ...results[0], role: 'user' } });
+    return res.status(401).json({ error: "Credenciales incorrectas" });
   } catch (err) {
     return handleSQLError(res, err, "Error en Login");
+  }
+});
+
+// --- ENTREGAS (REPARTIDOR) ---
+app.get('/api/entregas/disponibles', async (req, res) => {
+  const sql = `
+    SELECT p.id, p.nombre_producto, p.precio_final, p.codigo_qr, p.tipo_entrega, p.estado,
+           a.nombre_local, a.direccion AS direccion_aliado,
+           u.nombre AS nombre_cliente, u.direccion AS direccion_cliente, u.telefono AS telefono_cliente
+    FROM pedidos p
+    JOIN aliados a ON p.aliado_id = a.id
+    JOIN usuarios u ON p.usuario_id = u.id
+    WHERE p.tipo_entrega = 'domicilio' AND p.estado = 'pagado'
+    ORDER BY p.id DESC
+  `;
+  try {
+    const [results] = await promisePool.query(sql);
+    res.json(results || []);
+  } catch (err) {
+    return handleSQLError(res, err, "Error al cargar entregas disponibles");
+  }
+});
+
+app.get('/api/entregas/en-camino', async (req, res) => {
+  const sql = `
+    SELECT p.id, p.nombre_producto, p.precio_final, p.codigo_qr, p.tipo_entrega, p.estado,
+           a.nombre_local, a.direccion AS direccion_aliado,
+           u.nombre AS nombre_cliente, u.direccion AS direccion_cliente, u.telefono AS telefono_cliente
+    FROM pedidos p
+    JOIN aliados a ON p.aliado_id = a.id
+    JOIN usuarios u ON p.usuario_id = u.id
+    WHERE p.tipo_entrega = 'domicilio' AND p.estado = 'en_camino'
+    ORDER BY p.id DESC
+  `;
+  try {
+    const [results] = await promisePool.query(sql);
+    res.json(results || []);
+  } catch (err) {
+    return handleSQLError(res, err, "Error al cargar entregas en curso");
   }
 });
 

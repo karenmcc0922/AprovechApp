@@ -1,21 +1,24 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  QrCode, 
-  Clock, 
-  CheckCircle2, 
-  MapPin, 
+import {
+  QrCode,
+  Clock,
+  CheckCircle2,
+  MapPin,
   ShoppingBag,
   History,
   ArrowRight,
   Ticket,
   Loader2,
-  Maximize2
+  Maximize2,
+  Truck
 } from "lucide-react";
+import { API_BASE } from "../lib/api";
 
 // ========================================================
 // COMPONENTE: CONTADOR INTEGRADO (CALIBRADO Y SIN DESFASE)
@@ -134,11 +137,13 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Badge className={`border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
-                      rescate.estado === "pagado" 
-                      ? "bg-emerald-100 text-emerald-800" 
+                      rescate.estado === "pagado"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : rescate.estado === "en_camino"
+                      ? "bg-blue-100 text-blue-800"
                       : "bg-orange-100 text-orange-800"
                     }`}>
-                      {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : "RESERVADO (PAGA ALLÁ)"}
+                      {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : rescate.estado === "en_camino" ? "EN CAMINO 🛵" : "RESERVADO (PAGA ALLÁ)"}
                     </Badge>
                   </div>
                   <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
@@ -175,6 +180,10 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Horario de retiro</p>
                     {rescate.estado === "pendiente" || rescate.estado === "reserva" || rescate.estado === "reservado" ? (
                       <ContadorRescate fechaCreacion={rescate.fecha} />
+                    ) : rescate.estado === "en_camino" ? (
+                      <span className="font-bold text-blue-600 text-sm flex items-center gap-1.5">
+                        <Truck size={14} className="animate-bounce" /> Tu pedido está en camino
+                      </span>
                     ) : (
                       <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
                     )}
@@ -274,7 +283,7 @@ export default function MisRescates() {
   const [rescates, setRescates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
-  
+
   const [selectedRescate, setSelectedRescate] = useState<any>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
@@ -284,11 +293,11 @@ export default function MisRescates() {
       setLoading(false);
       return;
     }
-    
+
     const user = JSON.parse(stored);
 
     try {
-      const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${user.id}`);
+      const response = await fetch(`${API_BASE}/api/pedidos/usuario/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         
@@ -314,8 +323,8 @@ export default function MisRescates() {
     setIsQrModalOpen(true);
   };
 
-  const pendientes = rescates.filter(r => r.estado === "pendiente" || r.estado === "pagado" || r.estado === "reserva" || r.estado === "reservado");
-  const completados = rescates.filter(r => r.estado === "completado" || r.estado === "entregado" || r.estado === "cancelado");
+  const pendientes = rescates.filter(r => ["pendiente", "pagado", "reserva", "reservado", "en_camino"].includes(r.estado));
+  const completados = rescates.filter(r => ["completado", "entregado", "cancelado"].includes(r.estado));
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -431,14 +440,15 @@ export default function MisRescates() {
 }
 
 function EmptyState({ icon, message }: { icon: React.ReactNode, message: string }) {
+  const [, goTo] = useLocation();
   return (
     <div className="text-center py-24 bg-white rounded-[50px] border-4 border-dashed border-slate-50">
       <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
         {icon}
       </div>
       <p className="text-slate-400 font-black uppercase tracking-widest text-xs mb-6 px-10 leading-relaxed">{message}</p>
-      <Button 
-        onClick={() => window.location.assign('/catalog')}
+      <Button
+        onClick={() => goTo('/catalog')}
         className="bg-slate-900 hover:bg-green-600 text-white rounded-full px-10 py-6 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-3 mx-auto"
       >
         Ir al catálogo <ArrowRight className="w-4 h-4" />

@@ -2,22 +2,24 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight, Bike } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 
 export default function Login() {
-  const [,] = useLocation();
+  const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"user" | "vendor">("user");
+  const [role, setRole] = useState<"user" | "vendor" | "repartidor">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo: email, password, role }),
@@ -26,44 +28,61 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        const usuarioParaAlmacenar = {
+        const usuarioParaAlmacenar: Record<string, any> = {
           id: data.usuario.id,
           nombre: data.usuario.nombre,
           role: data.usuario.role,
-          correo: email
+          correo: email,
         };
+
+        // Solo guardar campos de beneficios para rescatistas
+        if (data.usuario.role === "user") {
+          usuarioParaAlmacenar.regalo_descuento = data.usuario.regalo_descuento;
+          usuarioParaAlmacenar.regalo_domicilio = data.usuario.regalo_domicilio;
+        }
 
         localStorage.setItem("usuario", JSON.stringify(usuarioParaAlmacenar));
         localStorage.setItem("user_name", data.usuario.nombre);
         localStorage.setItem("user_role", data.usuario.role);
-        localStorage.setItem("aliado_id", data.usuario.id.toString());
+
+        // aliado_id solo para comercios
+        if (data.usuario.role === "vendor") {
+          localStorage.setItem("aliado_id", data.usuario.id.toString());
+        }
 
         if (data.usuario.role === "vendor") {
-          window.location.href = "/aliado";
+          setLocation("/aliado");
+        } else if (data.usuario.role === "repartidor") {
+          setLocation("/repartidor");
         } else {
-          window.location.href = "/catalog";
+          setLocation("/catalog");
         }
       } else {
-        alert(data.error || "Credenciales incorrectas");
+        toast.error(data.error || "Credenciales incorrectas");
       }
     } catch (error) {
       console.error("Error en login:", error);
-      alert("Error de conexión. Revisa tu internet.");
+      toast.error("Error de conexión. Revisa tu internet.");
     } finally {
       setLoading(false);
     }
   };
 
+  const roles = [
+    { key: "user" as const, label: "Rescatista", icon: <User size={14} /> },
+    { key: "vendor" as const, label: "Comercio", icon: <Store size={14} /> },
+    { key: "repartidor" as const, label: "Repartidor", icon: <Bike size={14} /> },
+  ];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        
-        {/* Logo y Eslogan */}
+
         <div className="text-center mb-10">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            className="w-16 h-16 mx-auto mb-4 drop-shadow-xl object-contain" 
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-16 h-16 mx-auto mb-4 drop-shadow-xl object-contain"
           />
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
             Aprovech<span className="text-green-600">App</span>
@@ -80,35 +99,35 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="p-10">
-            {/* Selector de Rol Moderno */}
-            <div className="flex gap-2 p-1.5 bg-slate-100 rounded-3xl mb-8">
-              <button
-                type="button"
-                onClick={() => setRole("user")}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-widest transition-all ${
-                  role === "user" 
-                  ? "bg-white shadow-md text-green-600 scale-[1.02]" 
-                  : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                <User size={14} /> Rescatista
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("vendor")}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[22px] font-black text-[10px] uppercase tracking-widest transition-all ${
-                  role === "vendor" 
-                  ? "bg-white shadow-md text-green-600 scale-[1.02]" 
-                  : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                <Store size={14} /> Comercio
-              </button>
+            {/* Selector de Rol */}
+            <div className="flex gap-1.5 p-1.5 bg-slate-100 rounded-3xl mb-8">
+              {roles.map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRole(key)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-[20px] font-black text-[9px] uppercase tracking-widest transition-all ${
+                    role === key
+                    ? "bg-white shadow-md text-green-600 scale-[1.02]"
+                    : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  {icon} {label}
+                </button>
+              ))}
             </div>
+
+            {role === "repartidor" && (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-center">
+                <p className="text-[10px] font-black text-blue-700 uppercase tracking-wider">Demo de Repartidor</p>
+                <p className="text-[9px] text-blue-500 font-bold mt-1">
+                  Correo: repartidor@aprovechapp.com<br/>Contraseña: repartidor2025
+                </p>
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-4">
-                {/* Email Input */}
                 <div className="group relative">
                   <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
                   <input
@@ -121,7 +140,6 @@ export default function Login() {
                   />
                 </div>
 
-                {/* Password Input */}
                 <div className="group relative">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
                   <input
@@ -143,8 +161,8 @@ export default function Login() {
               </div>
 
               <div className="pt-4">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   className="group w-full py-9 rounded-[30px] bg-slate-900 hover:bg-green-600 text-white text-sm font-black transition-all shadow-xl shadow-slate-200 uppercase tracking-widest relative"
                 >
