@@ -34,15 +34,6 @@ const pool = mysql.createPool({
 // Convertimos el pool para soporte nativo de async/await
 const promisePool = pool.promise();
 
-// 3. CONFIGURACIÓN DEL TRANSPORTADOR DE NODEMAILER (Para el Comercio Aliado)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS  
-  }
-});
-
 const handleSQLError = (res, err, message) => {
   console.error(`❌ ${message}:`, err);
   return res.status(500).json({ error: message, details: err.message });
