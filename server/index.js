@@ -244,10 +244,13 @@ app.post('/api/productos', async (req, res) => {
           const promesasEmailJS = clientes.map((cliente) => {
             const templateParams = {
               user_email: cliente.correo,
+              nombre_usuario: cliente.nombre,
               cliente_nombre: cliente.nombre,
               cliente_email: cliente.correo,
               local: nombre_local,
-              PRODUCTO: nombre,                                       
+              PRODUCTO: nombre,          
+              producto: nombre,
+              nombre_producto: nombre,                             
               precio_oferta: Number(precio_rescate).toLocaleString(), 
               precio_original: Number(precio_original).toLocaleString(),
               nombre_local: nombre_local,
