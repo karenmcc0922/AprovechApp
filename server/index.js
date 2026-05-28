@@ -163,7 +163,7 @@ app.get('/api/aliados/:id/perfil', async (req, res) => {
   }
 });
 
-// --- PRODUCTOS: TOTALMENTE ASYNC/AWAIT (CORREO ASINCRÓNICO RESUELTO) ---
+// --- PRODUCTOS: PUBLICACIÓN + NOTIFICACIÓN AL COMERCIO + ALERTAS A CLIENTES HISTÓRICOS ---
 app.post('/api/productos', async (req, res) => {
   const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
   const catFinal = categoria || 'Preparados';
@@ -173,26 +173,29 @@ app.post('/api/productos', async (req, res) => {
   }
 
   try {
-    // 1. Guardar el producto de forma síncrona esperada
+    // 1. Guardar el producto de forma secuencial esperada
     const sqlInsert = `INSERT INTO productos_rescate 
       (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
       VALUES (?, ?, ?, ?, ?, ?, ?)`;
                
     const [resultInsert] = await promisePool.query(sqlInsert, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal]);
     
-    // 2. Registrar en el historial
+    // 2. Registrar en el historial de actividad
     const mensajeActividad = `Publicó una nueva oferta: ${nombre} (${stock} und.)`;
     const sqlHistorial = "INSERT INTO historial_actividad (aliado_id, descripcion) VALUES (?, ?)";
     await promisePool.query(sqlHistorial, [aliado_id, mensajeActividad]).catch(e => console.error("⚠️ Error historial:", e.message));
 
-    // 3. Buscar datos del aliado para la notificación
+    // 3. Buscar datos del aliado para gestionar las notificaciones
     const sqlBuscarAliado = "SELECT nombre_local, correo_corporativo FROM aliados WHERE id = ?";
     const [resultadosAliado] = await promisePool.query(sqlBuscarAliado, [aliado_id]);
 
     if (resultadosAliado && resultadosAliado.length > 0) {
       const { nombre_local, correo_corporativo } = resultadosAliado[0];
 
-      const mailOptions = {
+      // ==========================================
+      // FLUJO A: CORREO DE CONFIRMACIÓN AL COMERCIO
+      // ==========================================
+      const mailOptionsAliado = {
         from: `"AprovechApp" <${process.env.EMAIL_USER}>`,
         to: correo_corporativo,
         subject: `¡Tu oferta "${nombre}" ya está publicada en AprovechApp! 🚀`,
@@ -213,21 +216,75 @@ app.post('/api/productos', async (req, res) => {
           </div>`
       };
 
-      // Despachamos el correo usando una promesa para asegurar que el entorno de Render no lo aborte
+      // Despachamos el correo del aliado
       await new Promise((resolve) => {
-        transporter.sendMail(mailOptions, (errorMail) => {
-          if (errorMail) console.error("❌ Error de Nodemailer:", errorMail.message);
-          else console.log(`📧 Correo enviado con éxito a: ${correo_corporativo}`);
+        transporter.sendMail(mailOptionsAliado, (errorMail) => {
+          if (errorMail) console.error("❌ Error Nodemailer (Comercio):", errorMail.message);
+          else console.log(`📧 Correo enviado con éxito al aliado: ${correo_corporativo}`);
           resolve(true);
         });
       });
+
+      // ==========================================
+      // FLUJO B: NOTIFICACIÓN PERSONALIZADA A CLIENTES
+      // ==========================================
+      // Extraemos usuarios únicos que ya le han comprado a este aliado específico
+      const sqlClientesHistoricos = `
+        SELECT DISTINCT u.correo, u.nombre 
+        FROM pedidos p
+        JOIN usuarios u ON p.usuario_id = u.id
+        WHERE p.aliado_id = ?
+      `;
+      const [clientes] = await promisePool.query(sqlClientesHistoricos, [aliado_id]);
+
+      if (clientes && clientes.length > 0) {
+        console.log(`📢 Se identificaron ${clientes.length} clientes recurrentes para notificar.`);
+
+        // Estructuramos promesas mapeadas para envíos simultáneos
+        const promesasCorreosClientes = clientes.map((cliente) => {
+          const mailOptionsCliente = {
+            from: `"AprovechApp" <${process.env.EMAIL_USER}>`,
+            to: cliente.correo,
+            subject: `¡${nombre_local} tiene una nueva oferta para ti! 🍕✨`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f1f5f9; padding: 20px; border-radius: 20px;">
+                <h2 style="color: #16a34a;">¡Hola, ${cliente.nombre}!</h2>
+                <p style="color: #334155; font-size: 14px;">Tu comercio favorito, <strong>${nombre_local}</strong>, acaba de publicar una oferta perfecta para ti en AprovechApp.</p>
+                
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 15px; margin: 20px 0; border-left: 4px solid #16a34a;">
+                  <h4 style="margin: 0 0 10px 0; color: #0f172a; text-transform: uppercase; font-size: 12px;">¡No te lo pierdas!</h4>
+                  <p style="margin: 5px 0; font-size: 15px;"><strong>Oferta:</strong> ${nombre}</p>
+                  <p style="margin: 5px 0; font-size: 14px;"><strong>Categoría:</strong> ${catFinal}</p>
+                  <p style="margin: 5px 0; font-size: 15px; color: #16a34a;"><strong>Precio Especial de Rescate:</strong> $${Number(precio_rescate).toLocaleString()}</p>
+                </div>
+
+                <p style="color: #475569; font-size: 13px;">Recuerda que las unidades son muy limitadas (${stock} disponible/s) y vuelan rápido. Abre la aplicación y rescátala antes de que alguien más lo haga.</p>
+                <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+                <p style="font-size: 11px; color: #94a3b8; text-align: center;">Recibes este correo porque has comprado previamente en este establecimiento a través de AprovechApp.</p>
+              </div>`
+          };
+
+          return new Promise((resolve) => {
+            transporter.sendMail(mailOptionsCliente, (errorMail) => {
+              if (errorMail) console.error(`❌ Error notificando al cliente ${cliente.correo}:`, errorMail.message);
+              else console.log(`📧 Alerta de fidelización enviada con éxito a: ${cliente.correo}`);
+              resolve(true);
+            });
+          });
+        });
+
+        // Resolvemos todos los envíos antes de cerrar la ejecución de la ruta
+        await Promise.all(promesasCorreosClientes);
+      } else {
+        console.log("ℹ️ Este aliado aún no posee un historial de clientes en la tabla de pedidos.");
+      }
     }
 
-    // Retornamos respuesta al frontend ÚNICAMENTE tras completar las consultas secuenciales
-    return res.status(201).json({ mensaje: "Producto creado con éxito", id: resultInsert.insertId });
+    // Retornamos respuesta exitosa al frontend
+    return res.status(201).json({ mensaje: "Producto creado y notificaciones procesadas con éxito", id: resultInsert.insertId });
 
   } catch (err) {
-    return handleSQLError(res, err, "Error crítico al guardar producto");
+    return handleSQLError(res, err, "Error crítico al guardar producto y procesar notificaciones");
   }
 });
 
