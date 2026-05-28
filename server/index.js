@@ -243,6 +243,7 @@ app.post('/api/productos', async (req, res) => {
 
           const promesasEmailJS = clientes.map((cliente) => {
             const templateParams = {
+              user_email: cliente.correo,
               cliente_nombre: cliente.nombre,
               cliente_email: cliente.correo,
               nombre_local: nombre_local,
