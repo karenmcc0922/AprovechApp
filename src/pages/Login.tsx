@@ -17,6 +17,19 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Credenciales demo del repartidor (hardcodeadas — no está en la DB)
+      if (role === "driver") {
+        if (email === "repartidor@aprovechapp.com" && password === "repartidor2025") {
+          localStorage.setItem("usuario", JSON.stringify({ id: 99, nombre: "Repartidor Demo", role: "driver", correo: email }));
+          localStorage.setItem("user_role", "driver");
+          window.location.href = "/repartidor";
+        } else {
+          alert("Credenciales incorrectas. Usa: repartidor@aprovechapp.com / repartidor2025");
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,7 +75,6 @@ export default function Login() {
     setPassword("repartidor2025");
   };
 
-  // 🎨 Identidad Visual Dinámica: Base Clara con Inyecciones de Color Notorias
   const roleThemes = {
     user: {
       bgGradient: "from-emerald-100 via-teal-50/60 to-white",
@@ -97,14 +109,12 @@ export default function Login() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-all duration-700`}>
-      
-      {/* 🔮 Esferas de Luz Líquidas (Hacen que el fondo tenga color real y movimiento) */}
+
       <div className={`absolute top-[-5%] left-[-5%] w-[450px] h-[450px] rounded-full ${theme.glow} blur-[90px] transition-all duration-1000 animate-pulse`} />
       <div className={`absolute bottom-[-5%] right-[-5%] w-[450px] h-[450px] rounded-full ${theme.glow} blur-[90px] transition-all duration-1000 delay-300 animate-pulse`} />
 
       <div className="w-full max-w-md z-10">
-        
-        {/* Encabezado / Branding */}
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white shadow-[0_12px_30px_rgba(0,0,0,0.08)] rounded-2xl mb-4 p-3 border border-white transform hover:scale-105 transition-all duration-300">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
@@ -115,7 +125,6 @@ export default function Login() {
           <p className="text-slate-500 text-xs mt-1.5 font-bold tracking-[0.15em] uppercase">Menos desperdicio • Más ahorro</p>
         </div>
 
-        {/* Tarjeta Premium White-Glassmorphism (Absorbe los colores de fondo de forma notoria) */}
         <Card className="border border-white/60 shadow-[0_30px_70px_rgba(0,0,0,0.08)] rounded-[36px] bg-white/70 backdrop-blur-xl overflow-hidden transition-all duration-500">
           <CardHeader className="pt-9 pb-2 px-8 text-center">
             <CardTitle className="text-xl font-extrabold text-slate-800 tracking-tight">
@@ -125,32 +134,31 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="px-8 pb-9 pt-4">
-            
-            {/* Selector de Rol Tipo Píldora de Alta Definición */}
+
             <div className="flex p-1.5 bg-slate-200/50 backdrop-blur-sm rounded-2xl mb-6 border border-slate-300/30">
               <button
                 type="button"
                 onClick={() => setRole("user")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
-                  role === "user" 
-                    ? "bg-white shadow-md text-emerald-600 scale-[1.02]" 
+                  role === "user"
+                    ? "bg-white shadow-md text-emerald-600 scale-[1.02]"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <User size={15} /> 
+                <User size={15} />
                 <span>Rescatista</span>
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => setRole("vendor")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
-                  role === "vendor" 
-                    ? "bg-white shadow-md text-orange-600 scale-[1.02]" 
+                  role === "vendor"
+                    ? "bg-white shadow-md text-orange-600 scale-[1.02]"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Store size={15} /> 
+                <Store size={15} />
                 <span>Comercio</span>
               </button>
 
@@ -158,20 +166,27 @@ export default function Login() {
                 type="button"
                 onClick={() => setRole("driver")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
-                  role === "driver" 
-                    ? "bg-white shadow-md text-blue-600 scale-[1.02]" 
+                  role === "driver"
+                    ? "bg-white shadow-md text-blue-600 scale-[1.02]"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Bike size={15} /> 
+                <Bike size={15} />
                 <span>Repartidor</span>
               </button>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleLogin} className="space-y-4.5">
-              
-              {/* Campo: Correo */}
+            {/* Hint de credenciales demo del repartidor */}
+            {role === "driver" && (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4 text-xs text-blue-700 font-medium space-y-0.5">
+                <p className="font-bold text-blue-800">Credenciales demo:</p>
+                <p>📧 repartidor@aprovechapp.com</p>
+                <p>🔑 repartidor2025</p>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-600 ml-1">Correo Electrónico</label>
                 <div className="relative group">
@@ -187,7 +202,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Campo: Contraseña */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-xs font-bold text-slate-600">Contraseña</label>
@@ -215,10 +229,9 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Botón de Envío Principal */}
               <div className="pt-3">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   className={`w-full py-6 rounded-xl ${theme.bgAccent} text-white text-sm font-bold transition-all duration-300 shadow-md flex items-center justify-center gap-2 group disabled:opacity-70`}
                 >
@@ -233,7 +246,6 @@ export default function Login() {
                 </Button>
               </div>
 
-              {/* Botón de Acceso Demo de Repartidor */}
               <div className="text-center pt-2">
                 <button
                   type="button"
@@ -244,7 +256,6 @@ export default function Login() {
                 </button>
               </div>
 
-              {/* Enlace de Registro Inferior */}
               <div className="text-center mt-6 pt-4 border-t border-slate-200/60">
                 <p className="text-xs text-slate-500 font-semibold">
                   ¿Nuevo en AprovechApp?{" "}
