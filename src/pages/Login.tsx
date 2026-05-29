@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight, Bike } from "lucide-react";
 
 export default function Login() {
   const [,] = useLocation();
@@ -10,13 +10,26 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"user" | "vendor">("user");
+  const [role, setRole] = useState<"user" | "vendor" | "repartidor">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Credenciales demo del repartidor (hardcodeadas para la demo)
+      if (role === "repartidor") {
+        if (email === "repartidor@aprovechapp.com" && password === "repartidor2025") {
+          localStorage.setItem("usuario", JSON.stringify({ id: 99, nombre: "Repartidor Demo", role: "repartidor", correo: email }));
+          localStorage.setItem("user_role", "repartidor");
+          window.location.href = "/repartidor";
+        } else {
+          alert("Credenciales incorrectas. Usa: repartidor@aprovechapp.com / repartidor2025");
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,27 +103,48 @@ export default function Login() {
                 type="button"
                 onClick={() => setRole("user")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
-                  role === "user" 
-                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
+                  role === "user"
+                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <User size={15} /> 
+                <User size={15} />
                 <span>Rescatista</span>
               </button>
               <button
                 type="button"
                 onClick={() => setRole("vendor")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
-                  role === "vendor" 
-                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
+                  role === "vendor"
+                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Store size={15} /> 
+                <Store size={15} />
                 <span>Comercio</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setRole("repartidor")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
+                  role === "repartidor"
+                    ? "bg-white shadow-sm text-blue-600 border border-slate-200/20"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Bike size={15} />
+                <span>Repartidor</span>
+              </button>
             </div>
+
+            {/* Hint de credenciales demo del repartidor */}
+            {role === "repartidor" && (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4 text-xs text-blue-700 font-medium space-y-0.5">
+                <p className="font-bold text-blue-800">Credenciales demo:</p>
+                <p>📧 repartidor@aprovechapp.com</p>
+                <p>🔑 repartidor2025</p>
+              </div>
+            )}
 
             {/* Formulario */}
             <form onSubmit={handleLogin} className="space-y-4">
