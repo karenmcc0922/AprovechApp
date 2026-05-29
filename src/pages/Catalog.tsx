@@ -367,13 +367,14 @@ export default function Catalog() {
                     <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Presupuesto</Label>
                     <span className="text-sm font-black text-green-600">${maxPrice.toLocaleString()}</span>
                 </div>
-                <Slider 
-                    value={[maxPrice]} 
-                    onValueChange={(([v]) => setMaxPrice(v))} 
-                    max={100000} 
-                    step={1000}
-                    className="py-4"
-                />
+                <div className="py-3">
+                  <Slider
+                      value={[maxPrice]}
+                      onValueChange={(([v]) => setMaxPrice(v))}
+                      max={100000}
+                      step={1000}
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -382,7 +383,7 @@ export default function Catalog() {
                   <SelectTrigger className="w-full py-6 rounded-2xl border-none bg-slate-50 font-bold text-slate-700">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-xl">
+                  <SelectContent className="rounded-2xl border-none shadow-xl" position="item-aligned">
                     <SelectItem value="discount">🔥 Mayor Descuento</SelectItem>
                     <SelectItem value="price_asc">💰 Menor Precio</SelectItem>
                   </SelectContent>
