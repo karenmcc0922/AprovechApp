@@ -409,19 +409,18 @@ export default function Catalog() {
                   <p className="font-black text-slate-400 uppercase text-xs">No hay rescates vigentes por ahora</p>
               </div>
             ) : (
-              /* CAMBIO AQUÍ: Se pasó de grid-cols-2 a grid-cols-3 en pantallas grandes para que sean más esbeltas */
+              /* Mosaico Premium de 3 Columnas */
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {productosFinales.map((prod) => {
                   const semaforo = getSemaforo(prod.categoria);
                   return (
-                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-[0_8px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col h-[460px]">
+                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-[0_8px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between">
                       
-                      {/* CONTENEDOR DE IMAGEN VERTICAL (aspect-[3/4]) */}
-                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-50/50 border-b border-slate-50 shrink-0 flex items-center justify-center">
+                      {/* Contenedor de Imagen Estilizado Vertical */}
+                      <div className="relative h-64 w-full overflow-hidden bg-slate-50/50 border-b border-slate-50 shrink-0">
                         <img 
                           src={prod.imagen} 
                           alt={prod.nombre} 
-                          /* Cambiado a object-contain mezclado con fondo sutil para asegurar que la comida NUNCA se corte */
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                         />
                         
@@ -436,8 +435,8 @@ export default function Catalog() {
                         </div>
                       </div>
 
-                      {/* INFORMACIÓN DEL PRODUCTO */}
-                      <div className="p-5 flex flex-col flex-1 justify-between bg-white">
+                      {/* Cuerpo de la tarjeta con padding y flex-grow garantizado */}
+                      <div className="p-5 flex flex-col flex-1 justify-between bg-white space-y-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1">
                             <Store size={11} className="text-emerald-500 shrink-0" />
@@ -448,26 +447,26 @@ export default function Catalog() {
                               {prod.tienda}
                             </button>
                           </div>
-                          {/* Eliminamos el truncate fuerte agregando un line-clamp de 2 líneas por si el nombre es largo */}
-                          <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase line-clamp-2 h-10 leading-tight">
+                          <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase line-clamp-2 leading-tight min-h-[2.5rem]">
                             {prod.nombre}
                           </h3>
                         </div>
 
-                        {/* PRECIOS Y ACCIÓN */}
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-2">
+                        {/* Precios y Botón de Rescate (Fijo abajo) */}
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-3">
                           <div className="shrink-0">
                             <span className="text-slate-300 text-[10px] line-through font-bold block">${prod.precioOriginal.toLocaleString()}</span>
                             <span className="text-base font-black text-slate-900 tracking-tight block">${prod.precioOferta.toLocaleString()}</span>
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
-                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-3.5 py-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center"
+                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-4 py-4.5 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center"
                           >
                               RESCATAR
                           </Button>
                         </div>
                       </div>
+
                     </div>
                   );
                 })}
