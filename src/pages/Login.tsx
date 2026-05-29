@@ -10,7 +10,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  // Añadimos "driver" a los tipos del rol
   const [role, setRole] = useState<"user" | "vendor" | "driver">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,11 +38,10 @@ export default function Login() {
         localStorage.setItem("user_role", data.usuario.role);
         localStorage.setItem("aliado_id", data.usuario.id.toString());
 
-        // Manejo de redirecciones según los 3 roles
         if (data.usuario.role === "vendor") {
           window.location.href = "/aliado";
         } else if (data.usuario.role === "driver") {
-          window.location.href = "/repartidor"; // O la ruta de la dashboard del conductor
+          window.location.href = "/repartidor";
         } else {
           window.location.href = "/catalog";
         }
@@ -58,81 +56,115 @@ export default function Login() {
     }
   };
 
-  // Función de ayuda rápida para rellenar los datos demo del repartidor
   const cargarDemoRepartidor = () => {
     setRole("driver");
     setEmail("repartidor@aprovechapp.com");
     setPassword("repartidor2025");
   };
 
+  // 🎨 Configuración de colores dinámicos según el rol seleccionado
+  const roleStyles = {
+    user: {
+      bgGradient: "from-emerald-500/20 via-teal-500/10 to-slate-900",
+      accent: "text-emerald-600",
+      accentBg: "bg-emerald-600",
+      ring: "focus:ring-emerald-500/20",
+      border: "focus:border-emerald-500",
+      blobColor: "bg-emerald-400/30",
+    },
+    vendor: {
+      bgGradient: "from-orange-500/20 via-amber-500/10 to-slate-900",
+      accent: "text-orange-600",
+      accentBg: "bg-orange-600",
+      ring: "focus:ring-orange-500/20",
+      border: "focus:border-orange-500",
+      blobColor: "bg-orange-400/30",
+    },
+    driver: {
+      bgGradient: "from-blue-500/20 via-indigo-500/10 to-slate-900",
+      accent: "text-blue-600",
+      accentBg: "bg-blue-600",
+      ring: "focus:ring-blue-500/20",
+      border: "focus:border-blue-500",
+      blobColor: "bg-blue-400/30",
+    },
+  };
+
+  const currentStyle = roleStyles[role];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-emerald-50/30 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md transition-all duration-300">
+    <div className={`min-h-screen bg-slate-950 bg-gradient-to-tr ${currentStyle.bgGradient} flex items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-all duration-700`}>
+      
+      {/* 🔮 Círculos de luz orgánicos difuminados en el fondo (Abstract Blobs) */}
+      <div className={`absolute -top-20 -left-20 w-72 h-72 rounded-full ${currentStyle.blobColor} blur-[80px] transition-all duration-700 animate-pulse`} />
+      <div className={`absolute -bottom-20 -right-20 w-82 h-82 rounded-full ${currentStyle.blobColor} blur-[100px] transition-all duration-700 delay-300 animate-pulse`} />
+
+      <div className="w-full max-w-md z-10 transition-all duration-300">
         
         {/* Encabezado Principal / Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white shadow-md rounded-2xl mb-4 p-2.5 border border-slate-100">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/90 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-2xl mb-4 p-3 border border-white/20 transform hover:scale-105 transition-transform">
             <img 
               src="/logo.png" 
               alt="Logo" 
               className="w-full h-full object-contain" 
             />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Aprovech<span className="text-emerald-600 font-extrabold">App</span>
+          <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-sm">
+            Aprovech<span className={`${currentStyle.accent} font-black transition-colors duration-500`}>App</span>
           </h1>
-          <p className="text-slate-500 text-xs mt-1 font-medium tracking-wide">Menos desperdicio, más ahorro</p>
+          <p className="text-slate-400 text-xs mt-1 font-medium tracking-widest uppercase">Menos desperdicio, más ahorro</p>
         </div>
 
-        {/* Tarjeta de Formulario Principal */}
-        <Card className="border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-3xl overflow-hidden bg-white">
-          <CardHeader className="pt-8 pb-4 px-8 text-center">
-            <CardTitle className="text-xl font-bold text-slate-800 tracking-tight">
-              Iniciar Sesión
+        {/* Tarjeta de Formulario con efecto de Cristal Premium */}
+        <Card className="border border-white/10 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.5)] rounded-[32px] overflow-hidden bg-slate-900/80 backdrop-blur-xl">
+          <CardHeader className="pt-8 pb-3 px-8 text-center">
+            <CardTitle className="text-xl font-bold text-white tracking-tight">
+              ¡Hola de nuevo!
             </CardTitle>
-            <p className="text-slate-400 text-sm mt-1">Ingresa tus datos para continuar</p>
+            <p className="text-slate-400 text-xs mt-1">Selecciona tu perfil e ingresa tus datos</p>
           </CardHeader>
 
           <CardContent className="px-8 pb-8 pt-2">
             
-            {/* Selector de Rol Dinámico con 3 Opciones */}
-            <div className="flex p-1 bg-slate-100/80 backdrop-blur-sm rounded-2xl mb-6 border border-slate-200/40">
+            {/* Selector de Rol Dinámico con 3 Opciones Estilizadas */}
+            <div className="flex p-1 bg-slate-950/60 backdrop-blur-sm rounded-2xl mb-6 border border-white/5">
               <button
                 type="button"
                 onClick={() => setRole("user")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl font-bold text-[11px] transition-all duration-300 ${
                   role === "user" 
-                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white shadow-lg text-slate-950 scale-[1.02]" 
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                <User size={14} /> 
+                <User size={14} className={role === "user" ? "text-emerald-600" : ""} /> 
                 <span>Rescatista</span>
               </button>
               
               <button
                 type="button"
                 onClick={() => setRole("vendor")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl font-bold text-[11px] transition-all duration-300 ${
                   role === "vendor" 
-                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white shadow-lg text-slate-950 scale-[1.02]" 
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Store size={14} /> 
+                <Store size={14} className={role === "vendor" ? "text-orange-600" : ""} /> 
                 <span>Comercio</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole("driver")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl font-bold text-[11px] transition-all duration-300 ${
                   role === "driver" 
-                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "bg-white shadow-lg text-slate-950 scale-[1.02]" 
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Bike size={14} /> 
+                <Bike size={14} className={role === "driver" ? "text-blue-600" : ""} /> 
                 <span>Repartidor</span>
               </button>
             </div>
@@ -142,16 +174,16 @@ export default function Login() {
               
               {/* Input: Email */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600 ml-1">Correo Electrónico</label>
+                <label className="text-xs font-semibold text-slate-300 ml-1">Correo Electrónico</label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-emerald-500 transition-colors" />
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:${currentStyle.accent} transition-colors`} />
                   <input
                     type="email"
                     required
                     placeholder="ejemplo@correo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400 font-medium"
+                    className={`w-full pl-11 pr-4 py-3.5 bg-slate-950/40 border border-white/10 rounded-xl text-white text-sm focus:bg-slate-950/80 ${currentStyle.border} focus:ring-4 ${currentStyle.ring} outline-none transition-all placeholder:text-slate-600 font-medium`}
                   />
                 </div>
               </div>
@@ -159,65 +191,65 @@ export default function Login() {
               {/* Input: Contraseña */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-xs font-semibold text-slate-600">Contraseña</label>
-                  <Link href="/recuperar" className="text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-all">
+                  <label className="text-xs font-semibold text-slate-300">Contraseña</label>
+                  <Link href="/recuperar" className={`text-xs font-semibold ${currentStyle.accent} hover:underline transition-all`}>
                     ¿La olvidaste?
                   </Link>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-emerald-500 transition-colors" />
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:${currentStyle.accent} transition-colors`} />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-11 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400 font-medium"
+                    className={`w-full pl-11 pr-11 py-3.5 bg-slate-950/40 border border-white/10 rounded-xl text-white text-sm focus:bg-slate-950/80 ${currentStyle.border} focus:ring-4 ${currentStyle.ring} outline-none transition-all placeholder:text-slate-600 font-medium`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
-              {/* Botón de Enviar */}
-              <div className="pt-2">
+              {/* Botón de Enviar Inteligente */}
+              <div className="pt-3">
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full py-6 rounded-xl bg-slate-950 hover:bg-emerald-600 text-white text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-emerald-500/10 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:hover:bg-slate-950"
+                  className={`w-full py-6 rounded-xl ${currentStyle.accentBg} text-slate-950 hover:bg-white text-sm font-bold transition-all duration-300 shadow-xl flex items-center justify-center gap-2 group disabled:opacity-70`}
                 >
                   {loading ? (
-                    <Loader2 className="animate-spin w-4 h-4" />
+                    <Loader2 className="animate-spin w-4 h-4 text-slate-950" />
                   ) : (
                     <>
-                      <span>Ingresar a la plataforma</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      <span className="font-extrabold text-white group-hover:text-slate-950 transition-colors">Ingresar a la plataforma</span>
+                      <ArrowRight className="w-4 h-4 text-white group-hover:text-slate-950 group-hover:translate-x-0.5 transition-all" />
                     </>
                   )}
                 </Button>
               </div>
 
-              {/* Acceso Rápido Demo Repartidor */}
-              <div className="text-center pt-1">
+              {/* Acceso Rápido Demo Repartidor Estilizado */}
+              <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={cargarDemoRepartidor}
-                  className="text-[10px] bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg font-medium tracking-wide transition-all border border-slate-200/60"
+                  className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white px-3 py-2 rounded-lg font-medium tracking-wide transition-all border border-white/5"
                 >
                   ⚡ Usar credenciales de Repartidor Demo
                 </button>
               </div>
 
               {/* Enlace de Registro Inferior */}
-              <div className="text-center mt-6 pt-2 border-t border-slate-100">
-                <p className="text-xs text-slate-500 font-medium">
+              <div className="text-center mt-6 pt-4 border-t border-white/5">
+                <p className="text-xs text-slate-400 font-medium">
                   ¿Nuevo en AprovechApp?{" "}
-                  <Link href="/" className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-colors ml-0.5">
+                  <Link href="/" className={`font-bold ${currentStyle.accent} hover:underline transition-colors ml-0.5`}>
                     Regístrate aquí
                   </Link>
                 </p>
