@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE } from "../lib/api";
+import { Input } from "@/components/ui/input";
 
 interface PedidoEntrega {
   id: number;
@@ -39,6 +40,8 @@ export default function Repartidor() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [tab, setTab] = useState<"disponibles" | "en_camino">("disponibles");
   const [procesando, setProcesando] = useState<number | null>(null);
+  const [confirmandoId, setConfirmandoId] = useState<number | null>(null);
+  const [codigoIngresado, setCodigoIngresado] = useState("");
 
   const fetchTodo = async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -86,15 +89,21 @@ export default function Repartidor() {
     }
   };
 
-  const confirmarEntrega = async (pedidoId: number) => {
-    setProcesando(pedidoId);
+  const confirmarEntrega = async (pedido: PedidoEntrega) => {
+    if (codigoIngresado.trim().toUpperCase() !== pedido.codigo_qr.toUpperCase()) {
+      toast.error("Código incorrecto. Pídele al cliente que te muestre su código.");
+      return;
+    }
+    setProcesando(pedido.id);
     try {
-      const res = await fetch(`${API_BASE}/api/pedidos/${pedidoId}/entregar`, {
+      const res = await fetch(`${API_BASE}/api/pedidos/${pedido.id}/entregar`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
         toast.success("¡Pedido entregado con éxito! El cliente fue notificado.");
+        setConfirmandoId(null);
+        setCodigoIngresado("");
         fetchTodo(false);
       } else {
         toast.error("No se pudo confirmar la entrega.");
@@ -301,28 +310,59 @@ export default function Repartidor() {
                         )}
                       </Button>
                     ) : (
-                      <>
+                      <div className="flex flex-col gap-3 w-full">
                         <Button
                           variant="outline"
                           onClick={() => abrirNavegacion(pedido.direccion_cliente || "Pereira")}
-                          className="rounded-2xl py-7 px-6 font-black text-xs border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all"
+                          className="rounded-2xl py-5 px-6 font-black text-xs border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all w-full"
                         >
-                          <Navigation size={14} className="mr-2" /> GPS
+                          <Navigation size={14} className="mr-2" /> Abrir GPS
                         </Button>
-                        <Button
-                          onClick={() => confirmarEntrega(pedido.id)}
-                          disabled={procesando === pedido.id}
-                          className="flex-1 bg-blue-600 hover:bg-green-600 text-white rounded-2xl py-7 font-black uppercase text-xs tracking-widest shadow-lg transition-all active:scale-95"
-                        >
-                          {procesando === pedido.id ? (
-                            <Loader2 className="animate-spin w-4 h-4" />
-                          ) : (
+
+                        {confirmandoId === pedido.id ? (
+                          <div className="bg-green-50 border border-green-200 rounded-[24px] p-4 space-y-3">
+                            <p className="text-[10px] font-black text-green-800 uppercase tracking-widest text-center">
+                              Ingresa el código del cliente para confirmar
+                            </p>
+                            <Input
+                              autoFocus
+                              placeholder="Ej: ABC-1234"
+                              value={codigoIngresado}
+                              onChange={(e) => setCodigoIngresado(e.target.value.toUpperCase())}
+                              className="font-mono font-black text-center tracking-widest text-slate-800 rounded-xl border-green-200 focus:border-green-500 focus:ring-green-500/20"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => { setConfirmandoId(null); setCodigoIngresado(""); }}
+                                className="flex-1 rounded-xl py-5 text-xs font-black text-slate-500"
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                onClick={() => confirmarEntrega(pedido)}
+                                disabled={!codigoIngresado || procesando === pedido.id}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-5 font-black text-xs tracking-widest uppercase"
+                              >
+                                {procesando === pedido.id ? (
+                                  <Loader2 className="animate-spin w-4 h-4" />
+                                ) : (
+                                  <span className="flex items-center gap-1.5"><CheckCircle2 size={14} /> Validar</span>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => { setConfirmandoId(pedido.id); setCodigoIngresado(""); }}
+                            className="w-full bg-blue-600 hover:bg-green-600 text-white rounded-2xl py-7 font-black uppercase text-xs tracking-widest shadow-lg transition-all active:scale-95"
+                          >
                             <span className="flex items-center gap-2">
                               <CheckCircle2 size={16} /> Confirmar Entrega
                             </span>
-                          )}
-                        </Button>
-                      </>
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

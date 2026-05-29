@@ -604,12 +604,16 @@ export default function Catalog() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-black text-slate-400 ml-0.5">Vencimiento</Label>
-                    <Input 
-                      type="text" 
-                      placeholder="MM/AA" 
+                    <Input
+                      type="text"
+                      placeholder="MM/AA"
                       maxLength={5}
                       value={tarjeta.fecha}
-                      onChange={(e) => setTarjeta({...tarjeta, fecha: e.target.value})}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, "");
+                        if (val.length > 2) val = val.slice(0, 2) + "/" + val.slice(2, 4);
+                        setTarjeta({...tarjeta, fecha: val});
+                      }}
                       className="rounded-xl py-4 border-slate-200 font-medium font-mono text-slate-700 text-center text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                     />
                   </div>
