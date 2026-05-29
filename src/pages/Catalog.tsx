@@ -383,7 +383,7 @@ export default function Catalog() {
                   <SelectTrigger className="w-full py-6 rounded-2xl border-none bg-slate-50 font-bold text-slate-700">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-xl" position="item-aligned">
+                  <SelectContent className="rounded-2xl border-none shadow-xl">
                     <SelectItem value="discount">🔥 Mayor Descuento</SelectItem>
                     <SelectItem value="price_asc">💰 Menor Precio</SelectItem>
                   </SelectContent>
