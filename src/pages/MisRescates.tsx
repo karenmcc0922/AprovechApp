@@ -38,7 +38,6 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
       const ahora = new Date().getTime();
       const stringFecha = String(fechaCreacion);
 
-      // Extraemos los números de la fecha (Año, Mes, Día, Hora, Minuto, Segundo)
       const partes = stringFecha.split(/[^0-9]/).filter(p => p.length > 0);
       let inicio: number = 0;
 
@@ -50,18 +49,11 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
         const minuto = parseInt(partes[4], 10);
         const segundo = partes[5] ? parseInt(partes[5], 10) : 0;
 
-        // Interpretamos como UTC Greenwich estándar
         inicio = Date.UTC(anio, mes, dia, hora, minuto, segundo);
       } else {
         inicio = new Date(stringFecha.replace(/-/g, "/")).getTime();
       }
 
-      // -----------------------------------------------------------------
-      // AJUSTE DE CALIBRACIÓN REQUERIDO:
-      // Tu reserva dura 2 horas originalmente: +(2 * 60 * 60 * 1000)
-      // Como el servidor inyecta una hora extra, le restamos una hora: -(1 * 60 * 60 * 1000)
-      // El resultado neto es sumarle exactamente 1 hora al tiempo base UTC.
-      // -----------------------------------------------------------------
       const tiempoLimite = inicio + (1 * 60 * 60 * 1000); 
       const diferencia = tiempoLimite - ahora;
 
@@ -102,14 +94,15 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 // ==========================================
 function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModalQr: (r: any) => void }) {
   return (
-    <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[45px] overflow-hidden bg-white">
+    <Card className="border border-slate-100/70 shadow-[0_25px_60px_rgba(15,23,42,0.04)] rounded-[45px] overflow-hidden bg-white/90 backdrop-blur-md">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">
           {/* Sección Ticket / QR */}
           <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
+            {/* Círculos laterales simulando troquelado de ticket real sobre el fondo blanco */}
             <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4 z-10">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="w-6 h-6 rounded-full bg-[#F8FAFC]" />
+                <div key={i} className="w-6 h-6 rounded-full bg-white border-l border-slate-100/10" />
               ))}
             </div>
 
@@ -161,7 +154,7 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
                 </div>
               </div>
               
-              <div className="space-y-4 py-6 border-y border-slate-50">
+              <div className="space-y-4 py-6 border-y border-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
                     <MapPin className="w-5 h-5 text-slate-400" />
@@ -211,24 +204,16 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
 // COMPONENTE: TARJETA DE RESCATE EN HISTORIAL
 // ==========================================
 function RescateHistorialCard({ rescate }: { rescate: any }) {
-  // Ajustado con calibración de zona horaria nativa para Colombia
   const formatearFechaHistorial = (fechaRaw: string) => {
     if (!fechaRaw) return "Historial";
     try {
       let stringFecha = String(fechaRaw).trim();
-      
-      // Si el formato viene como "YYYY-MM-DD HH:mm:ss", inyectamos la T estándar para JavaScript
       if (stringFecha.includes(" ") && !stringFecha.includes("T")) {
         stringFecha = stringFecha.replace(" ", "T");
       }
-
       const fechaObjeto = new Date(stringFecha);
+      if (isNaN(fechaObjeto.getTime())) return "Historial";
       
-      if (isNaN(fechaObjeto.getTime())) {
-        return "Historial";
-      }
-      
-      // Renderizado final corregido según la zona local
       return fechaObjeto.toLocaleDateString("es-CO", {
         day: "2-digit",
         month: "2-digit",
@@ -241,9 +226,9 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
   };
 
   return (
-    <Card className="border-none shadow-sm rounded-[35px] bg-white p-8 hover:shadow-xl transition-all group border border-transparent hover:border-slate-100">
+    <Card className="border border-slate-100 bg-white/80 backdrop-blur-md p-8 rounded-[35px] shadow-[0_10px_35px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_45px_rgba(0,0,0,0.03)] hover:border-emerald-100/60 transition-all duration-300 group">
       <div className="flex justify-between items-center mb-6">
-        <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+        <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <CheckCircle2 className="w-6 h-6 text-green-600" />
         </div>
         <div className="flex items-center gap-2">
@@ -254,7 +239,7 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
           </Badge>
         </div>
       </div>
-      <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1">
+      <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1 group-hover:text-emerald-600 transition-colors">
         {rescate.nombre_producto || rescate.producto}
       </h4>
       <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">
@@ -293,14 +278,12 @@ export default function MisRescates() {
       setLoading(false);
       return;
     }
-
     const user = JSON.parse(stored);
 
     try {
       const response = await fetch(`${API_BASE}/api/pedidos/usuario/${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        
         const datosFormateados = data.map((r: any) => ({
           ...r,
           estado: (r.estado ? String(r.estado).toLowerCase().trim() : "pendiente")
@@ -327,10 +310,17 @@ export default function MisRescates() {
   const completados = rescates.filter(r => ["completado", "entregado", "cancelado"].includes(r.estado));
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       <AppNavbar />
       
-      <main className="container mx-auto px-6 pt-32 pb-20 max-w-4xl">
+      {/* CAPA 1: Textura de cuadrícula técnica súper fina */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+
+      {/* CAPA 2: Glow estético hiper-difuminado en esquinas */}
+      <div className="absolute top-[-5%] left-[-5%] w-[450px] h-[450px] rounded-full bg-emerald-100/30 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[140px] pointer-events-none" />
+      
+      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-4xl relative z-10">
         {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
@@ -343,12 +333,12 @@ export default function MisRescates() {
             </h1>
           </div>
           
-          <div className="flex bg-slate-200/50 p-1.5 rounded-[24px] backdrop-blur-sm">
+          <div className="flex bg-slate-100 p-1.5 rounded-[24px] border border-slate-200/40">
             <button 
               onClick={() => setFilter("pendientes")}
               className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
                 filter === "pendientes" 
-                ? "bg-white text-slate-900 shadow-xl scale-105" 
+                ? "bg-white text-slate-900 shadow-lg scale-105" 
                 : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -358,7 +348,7 @@ export default function MisRescates() {
               onClick={() => setFilter("completados")}
               className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
                 filter === "completados" 
-                ? "bg-white text-slate-900 shadow-xl scale-105" 
+                ? "bg-white text-slate-900 shadow-lg scale-105" 
                 : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -406,7 +396,7 @@ export default function MisRescates() {
 
       {/* --- MODAL DE AMPLIACIÓN DE QR --- */}
       <Dialog open={isQrModalOpen} onOpenChange={setIsQrModalOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[40px] p-8 bg-white border-none shadow-2xl text-center">
+        <DialogContent className="sm:max-w-[400px] rounded-[40px] p-8 bg-white border border-slate-100 shadow-2xl text-center">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-slate-900 uppercase italic tracking-tight">
               Pase de Entrega
@@ -429,7 +419,7 @@ export default function MisRescates() {
 
           <Button 
             onClick={() => setIsQrModalOpen(false)}
-            className="w-full mt-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-widest py-6 rounded-xl"
+            className="w-full mt-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black uppercase text-xs tracking-widest py-6 rounded-xl transition-colors"
           >
             Cerrar ventana
           </Button>
@@ -442,14 +432,14 @@ export default function MisRescates() {
 function EmptyState({ icon, message }: { icon: React.ReactNode, message: string }) {
   const [, goTo] = useLocation();
   return (
-    <div className="text-center py-24 bg-white rounded-[50px] border-4 border-dashed border-slate-50">
+    <div className="text-center py-24 bg-white/80 backdrop-blur-md rounded-[50px] border-4 border-dashed border-slate-100">
       <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
         {icon}
       </div>
       <p className="text-slate-400 font-black uppercase tracking-widest text-xs mb-6 px-10 leading-relaxed">{message}</p>
       <Button
         onClick={() => goTo('/catalog')}
-        className="bg-slate-900 hover:bg-green-600 text-white rounded-full px-10 py-6 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-3 mx-auto"
+        className="bg-slate-900 hover:bg-green-600 text-white rounded-full px-10 py-6 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-3 mx-auto shadow-md"
       >
         Ir al catálogo <ArrowRight className="w-4 h-4" />
       </Button>

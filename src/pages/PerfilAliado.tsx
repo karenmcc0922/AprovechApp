@@ -79,29 +79,39 @@ export default function PerfilAliado() {
   };
 
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#F8FAFC] gap-6">
-      <div className="relative">
-        <Loader2 className="animate-spin text-green-600 w-16 h-16" />
-        <Store className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
+    <div className="h-screen flex flex-col items-center justify-center bg-white gap-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
+      <div className="relative z-10 flex flex-col items-center gap-4">
+        <div className="relative">
+          <Loader2 className="animate-spin text-green-600 w-16 h-16" />
+          <Store className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
+        </div>
+        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Sincronizando establecimiento...</p>
       </div>
-      <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Sincronizando establecimiento...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       <AppNavbar />
 
-      <main className="container mx-auto px-6 pt-32 pb-20 max-w-6xl">
+      {/* REJILLA TECNOLÓGICA SUTIL */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+
+      {/* HALOS DE LUZ AMBIENTAL */}
+      <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[-5%] w-[450px] h-[450px] rounded-full bg-blue-100/20 blur-[130px] pointer-events-none" />
+
+      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-6xl relative z-10">
 
         {/* HERO BANNER */}
-        <div className="relative h-64 w-full bg-slate-900 rounded-[50px] mb-20 overflow-hidden shadow-2xl shadow-slate-200">
+        <div className="relative h-64 w-full bg-slate-900 rounded-[50px] mb-20 overflow-hidden shadow-[0_30px_60px_rgba(15,23,42,0.12)]">
           <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1556742044-3c52d6e88c62?q=80&w=2070')] bg-cover bg-center" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
 
           <div className="absolute -bottom-10 left-12 flex items-end gap-8">
             <div className="relative group">
-              <div className="h-44 w-44 bg-white rounded-[40px] shadow-2xl flex items-center justify-center border-[8px] border-white overflow-hidden relative">
+              <div className="h-44 w-44 bg-white rounded-[40px] shadow-[0_15px_40px_rgba(0,0,0,0.08)] flex items-center justify-center border-[8px] border-white overflow-hidden relative">
                 <div className="bg-green-50 w-full h-full flex items-center justify-center">
                   <Store className="w-20 h-20 text-green-600" />
                 </div>
@@ -131,7 +141,7 @@ export default function PerfilAliado() {
 
           {/* SIDEBAR INFO */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[40px] bg-white p-10">
+            <Card className="border border-slate-100/80 shadow-[0_15px_50px_rgba(0,0,0,0.02)] rounded-[40px] bg-white/90 backdrop-blur-md p-10">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Información Legal</p>
               <div className="space-y-8">
                 <div className="group">
@@ -146,7 +156,7 @@ export default function PerfilAliado() {
                     <Mail className="w-5 h-5 text-green-600" /> {perfil.correo_corporativo || "No registrado"}
                   </p>
                 </div>
-                <div className="pt-8 border-t border-slate-50">
+                <div className="pt-8 border-t border-slate-100">
                   <div className="flex items-center gap-3 bg-green-50 text-green-700 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest">
                     <ShieldCheck className="w-5 h-5" /> Aliado Estratégico
                   </div>
@@ -154,13 +164,13 @@ export default function PerfilAliado() {
               </div>
             </Card>
 
-            <Card className="border-none shadow-sm rounded-[35px] bg-indigo-900 p-8 text-white relative overflow-hidden">
+            <Card className="border-none shadow-[0_15px_40px_rgba(49,46,129,0.12)] rounded-[35px] bg-indigo-950 p-8 text-white relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-5 h-5 text-indigo-300" />
-                  <h3 className="font-black text-[10px] uppercase tracking-widest">Atención</h3>
+                  <AlertCircle className="w-5 h-5 text-indigo-400" />
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-indigo-300">Atención</h3>
                 </div>
-                <p className="text-sm font-bold leading-relaxed text-indigo-100">
+                <p className="text-sm font-bold leading-relaxed text-indigo-100/90">
                   ¿Vas a cambiar de dirección? Recuerda avisar a tus rescatistas frecuentes para que no pierdan tus ofertas.
                 </p>
               </div>
@@ -169,9 +179,9 @@ export default function PerfilAliado() {
           </div>
 
           {/* MAIN FORM */}
-          <Card className="lg:col-span-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[50px] bg-white overflow-hidden">
+          <Card className="lg:col-span-8 border border-slate-100/80 shadow-[0_15px_50px_rgba(0,0,0,0.02)] rounded-[50px] bg-white/90 backdrop-blur-md overflow-hidden">
             <CardHeader className="p-12 pb-0">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-4 flex-wrap sm:flex-nowrap">
                 <div>
                   <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">Ajustes del Local</h2>
                   <p className="text-slate-400 font-bold text-xs uppercase mt-2 tracking-widest">Personaliza tu presencia en la app</p>
@@ -179,7 +189,7 @@ export default function PerfilAliado() {
                 {!editMode && (
                   <Button
                     onClick={() => setEditMode(true)}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-[20px] font-black px-8 py-6 border-none shadow-none transition-all active:scale-95"
+                    className="bg-slate-900 hover:bg-slate-800 text-white rounded-[20px] font-black px-8 py-6 border-none shadow-md transition-all active:scale-95"
                   >
                     Editar Perfil
                   </Button>
@@ -196,14 +206,14 @@ export default function PerfilAliado() {
                     value={perfil.nombre_local}
                     onChange={(e) => setPerfil({...perfil, nombre_local: e.target.value})}
                     className={`py-8 rounded-[25px] border-none font-black text-xl transition-all ${
-                      editMode ? "bg-slate-50 ring-2 ring-green-500/20 shadow-inner" : "bg-slate-50/50 text-slate-500"
+                      editMode ? "bg-slate-50 ring-2 ring-green-500/20 shadow-inner text-slate-900" : "bg-slate-50/50 text-slate-500"
                     }`}
                   />
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Código Interno</label>
-                  <div className="py-5 px-8 rounded-[25px] bg-slate-100/50 text-slate-400 font-mono text-xs border border-slate-50 flex items-center justify-between">
+                  <div className="py-5 px-8 rounded-[25px] bg-slate-50 text-slate-400 font-mono text-xs border border-slate-100/60 flex items-center justify-between h-[66px]">
                     <span>ALI-{aliadoId ? aliadoId.padStart(4, '0') : "0000"}</span>
                     <Clock size={14} className="opacity-30" />
                   </div>
@@ -241,7 +251,7 @@ export default function PerfilAliado() {
                   <Button
                     disabled={updating}
                     onClick={handleUpdate}
-                    className="flex-[2] bg-slate-900 hover:bg-green-600 text-white py-8 rounded-[25px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 transition-all active:scale-95"
+                    className="flex-[2] bg-green-600 hover:bg-slate-900 text-white py-8 rounded-[25px] font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-green-600/10 transition-all active:scale-95"
                   >
                     {updating ? (
                       <Loader2 className="animate-spin w-5 h-5 mr-2" />
