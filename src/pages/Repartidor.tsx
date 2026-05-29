@@ -326,7 +326,7 @@ export default function Repartidor() {
                             </p>
                             <Input
                               autoFocus
-                              placeholder="Ej: ABC-1234"
+                              placeholder="Ej: ISTWFH"
                               value={codigoIngresado}
                               onChange={(e) => setCodigoIngresado(e.target.value.toUpperCase())}
                               className="font-mono font-black text-center tracking-widest text-slate-800 rounded-xl border-green-200 focus:border-green-500 focus:ring-green-500/20"
