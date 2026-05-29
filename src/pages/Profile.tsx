@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter"; 
+import { useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -84,7 +86,7 @@ export default function Profile() {
         return;
       }
       try {
-        const response = await fetch(`https://aprovechapp-api.onrender.com/api/pedidos/usuario/${userId}`);
+        const response = await fetch(`${API_BASE}/api/pedidos/usuario/${userId}`);
         if (response.ok) {
           const data = await response.json();
           setHistorial(data);
@@ -101,13 +103,13 @@ export default function Profile() {
   // --- FUNCIÓN PARA GUARDAR ACTUALIZACIÓN DE CUENTA ---
   const guardarConfiguracion = async () => {
     if (!editNombre.trim() || !editTelefono.trim() || !editDireccion.trim()) {
-      alert("Por favor, llena todos los campos obligatorios.");
+      toast.warning("Por favor, llena todos los campos obligatorios.");
       return;
     }
 
     setIsGuardando(true);
     try {
-      const response = await fetch(`https://aprovechapp-api.onrender.com/api/usuarios/${userId}/actualizar`, {
+      const response = await fetch(`${API_BASE}/api/usuarios/${userId}/actualizar`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -118,21 +120,23 @@ export default function Profile() {
       });
 
       if (response.ok) {
-        const usuarioActualizado = { 
-          ...storedUser, 
-          nombre: editNombre, 
-          telefono: editTelefono, 
-          direccion: editDireccion 
+        const usuarioActualizado = {
+          ...storedUser,
+          nombre: editNombre,
+          telefono: editTelefono,
+          direccion: editDireccion
         };
         localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
         setIsModalOpen(false);
-        window.location.reload();
+        toast.success("Perfil actualizado correctamente");
+        // Forzar re-render actualizando estado local en lugar de recargar la página
+        window.dispatchEvent(new Event('storage'));
       } else {
-        alert("Hubo un error al guardar los cambios en el servidor.");
+        toast.error("Hubo un error al guardar los cambios en el servidor.");
       }
     } catch (error) {
       console.error("Error al actualizar la cuenta:", error);
-      alert("No se pudo establecer conexión con el servidor remoto.");
+      toast.error("No se pudo establecer conexión con el servidor remoto.");
     } finally {
       setIsGuardando(false);
     }
@@ -353,7 +357,7 @@ export default function Profile() {
               <div className="space-y-1">
                 <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Aviso Legal de Protección de Datos (Ley 1581 de 2012)</h5>
                 <p className="text-[10px] text-slate-400 font-bold leading-normal">
-                  En **AprovechApp** garantizamos el tratamiento lícito de tu información. Tus datos personales, compras e historial ecológico están protegidos bajo estrictos esquemas de seguridad y confidencialidad en Colombia. El uso de esta información es estrictamente transaccional y estadístico para la medición de tu impacto verde.
+                  En AprovechApp garantizamos el tratamiento lícito de tu información. Tus datos personales, compras e historial ecológico están protegidos bajo estrictos esquemas de seguridad y confidencialidad en Colombia. El uso de esta información es estrictamente transaccional y estadístico para la medición de tu impacto verde.
                 </p>
               </div>
             </div>
@@ -457,7 +461,7 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
     setRating(nota); 
     
     try {
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/calificaciones", {
+      const response = await fetch("${API_BASE}/api/calificaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -474,7 +478,7 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
         console.error("El servidor rechazó la calificación");
         setRating(noteInicial);
         setGuardado(false);
-        alert("No se pudo guardar la calificación. Inténtalo de nuevo.");
+        toast.error("No se pudo guardar la calificación. Inténtalo de nuevo.");
       }
     } catch (error) {
       console.error("Error al registrar estrellas:", error);

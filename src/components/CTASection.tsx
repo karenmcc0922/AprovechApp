@@ -1,12 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, Gift, Truck, Loader2 } from "lucide-react";
 import emailjs from '@emailjs/browser';
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 
 export default function CTASection() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTooLong(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadingTooLong(true), 4000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,37 +27,27 @@ export default function CTASection() {
     setLoading(true);
 
     try {
-      // 1. REGISTRO EN TU API (RENDER + TiDB)
-      const response = await fetch("https://aprovechapp-api.onrender.com/api/registro/", {
+      const response = await fetch(`${API_BASE}/api/registro/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre: name, correo: email }),
       });
 
       if (response.ok) {
-        // 2. ENVÍO DE CORREO CON EMAILJS (Solo si el registro en DB fue exitoso)
-        const templateParams = {
-          user_name: name,    
-          user_email: email,   
-        };
-
         await emailjs.send(
           'service_8g5r5ic',
           'template_hhrqvw9',
-          templateParams,
+          { user_name: name, user_email: email },
           '2t5mcRkogdohBXqe9'
         );
-
         setSubmitted(true);
       } else {
         const errorData = await response.json();
-        alert("Error en el registro: " + (errorData.error || "Intenta de nuevo"));
+        toast.error(errorData.error || "Error en el registro. Intenta de nuevo.");
       }
     } catch (error) {
       console.error("Error al procesar el registro:", error);
-      alert("No se pudo completar el registro. Revisa tu conexión.");
+      toast.error("No se pudo completar el registro. Revisa tu conexión.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,6 @@ export default function CTASection() {
 
   return (
     <section id="registro" className="bg-green-700 py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Decoración de fondo */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-1/2 translate-y-1/2"></div>
 
@@ -65,7 +66,6 @@ export default function CTASection() {
           Regístrate hoy en AprovechApp y empieza a ahorrar con estas ventajas exclusivas de bienvenida:
         </p>
 
-        {/* Tarjetas de Beneficios */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12 max-w-2xl mx-auto">
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl flex items-center gap-4 text-left">
             <div className="w-12 h-12 bg-[#FFA832] rounded-full flex items-center justify-center shrink-0 shadow-lg">
@@ -110,9 +110,16 @@ export default function CTASection() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-8 py-4 bg-[#FFA832] text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-8 py-4 bg-[#FFA832] text-green-950 font-black text-lg rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-xl disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer min-w-[140px]"
               >
-                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "¡Lo quiero!"}
+                {loading ? (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Loader2 className="animate-spin w-5 h-5" />
+                    {loadingTooLong && (
+                      <span className="text-[9px] font-bold leading-none">Conectando...</span>
+                    )}
+                  </div>
+                ) : "¡Lo quiero!"}
               </button>
             </form>
           </div>
@@ -127,7 +134,7 @@ export default function CTASection() {
             </p>
           </div>
         )}
-        
+
         <p className="mt-8 text-green-400/60 text-xs uppercase tracking-widest font-bold">
           Oferta limitada para los primeros 500 usuarios
         </p>

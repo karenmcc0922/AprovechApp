@@ -37,8 +37,8 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 }
 
 export default function MapaAliado({ lat, lng, nombreLocal, direccion }: MapaProps) {
-  // Coordenadas de respaldo si el aliado no tiene cargadas (ej: Bogotá/Centro de tu ciudad)
-  const posicion: [number, number] = [lat || 4.6097, lng || -74.0817];
+  // Coordenadas de respaldo: centro de Pereira, Colombia
+  const posicion: [number, number] = [lat || 4.8133, lng || -75.6961];
 
   return (
     <div className="w-full h-[300px] rounded-[30px] overflow-hidden shadow-inner border border-slate-100 relative z-10">

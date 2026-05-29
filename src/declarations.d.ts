@@ -4,5 +4,5 @@ declare module 'react-leaflet';
 
 declare module '*.png' {
   const value: string;
-  return value;
+  export default value;
 }

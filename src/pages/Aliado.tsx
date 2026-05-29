@@ -3,29 +3,31 @@ import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
-import { 
-  Trash2, 
+import {
+  Trash2,
   Edit2,
-  Loader2, 
+  Loader2,
   Image as ImageIcon,
-  Gift, 
+  Gift,
   Plus,
   BarChart3,
   TrendingUp,
   History,
   AlertCircle,
   X,
-  ShieldCheck 
+  ShieldCheck
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE } from "../lib/api";
 
 export default function Aliado() {
   const [loading, setLoading] = useState(false);
@@ -34,11 +36,7 @@ export default function Aliado() {
   const [actividad, setActividad] = useState<any[]>([]);
   const [datosGrafica, setDatosGrafica] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  // CONTROL DE EDICIÓN
   const [editingId, setEditingId] = useState<number | null>(null);
-
-  // RESPONSABILIDAD SOCIAL
   const [aceptaResponsabilidad, setAceptaResponsabilidad] = useState(false);
 
   const [nuevoProducto, setNuevoProducto] = useState({
@@ -46,7 +44,7 @@ export default function Aliado() {
     precio_original: "",
     precio_rescate: "",
     stock: "",
-    categoria: "Preparados", 
+    categoria: "Preparados",
     descripcion: "Pack sorpresa de productos frescos",
     esSorpresa: true,
     imagen_url: ""
@@ -58,20 +56,17 @@ export default function Aliado() {
   const cargarTodo = async () => {
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
-
     try {
       const [resProd, resStats, resAct, resGrafica] = await Promise.all([
-        fetch(`https://aprovechapp-api.onrender.com/api/mis-productos/${aliadoId}`),
-        fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/estadisticas`),
-        fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/actividad`),
-        fetch(`https://aprovechapp-api.onrender.com/api/aliados/${aliadoId}/ventas-semanales`)
+        fetch(`${API_BASE}/api/mis-productos/${aliadoId}`),
+        fetch(`${API_BASE}/api/aliados/${aliadoId}/estadisticas`),
+        fetch(`${API_BASE}/api/aliados/${aliadoId}/actividad`),
+        fetch(`${API_BASE}/api/aliados/${aliadoId}/ventas-semanales`)
       ]);
-
       if (resProd.ok) setProductos(await resProd.json());
       if (resStats.ok) setStats(await resStats.json());
       if (resAct.ok) setActividad(await resAct.json());
       if (resGrafica.ok) setDatosGrafica(await resGrafica.json());
-      
     } catch (error) {
       console.error("Error al sincronizar datos:", error);
     }
@@ -109,18 +104,14 @@ export default function Aliado() {
     }
   };
 
-  // ENTRAR EN MODO EDICIÓN
   const activarEdicion = (prod: any) => {
     setEditingId(prod.id);
     const esSorp = prod.imagen_url === IMG_SORPRESA;
-    
-    // Calcular porcentaje de descuento previo de forma visual si aplica
     let descuentoPrevio = "";
     if (Number(prod.precio_original) > 0) {
       const diff = Number(prod.precio_original) - Number(prod.precio_rescate);
       descuentoPrevio = Math.round((diff / Number(prod.precio_original)) * 100).toString();
     }
-
     setNuevoProducto({
       nombre: prod.nombre,
       precio_original: prod.precio_original.toString(),
@@ -131,95 +122,102 @@ export default function Aliado() {
       esSorpresa: esSorp,
       imagen_url: prod.imagen_url || ""
     });
-
     setDescuentoManual(descuentoPrevio);
     setImagePreview(esSorp ? null : prod.imagen_url);
-    setAceptaResponsabilidad(true); // Se asume previamente aceptado
+    setAceptaResponsabilidad(true);
   };
 
-  // CANCELAR MODO EDICIÓN
   const cancelarEdicion = () => {
     setEditingId(null);
-    setNuevoProducto({ 
-      nombre: "", precio_original: "", precio_rescate: "", stock: "", 
-      categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "" 
+    setNuevoProducto({
+      nombre: "", precio_original: "", precio_rescate: "", stock: "",
+      categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: ""
     });
     setImagePreview(null);
     setDescuentoManual("");
     setAceptaResponsabilidad(false);
   };
 
-  // ELIMINAR PRODUCTO (DELETE)
-  const eliminarProducto = async (id: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este producto de forma permanente?")) return;
-    
-    try {
-      const res = await fetch(`https://aprovechapp-api.onrender.com/api/productos/${id}/eliminar`, {
-        method: "DELETE"
-      });
-
-      if (res.ok) {
-        if (editingId === id) cancelarEdicion();
-        cargarTodo();
-      } else {
-        alert("No se pudo eliminar el producto. Podría estar asociado a un pedido activo.");
-      }
-    } catch (error) {
-      console.error("Error al eliminar:", error);
-    }
+  const eliminarProducto = (id: number) => {
+    toast("¿Eliminar este producto definitivamente?", {
+      action: {
+        label: "Sí, eliminar",
+        onClick: async () => {
+          try {
+            const res = await fetch(`${API_BASE}/api/productos/${id}/eliminar`, { method: "DELETE" });
+            if (res.ok) {
+              if (editingId === id) cancelarEdicion();
+              toast.success("Producto eliminado correctamente");
+              cargarTodo();
+            } else {
+              toast.error("No se pudo eliminar. Puede estar asociado a un pedido activo.");
+            }
+          } catch {
+            toast.error("Error al intentar eliminar el producto");
+          }
+        }
+      },
+      cancel: { label: "Cancelar", onClick: () => {} }
+    });
   };
 
-  // SUBMIT UNIFICADO (CREAR O EDITAR)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aceptaResponsabilidad) return alert("Debes aceptar la declaración de calidad.");
+    if (!aceptaResponsabilidad) {
+      toast.warning("Debes aceptar la declaración de calidad.");
+      return;
+    }
 
     const aliadoId = localStorage.getItem("aliado_id");
     if (!aliadoId) return;
     setLoading(true);
 
     try {
-      // Incluye siempre el aliado_id para que el PUT registre el historial correctamente
       const payload = {
         aliado_id: parseInt(aliadoId),
         nombre: nuevoProducto.nombre,
         precio_original: parseFloat(nuevoProducto.precio_original),
         precio_rescate: parseFloat(nuevoProducto.precio_rescate),
         stock: parseInt(nuevoProducto.stock),
-        categoria: nuevoProducto.categoria, 
+        categoria: nuevoProducto.categoria,
         imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url
       };
 
-      // Cambia la URL y el Método si está editando
-      const url = editingId 
-        ? `https://aprovechapp-api.onrender.com/api/productos/${editingId}/actualizar`
-        : "https://aprovechapp-api.onrender.com/api/productos";
-        
+      const url = editingId
+        ? `${API_BASE}/api/productos/${editingId}/actualizar`
+        : `${API_BASE}/api/productos`;
       const method = editingId ? "PUT" : "POST";
 
       const res = await fetch(url, {
-        method: method,
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
+        toast.success(editingId ? "Oferta actualizada con éxito" : "Oferta publicada correctamente");
         cancelarEdicion();
         cargarTodo();
+      } else {
+        toast.error("No se pudo guardar la oferta. Intenta de nuevo.");
       }
-    } catch (error) { 
-      alert("Error al guardar cambios"); 
-    } finally { 
-      setLoading(false); 
+    } catch {
+      toast.error("Error de conexión al guardar cambios");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Precio de rescate calculado para mostrar en el formulario
+  const precioRescateCalculado = nuevoProducto.precio_rescate
+    ? `$${Number(nuevoProducto.precio_rescate).toLocaleString()}`
+    : null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <AppNavbar />
       <main className="container mx-auto px-4 pt-32 pb-12 max-w-7xl">
-        
-        {/* Header */}
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
@@ -253,7 +251,6 @@ export default function Aliado() {
               <h3 className="font-black text-slate-900 uppercase italic tracking-tighter">Ventas Semanales</h3>
               <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Live</div>
             </div>
-            
             <div className="flex-1 w-full flex items-center justify-center">
               {datosGrafica.length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>
@@ -265,26 +262,10 @@ export default function Aliado() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="fecha" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} 
-                    />
+                    <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} />
                     <YAxis hide />
-                    <Tooltip 
-                      contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="total" 
-                      stroke="#16a34a" 
-                      strokeWidth={4} 
-                      fillOpacity={1} 
-                      fill="url(#colorTotal)"
-                      dot={{ r: 4, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }}
-                      activeDot={{ r: 6 }}
-                    />
+                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                    <Area type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={4} fillOpacity={1} fill="url(#colorTotal)" dot={{ r: 4, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -309,18 +290,16 @@ export default function Aliado() {
                   </span>
                 </div>
                 {editingId && (
-                  <button 
-                    type="button" 
-                    onClick={cancelarEdicion} 
-                    className="bg-white/20 hover:bg-white/30 text-white p-1 rounded-full transition-all"
-                  >
+                  <button type="button" onClick={cancelarEdicion} className="bg-white/20 hover:bg-white/30 text-white p-1 rounded-full transition-all">
                     <X size={16} />
                   </button>
                 )}
               </div>
               <CardContent className="p-8 space-y-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div 
+
+                  {/* Toggle Sorpresa / Producto único */}
+                  <div
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
                     className={`cursor-pointer p-4 rounded-3xl border-2 transition-all flex items-center gap-4 ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-100"}`}
                   >
@@ -337,9 +316,9 @@ export default function Aliado() {
                       {imagePreview ? (
                         <div className="relative h-32 rounded-[25px] overflow-hidden border-2 border-slate-100">
                           <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                          <button 
+                          <button
                             type="button"
-                            onClick={() => { setImagePreview(null); setNuevoProducto(prev => ({...prev, imagen_url: ""})); }} 
+                            onClick={() => { setImagePreview(null); setNuevoProducto(prev => ({...prev, imagen_url: ""})); }}
                             className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
                           >
                             <X size={12}/>
@@ -360,10 +339,9 @@ export default function Aliado() {
                     <Input className="rounded-xl bg-slate-50 border-none font-bold" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
-                  {/* SELECTOR DE CATEGORÍA */}
                   <div className="space-y-1">
                     <LabelCustom>Categoría de Perecederos</LabelCustom>
-                    <select 
+                    <select
                       className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none"
                       value={nuevoProducto.categoria}
                       onChange={e => setNuevoProducto({...nuevoProducto, categoria: e.target.value})}
@@ -385,17 +363,25 @@ export default function Aliado() {
                       <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
-                  
+
+                  {/* Preview del precio de rescate */}
+                  {precioRescateCalculado && (
+                    <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3 flex items-center justify-between">
+                      <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Precio de Rescate</span>
+                      <span className="text-lg font-black text-green-600">{precioRescateCalculado}</span>
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                     <LabelCustom>Stock Disponible</LabelCustom>
                     <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
-                  {/* DECLARACIÓN DE RESPONSABILIDAD */}
+                  {/* Declaración de Responsabilidad */}
                   <div className={`p-4 rounded-2xl transition-all border ${aceptaResponsabilidad ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
                     <label className="flex items-start gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="mt-1 accent-green-600"
                         checked={aceptaResponsabilidad}
                         onChange={e => setAceptaResponsabilidad(e.target.checked)}
@@ -411,41 +397,36 @@ export default function Aliado() {
                     </label>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    disabled={loading || !aceptaResponsabilidad} 
+                  <Button
+                    type="submit"
+                    disabled={loading || !aceptaResponsabilidad}
                     className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-lg ${
-                      aceptaResponsabilidad 
-                        ? (editingId ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-green-600 text-white') 
+                      aceptaResponsabilidad
+                        ? (editingId ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-green-600 text-white')
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                   >
                     {loading ? (
                       <Loader2 className="animate-spin" />
-                    ) : editingId ? (
-                      "Actualizar Oferta"
-                    ) : (
-                      "Publicar Oferta Segura"
-                    )}
+                    ) : editingId ? "Actualizar Oferta" : "Publicar Oferta Segura"}
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
 
+          {/* LISTADO DE PRODUCTOS */}
           <div className="lg:col-span-5 space-y-4">
             <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas Activas</h2>
             {productos.length > 0 ? productos.map((prod) => (
               <Card key={prod.id} className={`border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-all ${editingId === prod.id ? 'ring-2 ring-amber-500 bg-amber-50/20' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <img 
-                      src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA} 
-                      className="w-14 h-14 rounded-2xl object-cover" 
+                    <img
+                      src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA}
+                      className="w-14 h-14 rounded-2xl object-cover"
                       alt={prod.nombre}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = IMG_SORPRESA;
-                      }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = IMG_SORPRESA; }}
                     />
                     <div>
                       <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
@@ -455,21 +436,11 @@ export default function Aliado() {
                       </div>
                     </div>
                   </div>
-                  
-                  {/* BOTONES DE ACCIÓN: EDITAR Y BORRAR */}
                   <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => activarEdicion(prod)}
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full"
-                    >
+                    <Button variant="ghost" onClick={() => activarEdicion(prod)} className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full">
                       <Edit2 size={14}/>
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => eliminarProducto(prod.id)}
-                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                    >
+                    <Button variant="ghost" onClick={() => eliminarProducto(prod.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full">
                       <Trash2 size={14}/>
                     </Button>
                   </div>
@@ -478,8 +449,9 @@ export default function Aliado() {
             )) : <p className="text-xs font-bold text-slate-400 uppercase p-4 italic">No hay productos activos</p>}
           </div>
 
+          {/* ACTIVIDAD RECIENTE */}
           <div className="lg:col-span-3">
-             <Card className="border-none shadow-sm rounded-[35px] bg-white p-6">
+            <Card className="border-none shadow-sm rounded-[35px] bg-white p-6">
               <div className="flex items-center gap-3 mb-6">
                 <History className="w-4 h-4 text-slate-400" />
                 <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad Reciente</h3>
@@ -504,7 +476,6 @@ export default function Aliado() {
   );
 }
 
-// Helper interno para estructurar los labels de los formularios
 function LabelCustom({ children }: { children: React.ReactNode }) {
   return <label className="text-[9px] font-black uppercase text-slate-400 ml-1 block mb-1 tracking-widest">{children}</label>;
 }
