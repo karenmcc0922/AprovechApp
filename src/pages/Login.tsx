@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, Bike, ArrowRight } from "lucide-react";
 
 export default function Login() {
   const [,] = useLocation();
@@ -10,7 +10,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"user" | "vendor">("user");
+  // Añadimos "driver" a los tipos del rol
+  const [role, setRole] = useState<"user" | "vendor" | "driver">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +39,11 @@ export default function Login() {
         localStorage.setItem("user_role", data.usuario.role);
         localStorage.setItem("aliado_id", data.usuario.id.toString());
 
+        // Manejo de redirecciones según los 3 roles
         if (data.usuario.role === "vendor") {
           window.location.href = "/aliado";
+        } else if (data.usuario.role === "driver") {
+          window.location.href = "/repartidor"; // O la ruta de la dashboard del conductor
         } else {
           window.location.href = "/catalog";
         }
@@ -52,6 +56,13 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función de ayuda rápida para rellenar los datos demo del repartidor
+  const cargarDemoRepartidor = () => {
+    setRole("driver");
+    setEmail("repartidor@aprovechapp.com");
+    setPassword("repartidor2025");
   };
 
   return (
@@ -84,31 +95,45 @@ export default function Login() {
 
           <CardContent className="px-8 pb-8 pt-2">
             
-            {/* Selector de Rol Dinámico */}
+            {/* Selector de Rol Dinámico con 3 Opciones */}
             <div className="flex p-1 bg-slate-100/80 backdrop-blur-sm rounded-2xl mb-6 border border-slate-200/40">
               <button
                 type="button"
                 onClick={() => setRole("user")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
                   role === "user" 
                     ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <User size={15} /> 
+                <User size={14} /> 
                 <span>Rescatista</span>
               </button>
+              
               <button
                 type="button"
                 onClick={() => setRole("vendor")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
                   role === "vendor" 
                     ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Store size={15} /> 
+                <Store size={14} /> 
                 <span>Comercio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole("driver")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-[11px] transition-all duration-200 ${
+                  role === "driver" 
+                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Bike size={14} /> 
+                <span>Repartidor</span>
               </button>
             </div>
 
@@ -135,7 +160,6 @@ export default function Login() {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-xs font-semibold text-slate-600">Contraseña</label>
-                  {/* Aquí va el enlace para la tarea de recuperación de tu compañero */}
                   <Link href="/recuperar" className="text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-all">
                     ¿La olvidaste?
                   </Link>
@@ -176,6 +200,17 @@ export default function Login() {
                     </>
                   )}
                 </Button>
+              </div>
+
+              {/* Acceso Rápido Demo Repartidor */}
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={cargarDemoRepartidor}
+                  className="text-[10px] bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg font-medium tracking-wide transition-all border border-slate-200/60"
+                >
+                  ⚡ Usar credenciales de Repartidor Demo
+                </button>
               </div>
 
               {/* Enlace de Registro Inferior */}
