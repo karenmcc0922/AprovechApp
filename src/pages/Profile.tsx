@@ -54,7 +54,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation(); 
   
-  // Estado reactivo para el usuario para evitar recargas o dispatches manuales del DOM
+  // Estado reactivo para el usuario sincronizado con localStorage
   const [usuario, setUsuario] = useState<any>(() => {
     return JSON.parse(localStorage.getItem("usuario") || "{}");
   });
@@ -92,7 +92,7 @@ export default function Profile() {
         }
       } catch (error) {
         console.error("Error al cargar historial:", error);
-      } {
+      } finally {
         setLoading(false);
       }
     };
@@ -125,7 +125,7 @@ export default function Profile() {
           direccion: editDireccion
         };
         localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
-        setUsuario(usuarioActualizado); // Actualización reactiva instantánea
+        setUsuario(usuarioActualizado); 
         setIsModalOpen(false);
         toast.success("Perfil actualizado correctamente");
       } else {
@@ -145,19 +145,22 @@ export default function Profile() {
   const comidaSalvada = (historial.length * 1.0).toFixed(1); 
 
   return (
-    <div className="min-h-screen bg-[#FBFDFF] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       <AppNavbar />
       
-      {/* Elementos ambientales de fondo */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-50/60 blur-[120px] -z-10" />
-      <div className="absolute bottom-[10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-50/50 blur-[130px] -z-10" />
+      {/* CAPA 1: Textura técnica sutil (Grilla fina) */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+
+      {/* CAPA 2: Glow ambiental difuminado para romper la planicidad */}
+      <div className="absolute top-[-5%] right-[-5%] w-[450px] h-[450px] rounded-full bg-emerald-100/40 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[5%] left-[-5%] w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[140px] pointer-events-none" />
       
-      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-6xl relative">
+      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-6xl relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* --- COLUMNA IZQUIERDA: TARJETA DE IDENTIDAD --- */}
           <div className="lg:col-span-4 space-y-8">
-            <Card className="border border-slate-100/80 shadow-[0_20px_50px_rgba(0,0,0,0.02)] rounded-[45px] bg-white p-8 relative overflow-hidden">
+            <Card className="border border-slate-100/80 shadow-[0_20px_50px_rgba(15,23,42,0.03)] rounded-[45px] bg-white/80 backdrop-blur-md p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-600" />
               
               <div className="relative w-36 h-36 mx-auto mb-6">
@@ -179,12 +182,12 @@ export default function Profile() {
                   <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Pereira, CO
                 </div>
 
-                <div className="space-y-2 text-left bg-slate-50/40 p-4 rounded-2xl border border-slate-100/60">
+                <div className="space-y-2 text-left bg-slate-50/60 p-4 rounded-2xl border border-slate-100/80">
                   <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
                     <span className="flex items-center gap-1"><Sparkles size={10} className="text-amber-500"/> Rango</span>
                     <span className="text-emerald-600 font-black">{historial.length}/20 Packs</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-slate-200/60 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000" 
                       style={{ width: `${Math.min((historial.length / 20) * 100, 100)}%` }}
@@ -221,7 +224,7 @@ export default function Profile() {
           <div className="lg:col-span-8 space-y-10">
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-xl transition-all group border-l-4 border-emerald-500">
+              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.05)] hover:border-emerald-100/80 transition-all group border-l-4 border-emerald-500">
                 <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Leaf className="w-5 h-5 text-emerald-600" />
                 </div>
@@ -230,7 +233,7 @@ export default function Profile() {
                 <p className="text-[9px] font-medium text-slate-400 mt-1.5 leading-tight">Retenido fuera de la atmósfera.</p>
               </div>
 
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-xl transition-all group border-l-4 border-blue-500">
+              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(59,130,246,0.05)] hover:border-blue-100/80 transition-all group border-l-4 border-blue-500">
                 <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Droplet className="w-5 h-5 text-blue-600" />
                 </div>
@@ -239,7 +242,7 @@ export default function Profile() {
                 <p className="text-[9px] font-medium text-slate-400 mt-1.5 leading-tight">Líquido vital optimizado.</p>
               </div>
 
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-xl transition-all group border-l-4 border-amber-500">
+              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(245,158,11,0.05)] hover:border-amber-100/80 transition-all group border-l-4 border-amber-500">
                 <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Scale className="w-5 h-5 text-amber-600" />
                 </div>
@@ -249,7 +252,7 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-[26px] border border-slate-100 flex items-center justify-between px-6 shadow-[0_8px_30px_rgba(0,0,0,0.01)]">
+            <div className="bg-white p-5 rounded-[26px] border border-slate-100 flex items-center justify-between px-6 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center">
                   <Target size={16} />
@@ -275,7 +278,6 @@ export default function Profile() {
               
               <div className="space-y-4">
                 {loading ? (
-                  /* SKELETON ROW PREMIUM SINCRO */
                   <div className="space-y-3">
                     {[1, 2, 3].map((n) => (
                       <div key={n} className="bg-white p-6 rounded-[28px] border border-slate-100 flex items-center justify-between animate-pulse h-28">
@@ -294,7 +296,7 @@ export default function Profile() {
                   historial.map((item) => (
                     <div 
                       key={item.id} 
-                      className="bg-white p-6 rounded-[28px] border border-slate-100/70 hover:border-emerald-100 flex flex-col md:flex-row items-center justify-between group transition-all duration-300 hover:shadow-[0_15px_40px_rgba(0,0,0,0.02)]"
+                      className="bg-white p-6 rounded-[28px] border border-slate-100/70 hover:border-emerald-100/80 flex flex-col md:flex-row items-center justify-between group transition-all duration-300 hover:shadow-[0_12px_35px_rgba(0,0,0,0.02)]"
                     >
                       <div className="flex items-center gap-4 flex-1 w-full">
                         <div className="bg-slate-50 p-3.5 rounded-2xl group-hover:bg-emerald-50 transition-colors shrink-0">
@@ -371,7 +373,7 @@ export default function Profile() {
         </div>
       </main>
 
-      {/* MODAL CONFIGURACIÓN CON INPUTS CORREGIDOS SHADCN */}
+      {/* MODAL CONFIGURACIÓN CON SHADCN INPUTS COMPATIBLES */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[420px] bg-white/95 backdrop-blur-md rounded-[32px] p-6 border border-slate-100 shadow-2xl">
           <DialogHeader>
@@ -390,7 +392,7 @@ export default function Profile() {
                 type="text" 
                 value={editNombre} 
                 onChange={(e) => setEditNombre(e.target.value)}
-                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20"
+                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 animate-none"
               />
             </div>
 
@@ -401,7 +403,7 @@ export default function Profile() {
                 value={editTelefono} 
                 onChange={(e) => setEditTelefono(e.target.value)}
                 placeholder="Ej: 3123456789"
-                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20"
+                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 animate-none"
               />
             </div>
 
@@ -412,7 +414,7 @@ export default function Profile() {
                 value={editDireccion} 
                 onChange={(e) => setEditDireccion(e.target.value)}
                 placeholder="Ej: Calle 20 # 5-12"
-                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20"
+                className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 animate-none"
               />
             </div>
           </div>
@@ -444,7 +446,7 @@ export default function Profile() {
 }
 
 // ============================================================================
-// SUB-COMPONENTE INTERNO: CALIFICACIÓN INTERACTIVA CORREGIDA (BACKTICKS BUGFIX)
+// SUB-COMPONENTE INTERNO: CALIFICACIÓN INTERACTIVA (CON CORRECCIÓN DE BACKTICKS)
 // ============================================================================
 function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedidoId: any; aliadoId: any; calificacionInicial: number }) {
   const noteInicial = Number(calificacionInicial) || 0;
@@ -467,7 +469,7 @@ function CalificacionPedido({ pedidoId, aliadoId, calificacionInicial }: { pedid
     setRating(nota); 
     
     try {
-      // FIX CRÍTICO: Cambio de comillas dobles a BACKTICKS para permitir interpolación correcta de URL
+      // LLAMADA REPARADA: Interpolación de variables con backticks correctos (``)
       const response = await fetch(`${API_BASE}/api/calificaciones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
