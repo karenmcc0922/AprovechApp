@@ -52,23 +52,15 @@ export default function Catalog() {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Estados para el flujo del Modal: "confirm" | "wompi_form" | "success"
   const [step, setStep] = useState<"confirm" | "wompi_form" | "success">("confirm");
-  
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [metodoPago, setMetodoPago] = useState<"wompi" | "efectivo">("wompi");
-
-  // ESTADOS LOGÍSTICOS
   const [tipoEntrega, setTipoEntrega] = useState<"retiro" | "domicilio">("retiro");
-  const costoEnvioBase = 5000; // Costo por defecto del domicilio en Pereira
+  const costoEnvioBase = 5000;
 
-  // ESTADO PARA LA EXPIRACIÓN REAL DE LA RESERVA
   const [fechaExpiracionReserva, setFechaExpiracionReserva] = useState<number | null>(null);
   const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(3600);
-
-  // Estado para los inputs de la tarjeta simulada
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
 
   const getSemaforo = (categoria: string) => {
@@ -102,35 +94,31 @@ export default function Catalog() {
     fetchProductos();
   }, []);
 
-  // REGLA DE NEGOCIO: Si se selecciona pago en el local, se fuerza la entrega a "retiro"
   useEffect(() => {
     if (metodoPago === "efectivo") {
       setTipoEntrega("retiro");
     }
   }, [metodoPago]);
 
-  // MANEJO DEL TEMPORIZADOR COMPORTAMIENTO DINÁMICO REPARADO (RF-06)
   useEffect(() => {
     if (!isModalOpen || step !== "success" || metodoPago !== "efectivo" || !fechaExpiracionReserva) return;
 
     const interval = setInterval(() => {
       const ahora = new Date().getTime();
       const diferenciaSegundos = Math.max(0, Math.floor((fechaExpiracionReserva - ahora) / 1000));
-
       setReservaTimeLeft(diferenciaSegundos);
 
       if (diferenciaSegundos <= 0) {
         clearInterval(interval);
         setIsModalOpen(false);
         alert(`🚨 Tu reserva para el producto "${selectedProduct?.nombre}" en el local expiró de forma automática. El stock ha sido liberado.`);
-        fetchProductos(); // Sincroniza stock actualizado
+        fetchProductos();
       }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [isModalOpen, step, metodoPago, fechaExpiracionReserva, selectedProduct]);
 
-  // Formateador de segundos a MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -171,7 +159,6 @@ export default function Catalog() {
     
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
-
     const esPioneroDescuento = user?.regalo_descuento === 1 || user?.id === 1 || user?.id === "1";
     const esPioneroEnvio = user?.regalo_domicilio === 1 || user?.id === 1 || user?.id === "1";
 
@@ -206,7 +193,6 @@ export default function Catalog() {
 
   const procesarCheckout = async () => {
     if (!selectedProduct) return;
-    
     const userStr = localStorage.getItem("usuario");
     const user = userStr ? JSON.parse(userStr) : null;
     
@@ -239,7 +225,6 @@ export default function Catalog() {
         return;
       }
 
-      // --- SIMULACIÓN PASARELA ONLINE ---
       setTimeout(async () => {
         try {
           const response = await fetch(`${API_BASE}/api/pedidos/crear`, {
@@ -264,7 +249,6 @@ export default function Catalog() {
             user.regalo_descuento = 0;
             user.regalo_domicilio = 0;
             localStorage.setItem("usuario", JSON.stringify(user));
-
             setSelectedProduct((prev: any) => ({ ...prev, codigoGenerated: data.codigo }));
             setStep("success"); 
             fetchProductos();   
@@ -280,7 +264,6 @@ export default function Catalog() {
       }, 2000);
 
     } else {
-      // --- RESERVA DIRECTA EN EFECTIVO (RECOJO EXCLUSIVO) ---
       try {
         const response = await fetch(`${API_BASE}/api/pedidos/crear`, {
             method: 'POST',
@@ -323,7 +306,6 @@ export default function Catalog() {
     <div className="min-h-screen bg-white relative overflow-hidden">
       <AppNavbar /> 
       
-      {/* Auras de fondo para inyectar color sutil y dinámico */}
       <div className="absolute top-[15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-100/40 blur-[130px] -z-10 animate-pulse duration-[8000ms]" />
       <div className="absolute bottom-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-orange-100/30 blur-[120px] -z-10 animate-pulse duration-[6000ms] delay-1000" />
       
@@ -343,7 +325,6 @@ export default function Catalog() {
               </p>
             </div>
             
-            {/* Categorías Rediseñadas en Píldoras Premium */}
             <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/40 shadow-sm max-w-full overflow-x-auto whitespace-nowrap scrollbar-none">
               {["Todas", "Preparados", "Panaderia", "Frutas", "Despensa"].map((cat) => (
                   <button 
@@ -366,7 +347,7 @@ export default function Catalog() {
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-10">
           
-          {/* Sidebar de Filtros (Premium Light Card) */}
+          {/* Sidebar de Filtros */}
           <aside className="w-full lg:w-72 shrink-0">
             <div className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-100/80 space-y-8 sticky top-28">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -374,7 +355,6 @@ export default function Catalog() {
                 <SlidersHorizontal className="w-4 h-4 text-slate-400" />
               </div>
 
-              {/* Slider de Presupuesto */}
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
                     <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Presupuesto max</Label>
@@ -391,7 +371,6 @@ export default function Catalog() {
                 </div>
               </div>
 
-              {/* Selector de Orden */}
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Ordenar por</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
@@ -409,7 +388,6 @@ export default function Catalog() {
 
           {/* Listado Principal de Tarjetas */}
           <main className="flex-1 space-y-8">
-            {/* Barra de Búsqueda */}
             <div className="relative group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
               <Input 
@@ -431,48 +409,60 @@ export default function Catalog() {
                   <p className="font-black text-slate-400 uppercase text-xs">No hay rescates vigentes por ahora</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              /* CAMBIO AQUÍ: Se pasó de grid-cols-2 a grid-cols-3 en pantallas grandes para que sean más esbeltas */
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {productosFinales.map((prod) => {
                   const semaforo = getSemaforo(prod.categoria);
                   return (
-                    <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-[0_10px_35px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.08)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col">
+                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-[0_8px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col h-[460px]">
                       
-                      {/* Imagen con Badges */}
-                      <div className="relative h-52 overflow-hidden bg-slate-50 shrink-0">
-                        <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        <div className="absolute top-4 left-4 flex flex-col gap-2">
-                          <Badge className="bg-white/95 backdrop-blur-sm text-slate-900 border-none font-black px-3.5 py-1.5 rounded-xl shadow-md text-xs">
+                      {/* CONTENEDOR DE IMAGEN VERTICAL (aspect-[3/4]) */}
+                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-50/50 border-b border-slate-50 shrink-0 flex items-center justify-center">
+                        <img 
+                          src={prod.imagen} 
+                          alt={prod.nombre} 
+                          /* Cambiado a object-contain mezclado con fondo sutil para asegurar que la comida NUNCA se corte */
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                        />
+                        
+                        {/* Badges Flotantes */}
+                        <div className="absolute top-3 left-3 right-3 flex flex-col gap-1.5 items-start">
+                          <Badge className="bg-white/95 backdrop-blur-sm text-slate-900 border-none font-black px-3 py-1 rounded-xl shadow-sm text-[11px]">
                             -{prod.descuento}%
                           </Badge>
-                          <Badge className={`${semaforo.color} backdrop-blur-sm border font-black px-3 py-1.5 rounded-xl shadow-md text-[9px] flex items-center gap-1 uppercase tracking-wide`}>
-                            <Clock size={10} /> {semaforo.texto}
+                          <Badge className={`${semaforo.color} backdrop-blur-sm border font-black px-2.5 py-1 rounded-xl shadow-sm text-[8px] flex items-center gap-1 uppercase tracking-wide`}>
+                            <Clock size={9} /> {semaforo.texto}
                           </Badge>
                         </div>
                       </div>
 
-                      {/* Cuerpo de la Tarjeta */}
-                      <div className="p-6 flex flex-col flex-1 justify-between">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Store size={12} className="text-emerald-500" />
+                      {/* INFORMACIÓN DEL PRODUCTO */}
+                      <div className="p-5 flex flex-col flex-1 justify-between bg-white">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Store size={11} className="text-emerald-500 shrink-0" />
                             <button 
                               onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
-                              className="text-[10px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate max-w-full"
+                              className="text-[9px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate w-full"
                             >
                               {prod.tienda}
                             </button>
                           </div>
-                          <h3 className="text-lg font-black text-slate-800 mb-4 group-hover:text-emerald-600 transition-colors uppercase truncate">{prod.nombre}</h3>
+                          {/* Eliminamos el truncate fuerte agregando un line-clamp de 2 líneas por si el nombre es largo */}
+                          <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase line-clamp-2 h-10 leading-tight">
+                            {prod.nombre}
+                          </h3>
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-2">
-                          <div>
-                            <p className="text-slate-300 text-xs line-through font-bold">${prod.precioOriginal.toLocaleString()}</p>
-                            <p className="text-xl font-black text-slate-900 tracking-tight">${prod.precioOferta.toLocaleString()}</p>
+                        {/* PRECIOS Y ACCIÓN */}
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-2">
+                          <div className="shrink-0">
+                            <span className="text-slate-300 text-[10px] line-through font-bold block">${prod.precioOriginal.toLocaleString()}</span>
+                            <span className="text-base font-black text-slate-900 tracking-tight block">${prod.precioOferta.toLocaleString()}</span>
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
-                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-xs px-5 py-5 shadow-md hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider"
+                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-3.5 py-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center"
                           >
                               RESCATAR
                           </Button>
@@ -504,7 +494,6 @@ export default function Catalog() {
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Selector 1: Pasarela vs Efectivo */}
               <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2 ml-1">1. Medio de pago</Label>
               <div className="grid grid-cols-2 bg-slate-100/80 p-1 rounded-xl mb-4 border border-slate-200/30">
                 <button
@@ -523,7 +512,6 @@ export default function Catalog() {
                 </button>
               </div>
 
-              {/* Selector 2: Retiro vs Domicilio Logístico */}
               <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2 ml-1">2. Método de entrega</Label>
               <div className="grid grid-cols-2 bg-slate-100/80 p-1 rounded-xl mb-5 border border-slate-200/30">
                 <button
@@ -550,7 +538,6 @@ export default function Catalog() {
                 </button>
               </div>
 
-              {/* DESGLOSE MATEMÁTICO */}
               <div className="bg-slate-50/80 border border-slate-100 p-5 rounded-2xl mb-5 space-y-3 shadow-inner">
                 <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-400 font-bold uppercase text-[10px]">Precio Rescate</span>
@@ -707,12 +694,9 @@ export default function Catalog() {
                 </div>
               )}
               
-              {/* Tarjeta del Boleto QR Unificado */}
               <div className="bg-slate-900 p-8 rounded-[40px] mb-6 flex flex-col items-center shadow-xl relative overflow-hidden">
                 <div className={`absolute top-0 left-0 w-full h-1.5 ${metodoPago === 'efectivo' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                
                 <QrCode className="w-32 h-32 text-white mb-6 opacity-90" />
-                
                 <p className={`font-mono font-black tracking-[0.3em] text-3xl uppercase ${metodoPago === 'efectivo' ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {selectedProduct?.codigoGenerated}
                 </p>
