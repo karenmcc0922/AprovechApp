@@ -29,7 +29,7 @@ export default function AppNavbar() {
   }, []);
 
   const isVendor = userData?.role === "vendor";
-  const isRepartidor = userData?.role === "repartidor";
+  const isRepartidor = userData?.role === "driver" || userData?.role === "repartidor";
   const userName = userData?.nombre || "Usuario";
 
   const homeHref = isVendor ? "/aliado" : isRepartidor ? "/repartidor" : "/catalog";
