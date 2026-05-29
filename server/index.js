@@ -53,6 +53,10 @@ const handleSQLError = (res, err, message) => {
   return res.status(500).json({ error: message, details: err.message });
 };
 
+// Migración silenciosa: añadir fecha_vencimiento si no existe
+promisePool.query(`ALTER TABLE productos_rescate ADD COLUMN fecha_vencimiento DATE NULL`)
+  .catch(() => {});
+
 // --- PING (WARM-UP para Render free tier) ---
 app.get('/api/ping', (_req, res) => res.json({ status: 'ok' }));
 
@@ -102,6 +106,23 @@ app.put('/api/usuarios/:id/actualizar', async (req, res) => {
     res.json({ success: true, mensaje: "Perfil actualizado con éxito" });
   } catch (err) {
     return handleSQLError(res, err, "Error interno al actualizar la cuenta");
+  }
+});
+
+app.put('/api/usuarios/:id/cambiar-password', async (req, res) => {
+  const { id } = req.params;
+  const { password_actual, password_nuevo } = req.body;
+  if (!password_actual || !password_nuevo) {
+    return res.status(400).json({ error: "Faltan campos obligatorios" });
+  }
+  try {
+    const [rows] = await promisePool.query("SELECT password FROM usuarios WHERE id = ?", [id]);
+    if (rows.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    if (rows[0].password !== password_actual) return res.status(401).json({ error: "La contraseña actual no es correcta" });
+    await promisePool.query("UPDATE usuarios SET password = ? WHERE id = ?", [password_nuevo, id]);
+    res.json({ success: true, mensaje: "Contraseña actualizada con éxito" });
+  } catch (err) {
+    return handleSQLError(res, err, "Error al cambiar contraseña");
   }
 });
 
@@ -173,7 +194,7 @@ app.get('/api/aliados/:id/perfil', async (req, res) => {
 
 // --- PRODUCTOS: PUBLICACIÓN + NOTIFICACIÓN AL COMERCIO + ALERTAS EMAILJS A CLIENTES ---
 app.post('/api/productos', async (req, res) => {
-  const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria } = req.body;
+  const { aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria, fecha_vencimiento } = req.body;
   const catFinal = categoria || 'Preparados';
 
   if (!aliado_id) {
@@ -182,11 +203,11 @@ app.post('/api/productos', async (req, res) => {
 
   try {
     // 1. Guardar el producto en la Base de Datos
-    const sqlInsert = `INSERT INTO productos_rescate 
-      (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)`;
-               
-    const [resultInsert] = await promisePool.query(sqlInsert, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal]);
+    const sqlInsert = `INSERT INTO productos_rescate
+      (aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, categoria, fecha_vencimiento)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const [resultInsert] = await promisePool.query(sqlInsert, [aliado_id, nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, fecha_vencimiento || null]);
     
     // 2. Registrar en el historial de actividad
     const mensajeActividad = `Publicó una nueva oferta: ${nombre} (${stock} und.)`;

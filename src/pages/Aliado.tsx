@@ -47,7 +47,8 @@ export default function Aliado() {
     categoria: "Preparados",
     descripcion: "Pack sorpresa de productos frescos",
     esSorpresa: true,
-    imagen_url: ""
+    imagen_url: "",
+    fecha_vencimiento: ""
   });
 
   const [descuentoManual, setDescuentoManual] = useState("");
@@ -180,7 +181,8 @@ export default function Aliado() {
         precio_rescate: parseFloat(nuevoProducto.precio_rescate),
         stock: parseInt(nuevoProducto.stock),
         categoria: nuevoProducto.categoria,
-        imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url
+        imagen_url: nuevoProducto.esSorpresa ? IMG_SORPRESA : nuevoProducto.imagen_url,
+        fecha_vencimiento: nuevoProducto.fecha_vencimiento || null
       };
 
       const url = editingId
@@ -371,6 +373,17 @@ export default function Aliado() {
                       <span className="text-lg font-black text-green-600">{precioRescateCalculado}</span>
                     </div>
                   )}
+
+                  <div className="space-y-1">
+                    <LabelCustom>Fecha estimada de vencimiento</LabelCustom>
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      value={nuevoProducto.fecha_vencimiento}
+                      onChange={e => setNuevoProducto({...nuevoProducto, fecha_vencimiento: e.target.value})}
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none"
+                    />
+                  </div>
 
                   <div className="space-y-1">
                     <LabelCustom>Stock Disponible</LabelCustom>

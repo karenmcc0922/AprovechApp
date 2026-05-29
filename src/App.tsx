@@ -12,6 +12,7 @@ import MisRescates from "./pages/MisRescates";
 import PedidosAliado from "./pages/PedidosAliado";
 import VitrinaAliado from "./pages/VitrinaAliado";
 import Repartidor from "./pages/Repartidor";
+import Registro from "./pages/Registro";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path="/pedidos-recibir" component={PedidosAliado} />
 
         {/* 4. Flujo Usuario (Rescatista) */}
+        <Route path="/registro" component={Registro} />
         <Route path="/completar-perfil" component={CompleteProfile} />
         <Route path="/catalog" component={Catalog} />
         <Route path="/perfil" component={Profile} />

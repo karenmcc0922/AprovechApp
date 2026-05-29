@@ -70,6 +70,13 @@ export default function Profile() {
   const [editDireccion, setEditDireccion] = useState(usuario.direccion || "");
   const [isGuardando, setIsGuardando] = useState(false);
 
+  // --- ESTADOS PARA MODAL DE CAMBIAR CONTRASEÑA ---
+  const [isPassModalOpen, setIsPassModalOpen] = useState(false);
+  const [passActual, setPassActual] = useState("");
+  const [passNuevo, setPassNuevo] = useState("");
+  const [passConfirm, setPassConfirm] = useState("");
+  const [isCambiandoPass, setIsCambiandoPass] = useState(false);
+
   useEffect(() => {
     if (isModalOpen) {
       setEditNombre(usuario.nombre || "");
@@ -98,6 +105,41 @@ export default function Profile() {
     };
     cargarHistorialDesdeDB();
   }, [userId]);
+
+  const cambiarPassword = async () => {
+    if (!passActual || !passNuevo || !passConfirm) {
+      toast.warning("Completa todos los campos.");
+      return;
+    }
+    if (passNuevo !== passConfirm) {
+      toast.error("Las contraseñas nuevas no coinciden.");
+      return;
+    }
+    if (passNuevo.length < 6) {
+      toast.error("La nueva contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setIsCambiandoPass(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios/${userId}/cambiar-password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password_actual: passActual, password_nuevo: passNuevo })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Contraseña actualizada con éxito");
+        setIsPassModalOpen(false);
+        setPassActual(""); setPassNuevo(""); setPassConfirm("");
+      } else {
+        toast.error(data.error || "No se pudo cambiar la contraseña");
+      }
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setIsCambiandoPass(false);
+    }
+  };
 
   const guardarConfiguracion = async () => {
     if (!editNombre.trim() || !editTelefono.trim() || !editDireccion.trim()) {
@@ -194,13 +236,22 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button 
-                variant="ghost" 
-                onClick={() => setIsModalOpen(true)}
-                className="w-full mt-6 rounded-xl py-5 border border-slate-100 font-black text-[9px] uppercase tracking-wider text-slate-500 hover:bg-slate-900 hover:text-white transition-all duration-300"
-              >
-                <Settings className="w-3.5 h-3.5 mr-2 shrink-0" /> Configurar Cuenta
-              </Button>
+              <div className="mt-6 space-y-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full rounded-xl py-5 border border-slate-100 font-black text-[9px] uppercase tracking-wider text-slate-500 hover:bg-slate-900 hover:text-white transition-all duration-300"
+                >
+                  <Settings className="w-3.5 h-3.5 mr-2 shrink-0" /> Configurar Cuenta
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsPassModalOpen(true)}
+                  className="w-full rounded-xl py-5 border border-slate-100 font-black text-[9px] uppercase tracking-wider text-slate-500 hover:bg-emerald-600 hover:text-white transition-all duration-300"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 mr-2 shrink-0" /> Cambiar Contraseña
+                </Button>
+              </div>
             </Card>
 
             <Card className="border-none shadow-xl bg-slate-900 rounded-[40px] text-white p-8 flex flex-col items-center text-center group relative overflow-hidden">
@@ -370,6 +421,42 @@ export default function Profile() {
           </div>
         </div>
       </main>
+
+      {/* MODAL CAMBIAR CONTRASEÑA */}
+      <Dialog open={isPassModalOpen} onOpenChange={setIsPassModalOpen}>
+        <DialogContent className="sm:max-w-[400px] bg-white/95 backdrop-blur-md rounded-[32px] p-6 border border-slate-100 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" /> Cambiar Contraseña
+            </DialogTitle>
+            <DialogDescription className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              Escribe tu contraseña actual y la nueva
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-3">
+            <div className="space-y-1">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-0.5">Contraseña Actual</label>
+              <Input type="password" value={passActual} onChange={e => setPassActual(e.target.value)} className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-0.5">Nueva Contraseña</label>
+              <Input type="password" value={passNuevo} onChange={e => setPassNuevo(e.target.value)} className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-0.5">Confirmar Nueva Contraseña</label>
+              <Input type="password" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} className="rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700 text-xs" />
+            </div>
+          </div>
+          <DialogFooter className="mt-2 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsPassModalOpen(false)} className="rounded-xl border-slate-200 text-slate-500 font-bold text-[10px] uppercase px-5">
+              Cancelar
+            </Button>
+            <Button onClick={cambiarPassword} disabled={isCambiandoPass} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase px-5">
+              {isCambiandoPass ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Guardando</> : "Actualizar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* MODAL CONFIGURACIÓN CON INPUTS CORREGIDOS SHADCN */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

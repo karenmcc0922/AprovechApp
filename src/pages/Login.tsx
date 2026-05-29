@@ -250,7 +250,7 @@ export default function Login() {
               <div className="text-center mt-6 pt-4 border-t border-slate-200/60">
                 <p className="text-xs text-slate-500 font-semibold">
                   ¿Nuevo en AprovechApp?{" "}
-                  <Link href="/" className={`font-bold ${theme.accent} hover:underline transition-colors ml-0.5`}>
+                  <Link href="/registro" className={`font-bold ${theme.accent} hover:underline transition-colors ml-0.5`}>
                     Regístrate aquí
                   </Link>
                 </p>

@@ -50,6 +50,9 @@ export default function Catalog() {
   const [maxPrice, setMaxPrice] = useState<number>(50000);
   const [sortBy, setSortBy] = useState("discount");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [userCoords, setUserCoords] = useState<{lat: number; lng: number} | null>(null);
+  const [aliadoCoords, setAliadoCoords] = useState<Record<string, {lat: number; lng: number}>>({});
+  const [loadingProximidad, setLoadingProximidad] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [step, setStep] = useState<"confirm" | "wompi_form" | "success">("confirm");
@@ -150,9 +153,16 @@ export default function Catalog() {
     }).sort((a, b) => {
       if (sortBy === "discount") return b.descuento - a.descuento;
       if (sortBy === "price_asc") return a.precioOferta - b.precioOferta;
+      if (sortBy === "proximity" && userCoords) {
+        const ca = aliadoCoords[a.direccion];
+        const cb = aliadoCoords[b.direccion];
+        if (ca && cb) return haversine(userCoords.lat, userCoords.lng, ca.lat, ca.lng) - haversine(userCoords.lat, userCoords.lng, cb.lat, cb.lng);
+        if (ca) return -1;
+        if (cb) return 1;
+      }
       return 0;
     });
-  }, [productosDB, search, maxPrice, sortBy, selectedCategory]);
+  }, [productosDB, search, maxPrice, sortBy, selectedCategory, userCoords, aliadoCoords]);
 
   const calculosCheckout = useMemo(() => {
     if (!selectedProduct) return { subtotal: 0, descuento: 0, envio: 0, total: 0, esPioneroDescuento: false, esPioneroEnvio: false };
@@ -179,6 +189,37 @@ export default function Catalog() {
       esPioneroEnvio
     };
   }, [selectedProduct, tipoEntrega]);
+
+  const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  };
+
+  const activarProximidad = async () => {
+    if (!navigator.geolocation) { return; }
+    setLoadingProximidad(true);
+    setSortBy("proximity");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const uCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setUserCoords(uCoords);
+      const direccionesUnicas = [...new Set(productosDB.map((p: any) => p.direccion).filter(Boolean))];
+      const coords: Record<string, {lat: number; lng: number}> = {};
+      for (const dir of direccionesUnicas) {
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(dir + ", Pereira, Colombia")}`;
+          const res = await fetch(url, { headers: { "User-Agent": "AprovechApp/1.0" } });
+          const data = await res.json();
+          if (data[0]) coords[dir] = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          await new Promise(r => setTimeout(r, 1100));
+        } catch { /* silently skip */ }
+      }
+      setAliadoCoords(coords);
+      setLoadingProximidad(false);
+    }, () => { setLoadingProximidad(false); setSortBy("discount"); });
+  };
 
   const openRescate = (product: any) => {
     setSelectedProduct(product);
@@ -373,15 +414,21 @@ export default function Catalog() {
 
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Ordenar por</Label>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(v) => { if (v === "proximity") { activarProximidad(); } else { setSortBy(v); } }}>
                   <SelectTrigger className="w-full py-5 rounded-xl border border-slate-100 bg-slate-50/60 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-none shadow-xl">
                     <SelectItem value="discount">🔥 Mayor Descuento</SelectItem>
                     <SelectItem value="price_asc">💰 Menor Precio</SelectItem>
+                    <SelectItem value="proximity">📍 Más Cercano</SelectItem>
                   </SelectContent>
                 </Select>
+                {loadingProximidad && (
+                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1 mt-1">
+                    <Loader2 size={10} className="animate-spin" /> Calculando distancias...
+                  </p>
+                )}
               </div>
             </div>
           </aside>
