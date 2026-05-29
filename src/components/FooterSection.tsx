@@ -73,7 +73,7 @@ export default function FooterSection() {
               <div className="w-8 h-8 rounded-lg bg-brand-orange/10 flex items-center justify-center">
                 <Mail className="w-4 h-4 text-brand-orange" />
               </div>
-              <span className="font-medium">hola@aprovechapp.com</span>
+              <span className="font-medium">aprovechapp02@gmail.com</span>
             </a>
             
             <div className="flex items-center gap-3 text-gray-300">
