@@ -121,7 +121,8 @@ export default function Aliado() {
       categoria: prod.categoria || "Preparados",
       descripcion: prod.descripcion || "Pack sorpresa",
       esSorpresa: esSorp,
-      imagen_url: prod.imagen_url || ""
+      imagen_url: prod.imagen_url || "",
+      fecha_vencimiento: prod.fecha_vencimiento ? prod.fecha_vencimiento.split("T")[0] : ""
     });
     setDescuentoManual(descuentoPrevio);
     setImagePreview(esSorp ? null : prod.imagen_url);
@@ -132,7 +133,7 @@ export default function Aliado() {
     setEditingId(null);
     setNuevoProducto({
       nombre: "", precio_original: "", precio_rescate: "", stock: "",
-      categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: ""
+      categoria: "Preparados", descripcion: "Pack sorpresa", esSorpresa: true, imagen_url: "", fecha_vencimiento: ""
     });
     setImagePreview(null);
     setDescuentoManual("");
