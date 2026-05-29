@@ -467,11 +467,11 @@ export default function Catalog() {
 
       {/* Modal Multifase */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl">
+        <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl max-h-[90dvh] flex flex-col">
           
           {/* FASE 1: CONFIRMACIÓN Y COMPONENTES DINÁMICOS */}
           {step === "confirm" && (
-            <div className="p-10">
+            <div className="p-10 overflow-y-auto">
               <DialogHeader className="mb-6">
                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
                     <img src="/logo.png" className="w-6 h-6 object-contain" alt="AprovechApp"/>
@@ -563,7 +563,7 @@ export default function Catalog() {
 
           {/* FASE 2: FORMULARIO WOMPI */}
           {step === "wompi_form" && (
-            <div className="p-10">
+            <div className="p-10 overflow-y-auto">
               <DialogHeader className="mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 bg-[#4A154B] text-white px-3 py-1.5 rounded-xl font-black text-[11px]">
@@ -656,7 +656,7 @@ export default function Catalog() {
 
           {/* FASE 3: ÉXITO TOTAL Y QR */}
           {step === "success" && (
-            <div className="p-10 text-center">
+            <div className="p-10 text-center overflow-y-auto">
               <div className="w-24 h-24 bg-green-50 rounded-[35px] flex items-center justify-center mx-auto mb-8 shadow-inner">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
