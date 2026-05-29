@@ -176,15 +176,6 @@ export default function Login() {
               </button>
             </div>
 
-            {/* Hint de credenciales demo del repartidor */}
-            {role === "driver" && (
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4 text-xs text-blue-700 font-medium space-y-0.5">
-                <p className="font-bold text-blue-800">Credenciales demo:</p>
-                <p>📧 repartidor@aprovechapp.com</p>
-                <p>🔑 repartidor2025</p>
-              </div>
-            )}
-
             <form onSubmit={handleLogin} className="space-y-4">
 
               <div className="space-y-1">
