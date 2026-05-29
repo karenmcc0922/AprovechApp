@@ -74,13 +74,13 @@ export default function Catalog() {
   const getSemaforo = (categoria: string) => {
     switch(categoria) {
       case 'Preparados': 
-        return { color: 'bg-red-100 text-red-700 border-red-200', texto: 'Consumo hoy ⚠️' };
+        return { color: 'bg-red-50 text-red-600 border-red-100', texto: 'Consumo hoy ⚠️' };
       case 'Panaderia': 
-        return { color: 'bg-orange-100 text-orange-700 border-orange-200', texto: 'Consumir pronto ⏳' };
+        return { color: 'bg-orange-50 text-orange-600 border-orange-100', texto: 'Consumir pronto ⏳' };
       case 'Frutas': 
-        return { color: 'bg-green-100 text-green-700 border-green-200', texto: 'Fresco 🍎' };
+        return { color: 'bg-emerald-50 text-emerald-600 border-emerald-100', texto: 'Fresco 🍎' };
       default: 
-        return { color: 'bg-blue-100 text-blue-700 border-blue-200', texto: 'Larga duración ✅' };
+        return { color: 'bg-blue-50 text-blue-600 border-blue-100', texto: 'Larga duración ✅' };
     }
   };
 
@@ -304,8 +304,6 @@ export default function Catalog() {
         user.regalo_domicilio = 0;
         localStorage.setItem("usuario", JSON.stringify(user));
 
-        // PARSEO DE FECHA SINCRONIZADA CON EL BACKEND PARA EL CRONÓMETRO DE EFECTIVO
-        // Forzamos una marca de expiración de 1 hora relativa a este instante exacto para evitar desfases UTC
         const momentoExpiracion = new Date().getTime() + (60 * 60 * 1000);
         setFechaExpiracionReserva(momentoExpiracion);
         setReservaTimeLeft(3600);
@@ -322,68 +320,85 @@ export default function Catalog() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white relative overflow-hidden">
       <AppNavbar /> 
       
-      <div className="container mx-auto px-4 py-8 pt-32 max-w-7xl">
-        {/* Header */}
-        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Explorar Rescates</h1>
+      {/* Auras de fondo para inyectar color sutil y dinámico */}
+      <div className="absolute top-[15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-100/40 blur-[130px] -z-10 animate-pulse duration-[8000ms]" />
+      <div className="absolute bottom-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-orange-100/30 blur-[120px] -z-10 animate-pulse duration-[6000ms] delay-1000" />
+      
+      {/* Encabezado Principal */}
+      <div className="w-full bg-gradient-to-b from-emerald-50/50 via-slate-50/30 to-transparent pt-32 pb-12 border-b border-slate-100/50">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white shadow-[0_8px_20px_rgba(0,0,0,0.04)] rounded-2xl border border-slate-100">
+                  <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                </div>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Explorar Rescates</h1>
+              </div>
+              <p className="text-slate-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
+                 <MapPin size={14} className="text-emerald-500 animate-bounce"/> Pereira, Colombia — <span className="text-slate-800 font-black">{productosFinales.length} disponibles</span>
+              </p>
             </div>
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
-               <MapPin size={14} className="text-green-500"/> Pereira, Colombia — {productosFinales.length} disponibles
-            </p>
-          </div>
-          
-          <div className="flex gap-3">
-             <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap">
-                {["Todas", "Preparados", "Panaderia", "Frutas", "Despensa"].map((cat) => (
-                    <button 
-                     key={cat}
-                     onClick={() => setSelectedCategory(cat)}
-                     className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedCategory === cat ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
-                    >
-                      {cat === "Panaderia" ? "Panadería" : cat}
-                    </button>
-                ))}
-             </div>
+            
+            {/* Categorías Rediseñadas en Píldoras Premium */}
+            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/40 shadow-sm max-w-full overflow-x-auto whitespace-nowrap scrollbar-none">
+              {["Todas", "Preparados", "Panaderia", "Frutas", "Despensa"].map((cat) => (
+                  <button 
+                   key={cat}
+                   onClick={() => setSelectedCategory(cat)}
+                   className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all duration-300 ${
+                     selectedCategory === cat 
+                       ? 'bg-white text-emerald-600 shadow-md scale-[1.02]' 
+                       : 'text-slate-500 hover:text-slate-800'
+                   }`}
+                  >
+                    {cat === "Panaderia" ? "Panadería" : cat}
+                  </button>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-10">
-          {/* Sidebar de Filtros */}
-          <aside className="w-full lg:w-72 space-y-8">
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-10">
-              <div className="flex items-center justify-between">
-                <span className="font-black text-slate-900 text-sm uppercase tracking-tighter">Filtros Avanzados</span>
-                <SlidersHorizontal className="w-4 h-4 text-slate-300" />
+          
+          {/* Sidebar de Filtros (Premium Light Card) */}
+          <aside className="w-full lg:w-72 shrink-0">
+            <div className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-100/80 space-y-8 sticky top-28">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <span className="font-black text-slate-800 text-xs uppercase tracking-wider">Filtros Avanzados</span>
+                <SlidersHorizontal className="w-4 h-4 text-slate-400" />
               </div>
 
+              {/* Slider de Presupuesto */}
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Presupuesto</Label>
-                    <span className="text-sm font-black text-green-600">${maxPrice.toLocaleString()}</span>
+                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Presupuesto max</Label>
+                    <span className="text-sm font-black text-emerald-600">${maxPrice.toLocaleString()}</span>
                 </div>
-                <div className="py-3">
+                <div className="py-2">
                   <Slider
                       value={[maxPrice]}
                       onValueChange={(([v]) => setMaxPrice(v))}
                       max={100000}
                       step={1000}
+                      className="accent-emerald-600"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4">
+              {/* Selector de Orden */}
+              <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Ordenar por</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full py-6 rounded-2xl border-none bg-slate-50 font-bold text-slate-700">
+                  <SelectTrigger className="w-full py-5 rounded-xl border border-slate-100 bg-slate-50/60 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-xl">
+                  <SelectContent className="rounded-xl border-none shadow-xl">
                     <SelectItem value="discount">🔥 Mayor Descuento</SelectItem>
                     <SelectItem value="price_asc">💰 Menor Precio</SelectItem>
                   </SelectContent>
@@ -394,24 +409,25 @@ export default function Catalog() {
 
           {/* Listado Principal de Tarjetas */}
           <main className="flex-1 space-y-8">
-            <div className="relative">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+            {/* Barra de Búsqueda */}
+            <div className="relative group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
               <Input 
                 placeholder="Buscar por comida, local o categoría..." 
-                className="pl-14 py-8 rounded-[32px] border-none shadow-sm bg-white font-bold text-slate-700 placeholder:text-slate-300" 
+                className="pl-13 py-7 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.02)] bg-white font-bold text-slate-700 placeholder:text-slate-300 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all" 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
               />
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="animate-spin text-green-600 w-12 h-12" />
-                <p className="font-black text-slate-300 uppercase text-xs tracking-widest">Sincronizando con aliados...</p>
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="animate-spin text-emerald-600 w-10 h-10" />
+                <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest">Sincronizando con aliados...</p>
               </div>
             ) : productosFinales.length === 0 ? (
-              <div className="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
-                  <Package2 className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+              <div className="text-center py-24 bg-white/60 backdrop-blur-md rounded-[32px] border-2 border-dashed border-slate-200/60 max-w-xl mx-auto">
+                  <Package2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                   <p className="font-black text-slate-400 uppercase text-xs">No hay rescates vigentes por ahora</p>
               </div>
             ) : (
@@ -419,38 +435,44 @@ export default function Catalog() {
                 {productosFinales.map((prod) => {
                   const semaforo = getSemaforo(prod.categoria);
                   return (
-                    <div key={prod.id} className="group bg-white rounded-[44px] overflow-hidden border border-white shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
-                      <div className="relative h-56 overflow-hidden">
-                        <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        <div className="absolute top-5 left-5 flex flex-col gap-2">
-                          <Badge className="bg-white text-slate-900 border-none font-black px-4 py-2 rounded-full shadow-xl text-sm">
+                    <div key={prod.id} className="group bg-white rounded-[32px] overflow-hidden border border-slate-100 shadow-[0_10px_35px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.08)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col">
+                      
+                      {/* Imagen con Badges */}
+                      <div className="relative h-52 overflow-hidden bg-slate-50 shrink-0">
+                        <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute top-4 left-4 flex flex-col gap-2">
+                          <Badge className="bg-white/95 backdrop-blur-sm text-slate-900 border-none font-black px-3.5 py-1.5 rounded-xl shadow-md text-xs">
                             -{prod.descuento}%
                           </Badge>
-                          <Badge className={`${semaforo.color} border font-black px-4 py-2 rounded-full shadow-xl text-[10px] flex items-center gap-1`}>
+                          <Badge className={`${semaforo.color} backdrop-blur-sm border font-black px-3 py-1.5 rounded-xl shadow-md text-[9px] flex items-center gap-1 uppercase tracking-wide`}>
                             <Clock size={10} /> {semaforo.texto}
                           </Badge>
                         </div>
                       </div>
 
-                      <div className="p-8">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <button 
-                            onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
-                            className="text-[10px] font-black text-slate-400 hover:text-green-600 hover:underline uppercase tracking-widest transition-colors text-left"
-                          >
-                            {prod.tienda}
-                          </button>
+                      {/* Cuerpo de la Tarjeta */}
+                      <div className="p-6 flex flex-col flex-1 justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Store size={12} className="text-emerald-500" />
+                            <button 
+                              onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
+                              className="text-[10px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate max-w-full"
+                            >
+                              {prod.tienda}
+                            </button>
+                          </div>
+                          <h3 className="text-lg font-black text-slate-800 mb-4 group-hover:text-emerald-600 transition-colors uppercase truncate">{prod.nombre}</h3>
                         </div>
-                        <h3 className="text-xl font-black text-slate-800 mb-6 group-hover:text-green-600 transition-colors uppercase truncate">{prod.nombre}</h3>
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-2">
                           <div>
-                            <p className="text-slate-300 text-xs line-through font-bold mb-1">${prod.precioOriginal.toLocaleString()}</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tighter">${prod.precioOferta.toLocaleString()}</p>
+                            <p className="text-slate-300 text-xs line-through font-bold">${prod.precioOriginal.toLocaleString()}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">${prod.precioOferta.toLocaleString()}</p>
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
-                              className="bg-slate-900 hover:bg-green-600 text-white rounded-2xl font-black px-8 py-7 shadow-xl transition-all active:scale-95"
+                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-xs px-5 py-5 shadow-md hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider"
                           >
                               RESCATAR
                           </Button>
@@ -465,187 +487,187 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal Multifase */}
+      {/* Modal Multifase Glassmorphism */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-[50px] border-none p-0 overflow-hidden bg-white shadow-2xl max-h-[90dvh] flex flex-col">
+        <DialogContent className="sm:max-w-[420px] rounded-[36px] border border-white/60 p-0 overflow-hidden bg-white/90 backdrop-blur-xl shadow-2xl max-h-[90dvh] flex flex-col">
           
-          {/* FASE 1: CONFIRMACIÓN Y COMPONENTES DINÁMICOS */}
+          {/* FASE 1: CONFIRMACIÓN */}
           {step === "confirm" && (
-            <div className="p-10 overflow-y-auto">
-              <DialogHeader className="mb-6">
-                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
+            <div className="p-8 overflow-y-auto">
+              <DialogHeader className="mb-5">
+                <div className="w-11 h-11 bg-white shadow-md border border-slate-100 rounded-xl flex items-center justify-center mb-3">
                     <img src="/logo.png" className="w-6 h-6 object-contain" alt="AprovechApp"/>
                 </div>
-                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">Método de Rescate</DialogTitle>
-                <DialogDescription className="font-bold text-slate-400 text-xs uppercase tracking-widest">
+                <DialogTitle className="text-2xl font-black tracking-tight text-slate-900">Método de Rescate</DialogTitle>
+                <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase tracking-widest mt-0.5">
                     Selecciona cómo deseas asegurar tu plato
                 </DialogDescription>
               </DialogHeader>
 
               {/* Selector 1: Pasarela vs Efectivo */}
-              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">1. Medio de pago</Label>
-              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-4">
+              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2 ml-1">1. Medio de pago</Label>
+              <div className="grid grid-cols-2 bg-slate-100/80 p-1 rounded-xl mb-4 border border-slate-200/30">
                 <button
                   type="button"
                   onClick={() => setMetodoPago("wompi")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${metodoPago === "wompi" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-200 ${metodoPago === "wompi" ? "bg-white text-emerald-600 shadow-sm scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
                 >
-                  <CreditCard size={14} /> Pagar Online
+                  <CreditCard size={13} /> Pagar Online
                 </button>
                 <button
                   type="button"
                   onClick={() => setMetodoPago("efectivo")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${metodoPago === "efectivo" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-200 ${metodoPago === "efectivo" ? "bg-white text-orange-600 shadow-sm scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
                 >
-                  <Banknote size={14} /> En el Local
+                  <Banknote size={13} /> En el Local
                 </button>
               </div>
 
               {/* Selector 2: Retiro vs Domicilio Logístico */}
-              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2">2. Método de entrega</Label>
-              <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl mb-6">
+              <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-2 ml-1">2. Método de entrega</Label>
+              <div className="grid grid-cols-2 bg-slate-100/80 p-1 rounded-xl mb-5 border border-slate-200/30">
                 <button
                   type="button"
                   onClick={() => setTipoEntrega("retiro")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoEntrega === "retiro" ? "bg-white text-slate-900 shadow-md scale-102" : "text-slate-400"}`}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-200 ${tipoEntrega === "retiro" ? "bg-white text-slate-800 shadow-sm scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
                 >
-                  <Store size={14} /> Recojo en local
+                  <Store size={13} /> Recojo en local
                 </button>
                 <button
                   type="button"
                   disabled={metodoPago === "efectivo"}
                   onClick={() => setTipoEntrega("domicilio")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-200 ${
                     metodoPago === "efectivo" 
-                      ? "opacity-40 cursor-not-allowed text-slate-300" 
+                      ? "opacity-30 cursor-not-allowed text-slate-300" 
                       : tipoEntrega === "domicilio" 
-                      ? "bg-white text-slate-900 shadow-md scale-102" 
-                      : "text-slate-400"
+                      ? "bg-white text-blue-600 shadow-sm scale-[1.02]" 
+                      : "text-slate-400 hover:text-slate-600"
                   }`}
                   title={metodoPago === "efectivo" ? "Las reservas en el local requieren que recojas el producto tú mismo" : ""}
                 >
-                  <Truck size={14} /> Domicilio
+                  <Truck size={13} /> Domicilio
                 </button>
               </div>
 
               {/* DESGLOSE MATEMÁTICO */}
-              <div className="bg-slate-50 p-6 rounded-[28px] mb-6 space-y-3 border border-slate-100">
+              <div className="bg-slate-50/80 border border-slate-100 p-5 rounded-2xl mb-5 space-y-3 shadow-inner">
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Precio Rescate</span>
-                    <span className="font-black text-slate-900">${calculosCheckout.subtotal.toLocaleString()}</span>
+                    <span className="text-slate-400 font-bold uppercase text-[10px]">Precio Rescate</span>
+                    <span className="font-black text-slate-800">${calculosCheckout.subtotal.toLocaleString()}</span>
                 </div>
 
                 {calculosCheckout.esPioneroDescuento && (
-                  <div className="flex justify-between items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-xl">
-                      <span className="font-black uppercase flex items-center gap-1 text-[10px]"><Sparkles size={12}/> Beneficio Pionero (15%)</span>
+                  <div className="flex justify-between items-center text-xs text-purple-600 bg-purple-50 px-2.5 py-1.5 rounded-lg">
+                      <span className="font-black uppercase flex items-center gap-1 text-[9px] tracking-wide"><Sparkles size={11}/> Beneficio Pionero (15%)</span>
                       <span className="font-black">-${calculosCheckout.descuento.toLocaleString()}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-black uppercase">Costo Domicilio</span>
-                    <span className="font-black text-slate-900">
+                    <span className="text-slate-400 font-bold uppercase text-[10px]">Costo Domicilio</span>
+                    <span className="font-black text-slate-800">
                       {tipoEntrega === "retiro" ? "$0" : calculosCheckout.esPioneroEnvio ? "Gratis 🎉" : `$${costoEnvioBase.toLocaleString()}`}
                     </span>
                 </div>
                 
-                <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                <div className="pt-3 border-t border-slate-200/60 flex justify-between items-center">
                     <span className="text-slate-400 font-black uppercase text-[10px]">Total a Pagar</span>
-                    <span className="text-2xl font-black text-green-600">${calculosCheckout.total.toLocaleString()}</span>
+                    <span className="text-xl font-black text-emerald-600">${calculosCheckout.total.toLocaleString()}</span>
                 </div>
               </div>
 
-              <Button onClick={procesarCheckout} className="w-full bg-green-600 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-700 transition-all uppercase tracking-wider text-white">
-                  {metodoPago === "wompi" ? "IR A PAGAR 💳" : "SEPARAR Y RECOGER ⏳"}
+              <Button onClick={procesarCheckout} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-xl font-black text-xs shadow-md uppercase tracking-wider transition-all duration-300">
+                  {metodoPago === "wompi" ? "IR A PAGAR ONLINE 💳" : "RESERVAR Y PAGAR EN CAJA ⏳"}
               </Button>
             </div>
           )}
 
           {/* FASE 2: FORMULARIO WOMPI */}
           {step === "wompi_form" && (
-            <div className="p-10 overflow-y-auto">
-              <DialogHeader className="mb-4">
+            <div className="p-8 overflow-y-auto">
+              <DialogHeader className="mb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 bg-[#4A154B] text-white px-3 py-1.5 rounded-xl font-black text-[11px]">
-                    <span className="tracking-wide">wompi</span>
-                    <span className="text-[8px] bg-amber-400 text-slate-900 px-1 rounded font-bold">SANDBOX</span>
+                  <div className="flex items-center gap-1.5 bg-[#4A154B] text-white px-3 py-1 rounded-lg font-black text-[10px]">
+                    <span className="tracking-wide lowercase font-bold">wompi</span>
+                    <span className="text-[7px] bg-amber-400 text-slate-900 px-1 rounded font-black uppercase">Sandbox</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                    <Lock size={12} className="text-green-500" /> Seguro
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    <Lock size={12} className="text-emerald-500" /> Seguro
                   </div>
                 </div>
-                <DialogTitle className="text-xl font-black text-slate-900 mt-4">Tarjeta de Crédito / Débito</DialogTitle>
-                <DialogDescription className="text-[10px] text-slate-400 uppercase font-black tracking-wider">
+                <DialogTitle className="text-lg font-black text-slate-900 mt-4">Tarjeta de Crédito / Débito</DialogTitle>
+                <DialogDescription className="text-[9px] text-slate-400 uppercase font-black tracking-wider">
                   Pagarás ${calculosCheckout.total.toLocaleString()} COP a AprovechApp
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 my-6">
-                <div className="space-y-1.5">
-                  <Label className="text-[9px] uppercase font-black text-slate-400">Número de Tarjeta</Label>
+              <div className="space-y-3.5 my-5">
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase font-black text-slate-400 ml-0.5">Número de Tarjeta</Label>
                   <Input 
                     type="text" 
                     placeholder="4242 4242 4242 4242" 
                     maxLength={19}
                     value={tarjeta.numero}
                     onChange={(e) => setTarjeta({...tarjeta, numero: e.target.value})}
-                    className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700"
+                    className="rounded-xl py-4 border-slate-200 font-medium font-mono text-slate-700 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[9px] uppercase font-black text-slate-400">Vencimiento</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-black text-slate-400 ml-0.5">Vencimiento</Label>
                     <Input 
                       type="text" 
                       placeholder="MM/AA" 
                       maxLength={5}
                       value={tarjeta.fecha}
                       onChange={(e) => setTarjeta({...tarjeta, fecha: e.target.value})}
-                      className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700 text-center"
+                      className="rounded-xl py-4 border-slate-200 font-medium font-mono text-slate-700 text-center text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[9px] uppercase font-black text-slate-400">CVC</Label>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] uppercase font-black text-slate-400 ml-0.5">CVC</Label>
                     <Input 
                       type="password" 
                       placeholder="123" 
                       maxLength={3}
                       value={tarjeta.cvc}
                       onChange={(e) => setTarjeta({...tarjeta, cvc: e.target.value})}
-                      className="rounded-xl py-5 border-slate-200 font-medium font-mono text-slate-700 text-center"
+                      className="rounded-xl py-4 border-slate-200 font-medium font-mono text-slate-700 text-center text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-[9px] uppercase font-black text-slate-400">Nombre en la tarjeta</Label>
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase font-black text-slate-400 ml-0.5">Nombre en la tarjeta</Label>
                   <Input 
                     type="text" 
                     placeholder="EJ. JUAN PEREZ" 
                     value={tarjeta.nombre}
                     onChange={(e) => setTarjeta({...tarjeta, nombre: e.target.value.toUpperCase()})}
-                    className="rounded-xl py-5 border-slate-200 font-bold text-slate-700 text-xs uppercase"
+                    className="rounded-xl py-4 border-slate-200 font-bold text-slate-700 text-xs uppercase tracking-wide focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   onClick={() => setStep("confirm")} 
                   disabled={isProcessing}
-                  className="rounded-2xl py-6 px-4 font-black text-xs text-slate-400 uppercase tracking-wider"
+                  className="rounded-xl py-5 px-4 font-black text-xs text-slate-400 uppercase tracking-wider hover:bg-slate-50 border-slate-200"
                 >
                   Atrás
                 </Button>
                 <Button 
                   onClick={procesarCheckout} 
                   disabled={isProcessing}
-                  className="flex-1 bg-[#4A154B] hover:bg-[#350f36] text-white rounded-2xl py-6 font-black text-xs tracking-widest uppercase shadow-lg"
+                  className="flex-1 bg-[#4A154B] hover:bg-[#350f36] text-white rounded-xl py-5 font-black text-xs tracking-widest uppercase shadow-md"
                 >
                   {isProcessing ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-center">
                       <Loader2 className="animate-spin w-4 h-4" /> Procesando...
                     </div>
                   ) : `PAGAR $${calculosCheckout.total.toLocaleString()}`}
@@ -657,44 +679,50 @@ export default function Catalog() {
           {/* FASE 3: ÉXITO TOTAL Y QR */}
           {step === "success" && (
             <div className="p-10 text-center overflow-y-auto">
-              <div className="w-24 h-24 bg-green-50 rounded-[35px] flex items-center justify-center mx-auto mb-8 shadow-inner">
-                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+              <div className="w-20 h-20 bg-emerald-50 rounded-[28px] flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-inner">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
               </div>
-              <h2 className="text-4xl font-black mb-2 tracking-tighter text-slate-900">
+              <h2 className="text-3xl font-black mb-2 tracking-tight text-slate-900">
                 {metodoPago === "efectivo" ? "¡RESERVADO!" : "¡COMPRADO!"}
               </h2>
               
-              <p className="text-slate-400 mb-6 text-xs font-black uppercase tracking-widest px-4 leading-relaxed">
-                  {metodoPago === 'efectivo' 
-                    ? `Tienes el tiempo límite indicado abajo para asistir a ${selectedProduct?.tienda} y pagar en caja.`
-                    : tipoEntrega === 'domicilio' 
-                    ? `Tu pedido va en camino a tu dirección en Pereira.` 
-                    : `Boleto pagado. Visita a ${selectedProduct?.tienda} para reclamar.`
-                  }
+              <p className="text-slate-400 mb-6 text-xs font-bold uppercase tracking-widest px-2 leading-relaxed">
+                {metodoPago === 'efectivo' 
+                  ? `Tienes el tiempo límite indicado abajo para asistir a ${selectedProduct?.tienda} y pagar en caja.`
+                  : tipoEntrega === 'domicilio' 
+                  ? `Tu pedido va en camino a tu dirección en Pereira.` 
+                  : `Boleto pagado. Visita a ${selectedProduct?.tienda} para reclamar.`
+                }
               </p>
 
-              {/* CONTADOR CORREGIDO EN TIEMPO REAL */}
+              {/* CONTADOR EN TIEMPO REAL */}
               {metodoPago === "efectivo" && (
-                <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-6 flex flex-col items-center gap-1 animate-pulse">
+                <div className="bg-amber-50/80 border border-amber-200/60 rounded-2xl p-4 mb-6 flex flex-col items-center gap-1 animate-pulse">
                   <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1">
                     <AlertTriangle size={12} className="text-amber-600"/> Tiempo de recogida restante:
                   </span>
-                  <span className="text-2xl font-mono font-black text-amber-700">
+                  <span className="text-xl font-mono font-black text-amber-700">
                     {formatTime(reservaTimeLeft)}
                   </span>
                 </div>
               )}
               
-              <div className="bg-slate-900 p-10 rounded-[45px] mb-10 flex flex-col items-center shadow-2xl relative overflow-hidden">
-                <div className={`absolute top-0 left-0 w-full h-2 ${metodoPago === 'efectivo' ? 'bg-amber-500' : 'bg-green-500'}`} />
+              {/* Tarjeta del Boleto QR Unificado */}
+              <div className="bg-slate-900 p-8 rounded-[40px] mb-6 flex flex-col items-center shadow-xl relative overflow-hidden">
+                <div className={`absolute top-0 left-0 w-full h-1.5 ${metodoPago === 'efectivo' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                
                 <QrCode className="w-32 h-32 text-white mb-6 opacity-90" />
-                <p className={`font-mono font-black tracking-[0.3em] text-3xl uppercase ${metodoPago === 'efectivo' ? 'text-amber-400' : 'text-green-400'}`}>
-                    {selectedProduct?.codigoGenerated}
+                
+                <p className={`font-mono font-black tracking-[0.3em] text-3xl uppercase ${metodoPago === 'efectivo' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {selectedProduct?.codigoGenerated}
                 </p>
               </div>
 
-              <Button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-100 text-slate-900 py-8 rounded-3xl font-black hover:bg-slate-200 transition-all uppercase text-xs tracking-widest">
-                  Volver al catálogo
+              <Button 
+                onClick={() => setIsModalOpen(false)} 
+                className="w-full bg-slate-100 text-slate-800 py-6 rounded-2xl font-black hover:bg-slate-200 transition-all uppercase text-xs tracking-widest shadow-sm"
+              >
+                Volver al catálogo
               </Button>
             </div>
           )}
