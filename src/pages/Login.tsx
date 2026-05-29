@@ -2,24 +2,22 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight, Bike } from "lucide-react";
-import { toast } from "sonner";
-import { API_BASE } from "../lib/api";
+import { Lock, Mail, Eye, EyeOff, Loader2, User, Store, ArrowRight } from "lucide-react";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const [,] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"user" | "vendor" | "repartidor">("user");
+  const [role, setRole] = useState<"user" | "vendor">("user");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/login`, {
+      const response = await fetch("https://aprovechapp-api.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo: email, password, role }),
@@ -28,163 +26,168 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        const usuarioParaAlmacenar: Record<string, any> = {
+        const usuarioParaAlmacenar = {
           id: data.usuario.id,
           nombre: data.usuario.nombre,
           role: data.usuario.role,
-          correo: email,
+          correo: email
         };
-
-        // Solo guardar campos de beneficios para rescatistas
-        if (data.usuario.role === "user") {
-          usuarioParaAlmacenar.regalo_descuento = data.usuario.regalo_descuento;
-          usuarioParaAlmacenar.regalo_domicilio = data.usuario.regalo_domicilio;
-        }
 
         localStorage.setItem("usuario", JSON.stringify(usuarioParaAlmacenar));
         localStorage.setItem("user_name", data.usuario.nombre);
         localStorage.setItem("user_role", data.usuario.role);
-
-        // aliado_id solo para comercios
-        if (data.usuario.role === "vendor") {
-          localStorage.setItem("aliado_id", data.usuario.id.toString());
-        }
+        localStorage.setItem("aliado_id", data.usuario.id.toString());
 
         if (data.usuario.role === "vendor") {
-          setLocation("/aliado");
-        } else if (data.usuario.role === "repartidor") {
-          setLocation("/repartidor");
+          window.location.href = "/aliado";
         } else {
-          setLocation("/catalog");
+          window.location.href = "/catalog";
         }
       } else {
-        toast.error(data.error || "Credenciales incorrectas");
+        alert(data.error || "Credenciales incorrectas");
       }
     } catch (error) {
       console.error("Error en login:", error);
-      toast.error("Error de conexión. Revisa tu internet.");
+      alert("Error de conexión. Revisa tu internet.");
     } finally {
       setLoading(false);
     }
   };
 
-  const roles = [
-    { key: "user" as const, label: "Rescatista", icon: <User size={14} /> },
-    { key: "vendor" as const, label: "Comercio", icon: <Store size={14} /> },
-    { key: "repartidor" as const, label: "Repartidor", icon: <Bike size={14} /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-
-        <div className="text-center mb-10">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="w-16 h-16 mx-auto mb-4 drop-shadow-xl object-contain"
-          />
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
-            Aprovech<span className="text-green-600">App</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-emerald-50/30 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-md transition-all duration-300">
+        
+        {/* Encabezado Principal / Branding */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-white shadow-md rounded-2xl mb-4 p-2.5 border border-slate-100">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-contain" 
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Aprovech<span className="text-emerald-600 font-extrabold">App</span>
           </h1>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">Menos desperdicio, más ahorro</p>
+          <p className="text-slate-500 text-xs mt-1 font-medium tracking-wide">Menos desperdicio, más ahorro</p>
         </div>
 
-        <Card className="border-none shadow-[0_32px_64px_-15px_rgba(0,0,0,0.08)] rounded-[45px] overflow-hidden bg-white">
-          <CardHeader className="p-10 pb-2">
-            <CardTitle className="text-2xl font-black text-slate-800 text-center uppercase tracking-tighter italic">
-              Bienvenido
+        {/* Tarjeta de Formulario Principal */}
+        <Card className="border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-3xl overflow-hidden bg-white">
+          <CardHeader className="pt-8 pb-4 px-8 text-center">
+            <CardTitle className="text-xl font-bold text-slate-800 tracking-tight">
+              Iniciar Sesión
             </CardTitle>
-            <p className="text-center text-slate-400 text-xs font-bold uppercase mt-2">Ingresa tus credenciales</p>
+            <p className="text-slate-400 text-sm mt-1">Ingresa tus datos para continuar</p>
           </CardHeader>
 
-          <CardContent className="p-10">
-            {/* Selector de Rol */}
-            <div className="flex gap-1.5 p-1.5 bg-slate-100 rounded-3xl mb-8">
-              {roles.map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setRole(key)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-[20px] font-black text-[9px] uppercase tracking-widest transition-all ${
-                    role === key
-                    ? "bg-white shadow-md text-green-600 scale-[1.02]"
-                    : "text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  {icon} {label}
-                </button>
-              ))}
+          <CardContent className="px-8 pb-8 pt-2">
+            
+            {/* Selector de Rol Dinámico */}
+            <div className="flex p-1 bg-slate-100/80 backdrop-blur-sm rounded-2xl mb-6 border border-slate-200/40">
+              <button
+                type="button"
+                onClick={() => setRole("user")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
+                  role === "user" 
+                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <User size={15} /> 
+                <span>Rescatista</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("vendor")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
+                  role === "vendor" 
+                    ? "bg-white shadow-sm text-emerald-600 border border-slate-200/20" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Store size={15} /> 
+                <span>Comercio</span>
+              </button>
             </div>
 
-            {role === "repartidor" && (
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-center">
-                <p className="text-[10px] font-black text-blue-700 uppercase tracking-wider">Demo de Repartidor</p>
-                <p className="text-[9px] text-blue-500 font-bold mt-1">
-                  Correo: repartidor@aprovechapp.com<br/>Contraseña: repartidor2025
-                </p>
-              </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-4">
-                <div className="group relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
+            {/* Formulario */}
+            <form onSubmit={handleLogin} className="space-y-4">
+              
+              {/* Input: Email */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600 ml-1">Correo Electrónico</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-emerald-500 transition-colors" />
                   <input
                     type="email"
                     required
-                    placeholder="Correo electrónico"
+                    placeholder="ejemplo@correo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-14 pr-5 py-5 bg-slate-50 border-none rounded-[25px] focus:ring-2 focus:ring-green-500/20 outline-none font-bold text-slate-700 transition-all placeholder:text-slate-300"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400 font-medium"
                   />
                 </div>
+              </div>
 
-                <div className="group relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-green-600 transition-colors" />
+              {/* Input: Contraseña */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-xs font-semibold text-slate-600">Contraseña</label>
+                  {/* Aquí va el enlace para la tarea de recuperación de tu compañero */}
+                  <Link href="/recuperar" className="text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-all">
+                    ¿La olvidaste?
+                  </Link>
+                </div>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-emerald-500 transition-colors" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Tu contraseña"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-14 pr-14 py-5 bg-slate-50 border-none rounded-[25px] focus:ring-2 focus:ring-green-500/20 outline-none font-bold text-slate-700 transition-all placeholder:text-slate-300"
+                    className="w-full pl-11 pr-11 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400 font-medium"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-green-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-4">
-                <Button
-                  type="submit"
+              {/* Botón de Enviar */}
+              <div className="pt-2">
+                <Button 
+                  type="submit" 
                   disabled={loading}
-                  className="group w-full py-9 rounded-[30px] bg-slate-900 hover:bg-green-600 text-white text-sm font-black transition-all shadow-xl shadow-slate-200 uppercase tracking-widest relative"
+                  className="w-full py-6 rounded-xl bg-slate-950 hover:bg-emerald-600 text-white text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-emerald-500/10 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:hover:bg-slate-950"
                 >
                   {loading ? (
-                    <Loader2 className="animate-spin w-5 h-5" />
+                    <Loader2 className="animate-spin w-4 h-4" />
                   ) : (
-                    <span className="flex items-center gap-3">
-                      Entrar ahora
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </span>
+                    <>
+                      <span>Ingresar a la plataforma</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </>
                   )}
                 </Button>
               </div>
 
-              <div className="text-center mt-6">
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight">
+              {/* Enlace de Registro Inferior */}
+              <div className="text-center mt-6 pt-2 border-t border-slate-100">
+                <p className="text-xs text-slate-500 font-medium">
                   ¿Nuevo en AprovechApp?{" "}
-                  <Link href="/" className="text-green-600 hover:text-green-700 ml-1 transition-colors">
+                  <Link href="/" className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline transition-colors ml-0.5">
                     Regístrate aquí
                   </Link>
                 </p>
               </div>
+
             </form>
           </CardContent>
         </Card>
