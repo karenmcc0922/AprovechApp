@@ -62,177 +62,194 @@ export default function Login() {
     setPassword("repartidor2025");
   };
 
-  // 🎨 Identidad Visual: Blanco Premium con Acentos Dinámicos
+  // 🎨 Identidad Visual Dinámica: Base Clara con Inyecciones de Color Notorias
   const roleThemes = {
     user: {
+      bgGradient: "from-emerald-100 via-teal-50/60 to-white",
       accent: "text-emerald-600",
-      bgAccent: "bg-emerald-600",
-      glow: "bg-emerald-200/40",
-      ring: "focus:ring-emerald-500/20",
+      bgAccent: "bg-emerald-600 hover:bg-emerald-700",
+      glow: "bg-emerald-400/40",
+      ring: "focus:ring-emerald-500/30",
       border: "focus:border-emerald-500",
+      inputFocusBg: "focus:bg-emerald-50/30",
     },
     vendor: {
-      accent: "text-orange-500",
-      bgAccent: "bg-orange-500",
-      glow: "bg-orange-200/40",
-      ring: "focus:ring-orange-500/20",
+      bgGradient: "from-orange-100 via-amber-50/60 to-white",
+      accent: "text-orange-600",
+      bgAccent: "bg-orange-600 hover:bg-orange-700",
+      glow: "bg-orange-400/40",
+      ring: "focus:ring-orange-500/30",
       border: "focus:border-orange-500",
+      inputFocusBg: "focus:bg-orange-50/30",
     },
     driver: {
-      accent: "text-blue-500",
-      bgAccent: "bg-blue-500",
-      glow: "bg-blue-200/40",
-      ring: "focus:ring-blue-500/20",
+      bgGradient: "from-blue-100 via-indigo-50/60 to-white",
+      accent: "text-blue-600",
+      bgAccent: "bg-blue-600 hover:bg-blue-700",
+      glow: "bg-blue-400/40",
+      ring: "focus:ring-blue-500/30",
       border: "focus:border-blue-500",
+      inputFocusBg: "focus:bg-blue-50/30",
     },
   };
 
   const theme = roleThemes[role];
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-colors duration-700">
+    <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center p-4 sm:p-6 relative overflow-hidden transition-all duration-700`}>
       
-      {/* 🟢 Fondo con "Auras" dinámicas (Mantienen el blanco pero dan vida) */}
-      <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full ${theme.glow} blur-[120px] transition-all duration-1000 animate-pulse`} />
-      <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full ${theme.glow} blur-[120px] transition-all duration-1000 delay-500 animate-pulse`} />
+      {/* 🔮 Esferas de Luz Líquidas (Hacen que el fondo tenga color real y movimiento) */}
+      <div className={`absolute top-[-5%] left-[-5%] w-[450px] h-[450px] rounded-full ${theme.glow} blur-[90px] transition-all duration-1000 animate-pulse`} />
+      <div className={`absolute bottom-[-5%] right-[-5%] w-[450px] h-[450px] rounded-full ${theme.glow} blur-[90px] transition-all duration-1000 delay-300 animate-pulse`} />
 
       <div className="w-full max-w-md z-10">
         
-        {/* Branding Minimalista */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.05)] rounded-2xl mb-5 p-3 border border-slate-100 transform hover:rotate-3 transition-transform">
+        {/* Encabezado / Branding */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white shadow-[0_12px_30px_rgba(0,0,0,0.08)] rounded-2xl mb-4 p-3 border border-white transform hover:scale-105 transition-all duration-300">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Aprovech<span className={`${theme.accent} transition-colors duration-500`}>App</span>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            Aprovech<span className={`${theme.accent} font-black transition-colors duration-500`}>App</span>
           </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-2">Menos desperdicio • Más ahorro</p>
+          <p className="text-slate-500 text-xs mt-1.5 font-bold tracking-[0.15em] uppercase">Menos desperdicio • Más ahorro</p>
         </div>
 
-        {/* Tarjeta Premium White Glass */}
-        <Card className="border border-white shadow-[0_20px_50px_rgba(0,0,0,0.06)] rounded-[40px] bg-white/80 backdrop-blur-md overflow-hidden">
-          <CardHeader className="pt-10 pb-2 px-8 text-center">
-            <CardTitle className="text-2xl font-bold text-slate-800 tracking-tight">
-              Bienvenido
+        {/* Tarjeta Premium White-Glassmorphism (Absorbe los colores de fondo de forma notoria) */}
+        <Card className="border border-white/60 shadow-[0_30px_70px_rgba(0,0,0,0.08)] rounded-[36px] bg-white/70 backdrop-blur-xl overflow-hidden transition-all duration-500">
+          <CardHeader className="pt-9 pb-2 px-8 text-center">
+            <CardTitle className="text-xl font-extrabold text-slate-800 tracking-tight">
+              ¡Hola, bienvenido!
             </CardTitle>
-            <p className="text-slate-400 text-xs font-medium mt-1 uppercase tracking-wider">Identifícate para continuar</p>
+            <p className="text-slate-500 text-xs font-semibold mt-1">Elige tu rol e ingresa tus credenciales</p>
           </CardHeader>
 
-          <CardContent className="px-10 pb-10 pt-4">
+          <CardContent className="px-8 pb-9 pt-4">
             
-            {/* Selector de Rol Moderno (Píldora) */}
-            <div className="flex p-1.5 bg-slate-50 rounded-[24px] mb-8 border border-slate-100">
+            {/* Selector de Rol Tipo Píldora de Alta Definición */}
+            <div className="flex p-1.5 bg-slate-200/50 backdrop-blur-sm rounded-2xl mb-6 border border-slate-300/30">
               <button
                 type="button"
                 onClick={() => setRole("user")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[18px] font-bold text-[11px] uppercase transition-all duration-300 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
                   role === "user" 
-                    ? `bg-white shadow-md ${theme.accent} scale-[1.03]` 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-white shadow-md text-emerald-600 scale-[1.02]" 
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <User size={14} /> Rescatista
+                <User size={15} /> 
+                <span>Rescatista</span>
               </button>
               
               <button
                 type="button"
                 onClick={() => setRole("vendor")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[18px] font-bold text-[11px] uppercase transition-all duration-300 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
                   role === "vendor" 
-                    ? `bg-white shadow-md ${theme.accent} scale-[1.03]` 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-white shadow-md text-orange-600 scale-[1.02]" 
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Store size={14} /> Comercio
+                <Store size={15} /> 
+                <span>Comercio</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole("driver")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[18px] font-bold text-[11px] uppercase transition-all duration-300 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${
                   role === "driver" 
-                    ? `bg-white shadow-md ${theme.accent} scale-[1.03]` 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-white shadow-md text-blue-600 scale-[1.02]" 
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Bike size={14} /> Repartidor
+                <Bike size={15} /> 
+                <span>Repartidor</span>
               </button>
             </div>
 
-            {/* Formulario Estilizado */}
-            <form onSubmit={handleLogin} className="space-y-5">
+            {/* Formulario */}
+            <form onSubmit={handleLogin} className="space-y-4.5">
               
-              <div className="group relative">
-                <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:${theme.accent} transition-colors`} />
-                <input
-                  type="email"
-                  required
-                  placeholder="Tu correo electrónico"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full pl-14 pr-5 py-5 bg-slate-50 border border-transparent rounded-[25px] font-bold text-slate-700 text-sm outline-none transition-all placeholder:text-slate-300 ${theme.border} focus:ring-4 ${theme.ring} focus:bg-white`}
-                />
+              {/* Campo: Correo */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 ml-1">Correo Electrónico</label>
+                <div className="relative group">
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:${theme.accent} transition-colors`} />
+                  <input
+                    type="email"
+                    required
+                    placeholder="ejemplo@correo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full pl-11 pr-4 py-3.5 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm ${theme.border} focus:ring-4 ${theme.ring} ${theme.inputFocusBg}`}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="group relative">
-                  <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:${theme.accent} transition-colors`} />
+              {/* Campo: Contraseña */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-xs font-bold text-slate-600">Contraseña</label>
+                  <Link href="/recuperar" className={`text-xs font-bold ${theme.accent} hover:underline transition-colors`}>
+                    ¿La olvidaste?
+                  </Link>
+                </div>
+                <div className="relative group">
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:${theme.accent} transition-colors`} />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Tu contraseña secreta"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full pl-14 pr-14 py-5 bg-slate-50 border border-transparent rounded-[25px] font-bold text-slate-700 text-sm outline-none transition-all placeholder:text-slate-300 ${theme.border} focus:ring-4 ${theme.ring} focus:bg-white`}
+                    className={`w-full pl-11 pr-11 py-3.5 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm ${theme.border} focus:ring-4 ${theme.ring} ${theme.inputFocusBg}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                </div>
-                <div className="text-right px-2">
-                   <Link href="/recuperar" className={`text-[10px] font-black uppercase tracking-widest ${theme.accent} hover:underline`}>
-                      ¿Olvidaste tu contraseña?
-                   </Link>
                 </div>
               </div>
 
-              <div className="pt-4">
+              {/* Botón de Envío Principal */}
+              <div className="pt-3">
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className={`w-full py-9 rounded-[30px] ${theme.bgAccent} hover:opacity-90 text-white text-sm font-black transition-all shadow-xl shadow-slate-100 uppercase tracking-[0.2em] flex items-center justify-center gap-3 group`}
+                  className={`w-full py-6 rounded-xl ${theme.bgAccent} text-white text-sm font-bold transition-all duration-300 shadow-md flex items-center justify-center gap-2 group disabled:opacity-70`}
                 >
                   {loading ? (
-                    <Loader2 className="animate-spin w-5 h-5" />
+                    <Loader2 className="animate-spin w-4 h-4" />
                   ) : (
                     <>
-                      <span>Entrar ahora</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <span>Ingresar a la plataforma</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </>
                   )}
                 </Button>
               </div>
 
-              {/* Botón Demo sutil */}
+              {/* Botón de Acceso Demo de Repartidor */}
               <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={cargarDemoRepartidor}
-                  className="text-[9px] text-slate-300 hover:text-slate-500 font-bold uppercase tracking-widest transition-colors"
+                  className="text-[10px] bg-slate-100 hover:bg-slate-200/80 text-slate-600 px-3 py-1.5 rounded-lg font-bold tracking-wide transition-all border border-slate-200/40"
                 >
-                  Modo Repartidor (Demo)
+                  ⚡ Ingreso Rápido: Repartidor Demo
                 </button>
               </div>
 
-              <div className="text-center mt-6 pt-6 border-t border-slate-50">
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight">
-                  ¿Eres nuevo aquí?{" "}
-                  <Link href="/" className={`${theme.accent} hover:opacity-80 ml-1 transition-colors`}>
-                    Crea una cuenta
+              {/* Enlace de Registro Inferior */}
+              <div className="text-center mt-6 pt-4 border-t border-slate-200/60">
+                <p className="text-xs text-slate-500 font-semibold">
+                  ¿Nuevo en AprovechApp?{" "}
+                  <Link href="/" className={`font-bold ${theme.accent} hover:underline transition-colors ml-0.5`}>
+                    Regístrate aquí
                   </Link>
                 </p>
               </div>
