@@ -208,15 +208,22 @@ export default function Aliado() {
     }
   };
 
-  // Precio de rescate calculado para mostrar en el formulario
   const precioRescateCalculado = nuevoProducto.precio_rescate
     ? `$${Number(nuevoProducto.precio_rescate).toLocaleString()}`
     : null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       <AppNavbar />
-      <main className="container mx-auto px-4 pt-32 pb-12 max-w-7xl">
+      
+      {/* CAPA DE TEXTURA TECNOLÓGICA */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+
+      {/* GRADIENTES DIFUMINADOS PREMIUM */}
+      <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[-5%] w-[450px] h-[450px] rounded-full bg-blue-100/20 blur-[140px] pointer-events-none" />
+
+      <main className="flex-grow container mx-auto px-4 pt-32 pb-12 max-w-7xl relative z-10">
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
@@ -230,14 +237,15 @@ export default function Aliado() {
         {/* MÉTRICAS Y GRÁFICA */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <Card className="border-none shadow-sm rounded-[35px] bg-white p-6 flex items-center gap-5 border-l-4 border-green-500">
+            <Card className="border border-slate-100/80 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white/90 backdrop-blur-md p-6 flex items-center gap-5 border-l-4 border-l-green-500">
               <div className="bg-green-50 p-4 rounded-2xl"><TrendingUp className="text-green-600 w-6 h-6" /></div>
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ingresos Totales</p>
                 <h3 className="text-2xl font-black text-slate-900">${Number(stats.total_ganado || 0).toLocaleString()}</h3>
               </div>
             </Card>
-            <Card className="border-none shadow-sm rounded-[35px] bg-white p-6 flex items-center gap-5 border-l-4 border-blue-500">
+            
+            <Card className="border border-slate-100/80 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white/90 backdrop-blur-md p-6 flex items-center gap-5 border-l-4 border-l-blue-500">
               <div className="bg-blue-50 p-4 rounded-2xl"><BarChart3 className="text-blue-600 w-6 h-6" /></div>
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rescates Exitosos</p>
@@ -246,7 +254,7 @@ export default function Aliado() {
             </Card>
           </div>
 
-          <Card className="lg:col-span-8 border-none shadow-sm rounded-[35px] bg-white p-8 min-h-[300px] flex flex-col">
+          <Card className="lg:col-span-8 border border-slate-100/80 shadow-[0_20px_50px_rgba(0,0,0,0.03)] rounded-[35px] bg-white/90 backdrop-blur-md p-8 min-h-[300px] flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-black text-slate-900 uppercase italic tracking-tighter">Ventas Semanales</h3>
               <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Live</div>
@@ -257,14 +265,14 @@ export default function Aliado() {
                   <AreaChart data={datosGrafica}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.25}/>
                         <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} />
                     <YAxis hide />
-                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)'}} />
                     <Area type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={4} fillOpacity={1} fill="url(#colorTotal)" dot={{ r: 4, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -281,8 +289,8 @@ export default function Aliado() {
         {/* SECCIÓN INFERIOR: GESTIÓN */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-4">
-            <Card className="border-none shadow-2xl rounded-[45px] bg-white overflow-hidden">
-              <div className={`p-8 text-white flex items-center justify-between transition-colors ${editingId ? 'bg-amber-600' : 'bg-slate-900'}`}>
+            <Card className="border border-slate-100 shadow-[0_30px_70px_rgba(15,23,42,0.06)] rounded-[45px] bg-white overflow-hidden">
+              <div className={`p-8 text-white flex items-center justify-between transition-colors duration-300 ${editingId ? 'bg-amber-600' : 'bg-slate-900'}`}>
                 <div className="flex items-center gap-3">
                   <Plus className="w-5 h-5 text-green-400"/>
                   <span className="font-black text-sm uppercase tracking-widest">
@@ -301,9 +309,9 @@ export default function Aliado() {
                   {/* Toggle Sorpresa / Producto único */}
                   <div
                     onClick={() => setNuevoProducto({...nuevoProducto, esSorpresa: !nuevoProducto.esSorpresa})}
-                    className={`cursor-pointer p-4 rounded-3xl border-2 transition-all flex items-center gap-4 ${nuevoProducto.esSorpresa ? "bg-green-50 border-green-500" : "bg-slate-50 border-slate-100"}`}
+                    className={`cursor-pointer p-4 rounded-3xl border-2 transition-all flex items-center gap-4 ${nuevoProducto.esSorpresa ? "bg-green-50/60 border-green-500/80 shadow-sm" : "bg-slate-50 border-slate-100"}`}
                   >
-                    <div className={`p-2 rounded-xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                    <div className={`p-2 rounded-xl ${nuevoProducto.esSorpresa ? 'bg-green-600 text-white shadow-md shadow-green-600/20' : 'bg-slate-200 text-slate-400'}`}>
                       {nuevoProducto.esSorpresa ? <Gift className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
                     </div>
                     <p className="font-black text-[10px] text-slate-800 uppercase italic">
@@ -319,13 +327,13 @@ export default function Aliado() {
                           <button
                             type="button"
                             onClick={() => { setImagePreview(null); setNuevoProducto(prev => ({...prev, imagen_url: ""})); }}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-md"
                           >
                             <X size={12}/>
                           </button>
                         </div>
                       ) : (
-                        <label className="w-full h-32 border-2 border-dashed rounded-[25px] flex flex-col items-center justify-center cursor-pointer border-slate-200 hover:bg-slate-50 transition-all">
+                        <label className="w-full h-32 border-2 border-dashed rounded-[25px] flex flex-col items-center justify-center cursor-pointer border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all">
                           <ImageIcon className="w-5 h-5 text-slate-300 mb-2" />
                           <span className="text-[9px] font-black text-slate-400 uppercase">Cargar Foto</span>
                           <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -336,13 +344,13 @@ export default function Aliado() {
 
                   <div className="space-y-1">
                     <LabelCustom>Producto</LabelCustom>
-                    <Input className="rounded-xl bg-slate-50 border-none font-bold" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
+                    <Input className="rounded-xl bg-slate-50 border-none font-bold focus-visible:ring-1 focus-visible:ring-slate-300" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} required />
                   </div>
 
                   <div className="space-y-1">
                     <LabelCustom>Categoría de Perecederos</LabelCustom>
                     <select
-                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none"
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border-none font-bold text-xs text-slate-700 outline-none focus:ring-1 focus:ring-slate-300 transition-all"
                       value={nuevoProducto.categoria}
                       onChange={e => setNuevoProducto({...nuevoProducto, categoria: e.target.value})}
                     >
@@ -356,17 +364,16 @@ export default function Aliado() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <LabelCustom>Precio Original</LabelCustom>
-                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
+                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black focus-visible:ring-1 focus-visible:ring-slate-300" value={nuevoProducto.precio_original} onChange={e => handlePrecioOriginalChange(e.target.value)} required />
                     </div>
                     <div className="space-y-1">
                       <LabelCustom>% Dcto</LabelCustom>
-                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
+                      <Input type="number" className="rounded-xl bg-slate-50 border-none font-black text-green-600 focus-visible:ring-1 focus-visible:ring-slate-300" value={descuentoManual} onChange={e => handleDescuentoChange(e.target.value)} />
                     </div>
                   </div>
 
-                  {/* Preview del precio de rescate */}
                   {precioRescateCalculado && (
-                    <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <div className="bg-green-50/60 border border-green-100 rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm">
                       <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Precio de Rescate</span>
                       <span className="text-lg font-black text-green-600">{precioRescateCalculado}</span>
                     </div>
@@ -374,11 +381,11 @@ export default function Aliado() {
 
                   <div className="space-y-1">
                     <LabelCustom>Stock Disponible</LabelCustom>
-                    <Input type="number" className="rounded-xl bg-slate-50 border-none font-black" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
+                    <Input type="number" className="rounded-xl bg-slate-50 border-none font-black focus-visible:ring-1 focus-visible:ring-slate-300" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} required />
                   </div>
 
                   {/* Declaración de Responsabilidad */}
-                  <div className={`p-4 rounded-2xl transition-all border ${aceptaResponsabilidad ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div className={`p-4 rounded-2xl transition-all border duration-300 ${aceptaResponsabilidad ? 'bg-blue-50/60 border-blue-200' : 'bg-amber-50/60 border-amber-200'}`}>
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -400,7 +407,7 @@ export default function Aliado() {
                   <Button
                     type="submit"
                     disabled={loading || !aceptaResponsabilidad}
-                    className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-lg ${
+                    className={`w-full py-6 rounded-[20px] font-black uppercase text-[11px] transition-all shadow-md ${
                       aceptaResponsabilidad
                         ? (editingId ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-green-600 text-white')
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -419,28 +426,28 @@ export default function Aliado() {
           <div className="lg:col-span-5 space-y-4">
             <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas Activas</h2>
             {productos.length > 0 ? productos.map((prod) => (
-              <Card key={prod.id} className={`border-none shadow-sm rounded-[30px] p-4 bg-white hover:shadow-md transition-all ${editingId === prod.id ? 'ring-2 ring-amber-500 bg-amber-50/20' : ''}`}>
+              <Card key={prod.id} className={`border border-slate-100/70 shadow-[0_10px_30px_rgba(0,0,0,0.01)] rounded-[30px] p-4 bg-white hover:shadow-md transition-all duration-300 ${editingId === prod.id ? 'ring-2 ring-amber-500 bg-amber-50/10 border-transparent' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <img
                       src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA}
-                      className="w-14 h-14 rounded-2xl object-cover"
+                      className="w-14 h-14 rounded-2xl object-cover shadow-inner"
                       alt={prod.nombre}
                       onError={(e) => { (e.target as HTMLImageElement).src = IMG_SORPRESA; }}
                     />
                     <div>
                       <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center mt-0.5">
                         <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">{prod.categoria || 'Rescate'}</span>
                         <p className="text-[10px] font-bold text-green-600 uppercase">Stock: {prod.stock}</p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" onClick={() => activarEdicion(prod)} className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full">
+                    <Button variant="ghost" onClick={() => activarEdicion(prod)} className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors">
                       <Edit2 size={14}/>
                     </Button>
-                    <Button variant="ghost" onClick={() => eliminarProducto(prod.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full">
+                    <Button variant="ghost" onClick={() => eliminarProducto(prod.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
                       <Trash2 size={14}/>
                     </Button>
                   </div>
@@ -451,13 +458,13 @@ export default function Aliado() {
 
           {/* ACTIVIDAD RECIENTE */}
           <div className="lg:col-span-3">
-            <Card className="border-none shadow-sm rounded-[35px] bg-white p-6">
+            <Card className="border border-slate-100/70 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white p-6">
               <div className="flex items-center gap-3 mb-6">
                 <History className="w-4 h-4 text-slate-400" />
                 <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad Reciente</h3>
               </div>
               <div className="space-y-6 relative">
-                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-50" />
+                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-100" />
                 {actividad.length > 0 ? actividad.map((log) => (
                   <div key={log.id} className="relative pl-6">
                     <div className="absolute left-0 top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm bg-green-500 z-10" />

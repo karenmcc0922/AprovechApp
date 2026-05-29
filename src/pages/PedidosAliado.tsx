@@ -91,10 +91,17 @@ export default function PedidosAliado() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
       <AppNavbar />
 
-      <div className="container mx-auto px-6 pt-32 pb-20 max-w-5xl">
+      {/* REJILLA TECNOLÓGICA SUTIL */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+
+      {/* HALOS DE LUZ AMBIENTAL */}
+      <div className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-5%] w-[450px] h-[450px] rounded-full bg-blue-100/20 blur-[130px] pointer-events-none" />
+
+      <div className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-5xl relative z-10">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
@@ -112,13 +119,13 @@ export default function PedidosAliado() {
           </div>
 
           <div className="flex gap-4">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 hidden sm:block">
+            <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.02)] border border-slate-100 hidden sm:block">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
               <p className="text-xl font-black text-slate-900">{pedidos.length} Rescates</p>
             </div>
             <button
               onClick={() => fetchPedidos(true)}
-              className="bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-2xl shadow-xl transition-all active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-2xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
             >
               <RefreshCcw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -127,7 +134,7 @@ export default function PedidosAliado() {
 
         {/* CHECKPOINT QR */}
         <div className="mb-12">
-          <div className="bg-slate-900 rounded-[35px] p-8 shadow-2xl shadow-slate-200 relative overflow-hidden">
+          <div className="bg-slate-900 rounded-[35px] p-8 shadow-[0_30px_60px_rgba(15,23,42,0.15)] relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="text-center md:text-left">
                 <h3 className="text-white font-black text-xl uppercase italic tracking-tighter mb-1">Checkpoint de Rescate</h3>
@@ -138,7 +145,7 @@ export default function PedidosAliado() {
                 <div className="relative flex-1">
                   <Input
                     placeholder="Código de rescate..."
-                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12 uppercase tracking-wider"
+                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12 uppercase tracking-wider focus-visible:ring-1 focus-visible:ring-white/20"
                     value={codigoBusqueda}
                     onChange={(e) => setCodigoBusqueda(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
@@ -148,7 +155,7 @@ export default function PedidosAliado() {
                 <Button
                   onClick={buscarPedidoPorCodigo}
                   disabled={buscando}
-                  className="h-14 px-8 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs"
+                  className="h-14 px-8 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs shadow-md shadow-green-600/10"
                 >
                   {buscando ? <Loader2 className="animate-spin" /> : <Search />}
                 </Button>
@@ -156,9 +163,9 @@ export default function PedidosAliado() {
             </div>
 
             {pedidoEncontrado && (
-              <div className="mt-8 p-6 bg-white rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in duration-300">
+              <div className="mt-8 p-6 bg-white rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in duration-300 shadow-xl">
                 <div className="flex items-center gap-5">
-                  <div className="bg-green-100 p-4 rounded-2xl">
+                  <div className="bg-green-50 p-4 rounded-2xl">
                     <CheckCircle2 className="text-green-600 w-6 h-6" />
                   </div>
                   <div>
@@ -180,7 +187,7 @@ export default function PedidosAliado() {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setPedidoEncontrado(null)}
-                    className="text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-widest"
+                    className="text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-widest transition-colors"
                   >
                     Cancelar
                   </button>
@@ -189,7 +196,7 @@ export default function PedidosAliado() {
                    pedidoEncontrado.estado?.toLowerCase() !== 'completado' ? (
                     <Button
                       onClick={() => ejecutarEntregaFinal(pedidoEncontrado.id)}
-                      className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12"
+                      className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12 shadow-md transition-colors"
                     >
                       Confirmar Entrega
                     </Button>
@@ -211,7 +218,7 @@ export default function PedidosAliado() {
             <p className="text-slate-400 font-bold animate-pulse">Sincronizando pedidos...</p>
           </div>
         ) : pedidos.length === 0 ? (
-          <div className="bg-white p-20 rounded-[50px] text-center border-4 border-dashed border-slate-50">
+          <div className="bg-white p-20 rounded-[50px] text-center border-2 border-dashed border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.01)]">
             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag className="w-10 h-10 text-slate-200" />
             </div>
@@ -229,11 +236,11 @@ export default function PedidosAliado() {
               return (
                 <div
                   key={pedido.id}
-                  className="bg-white p-8 rounded-[40px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-transparent hover:border-green-100 transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 group"
+                  className="bg-white/90 backdrop-blur-md p-8 rounded-[40px] shadow-[0_15px_50px_rgba(0,0,0,0.02)] border border-slate-100/80 hover:border-green-100/80 transition-all duration-300 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 group"
                 >
                   <div className="flex gap-6 items-center flex-1">
                     <div className="relative">
-                      <div className={`p-5 rounded-[28px] text-white transition-colors ${esEntregado ? 'bg-slate-200 text-slate-400' : esDomicilio ? 'bg-blue-600 group-hover:bg-blue-500' : 'bg-slate-900 group-hover:bg-green-600'}`}>
+                      <div className={`p-5 rounded-[28px] text-white transition-all duration-300 ${esEntregado ? 'bg-slate-100 text-slate-400' : esDomicilio ? 'bg-blue-600 shadow-md shadow-blue-600/10' : 'bg-slate-900 shadow-md shadow-slate-900/10 group-hover:bg-green-600 group-hover:shadow-green-600/10'}`}>
                         {esDomicilio ? <Truck className="w-8 h-8" /> : <ShoppingBag className="w-8 h-8" />}
                       </div>
                     </div>
@@ -268,7 +275,7 @@ export default function PedidosAliado() {
                     </div>
 
                     <div className="flex flex-col gap-2 min-w-[140px]">
-                      <div className="flex items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-md">
+                      <div className="flex items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-sm">
                         <div className="flex flex-col">
                           <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Código QR</span>
                           <span className="font-mono text-sm font-black tracking-wider text-green-400 uppercase">
@@ -282,8 +289,8 @@ export default function PedidosAliado() {
                         esEntregado
                           ? "bg-slate-100 text-slate-400"
                           : estadoNorm === 'pagado'
-                          ? "bg-green-100 text-green-600"
-                          : "bg-orange-100 text-orange-600"
+                          ? "bg-green-50 text-green-600"
+                          : "bg-orange-50 text-orange-600"
                       }`}>
                         {estadoNorm === 'en_camino' ? 'En camino' : pedido.estado || "Pendiente"}
                       </Badge>
@@ -299,12 +306,12 @@ export default function PedidosAliado() {
                           <Check size={14} strokeWidth={3} /> Entregar
                         </Button>
                       ) : esDomicilio && !esEntregado ? (
-                        <div className="flex items-center gap-2 bg-blue-50 px-4 py-2.5 rounded-2xl border border-blue-100">
+                        <div className="flex items-center gap-2 bg-blue-50/60 px-4 py-2.5 rounded-2xl border border-blue-100">
                           <Truck size={14} className="text-blue-500 flex-shrink-0" />
                           <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Repartidor lo recoge</span>
                         </div>
                       ) : (
-                        <div className="hidden lg:flex w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center text-slate-300">
+                        <div className="hidden lg:flex w-12 h-12 bg-slate-50/50 rounded-2xl items-center justify-center text-slate-300">
                           <ChevronRight className="w-6 h-6" />
                         </div>
                       )}
