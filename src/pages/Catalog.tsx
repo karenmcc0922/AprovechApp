@@ -555,7 +555,7 @@ export default function Catalog() {
                 </div>
               </div>
 
-              <Button onClick={procesarCheckout} className="w-full bg-slate-900 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-600 transition-all uppercase tracking-wider">
+              <Button onClick={procesarCheckout} className="w-full bg-green-600 py-8 rounded-3xl font-black text-md shadow-xl hover:bg-green-700 transition-all uppercase tracking-wider text-white">
                   {metodoPago === "wompi" ? "IR A PAGAR 💳" : "SEPARAR Y RECOGER ⏳"}
               </Button>
             </div>
