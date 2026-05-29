@@ -137,7 +137,7 @@ export default function Catalog() {
       categoria: p.categoria || "Despensa",
       imagen: p.imagen_url || IMG_FALLBACK, 
       direccion: p.direccion || "Dirección no disponible",
-      stock: p.stock,
+      stock: p.stock ?? 1,
       aliado_id: p.aliado_id
     }));
 
@@ -386,7 +386,7 @@ export default function Catalog() {
             </div>
           </aside>
 
-          {/* Listado Principal de Tarjetas */}
+          {/* Listado Principal */}
           <main className="flex-1 space-y-8">
             <div className="relative group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
@@ -399,9 +399,21 @@ export default function Catalog() {
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-4">
-                <Loader2 className="animate-spin text-emerald-600 w-10 h-10" />
-                <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest">Sincronizando con aliados...</p>
+              /* MEJORA 2: SKELETONS ANIMADOS PREMIUM EN LUGAR DE UN SIMPLE SPINNER */
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-slate-50/60 border border-slate-100 rounded-[28px] p-5 space-y-4 animate-pulse h-[430px] flex flex-col justify-between">
+                    <div className="bg-slate-200/70 h-56 rounded-2xl w-full" />
+                    <div className="space-y-2">
+                      <div className="bg-slate-200/70 h-3 rounded w-1/3" />
+                      <div className="bg-slate-200/70 h-5 rounded w-3/4" />
+                    </div>
+                    <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                      <div className="bg-slate-200/70 h-6 rounded w-1/4" />
+                      <div className="bg-slate-200/70 h-10 rounded-xl w-1/2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : productosFinales.length === 0 ? (
               <div className="text-center py-24 bg-white/60 backdrop-blur-md rounded-[32px] border-2 border-dashed border-slate-200/60 max-w-xl mx-auto">
@@ -409,15 +421,14 @@ export default function Catalog() {
                   <p className="font-black text-slate-400 uppercase text-xs">No hay rescates vigentes por ahora</p>
               </div>
             ) : (
-              /* Mosaico Premium de 3 Columnas */
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {productosFinales.map((prod) => {
                   const semaforo = getSemaforo(prod.categoria);
                   return (
-                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-[0_8px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between">
+                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100/80 shadow-[0_8px_25px_rgba(0,0,0,0.015)] hover:shadow-[0_25px_60px_rgba(16,185,129,0.12)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between relative">
                       
                       {/* Contenedor de Imagen Estilizado Vertical */}
-                      <div className="relative h-64 w-full overflow-hidden bg-slate-50/50 border-b border-slate-50 shrink-0">
+                      <div className="relative h-64 w-full overflow-hidden bg-slate-50/40 border-b border-slate-50 shrink-0">
                         <img 
                           src={prod.imagen} 
                           alt={prod.nombre} 
@@ -435,24 +446,35 @@ export default function Catalog() {
                         </div>
                       </div>
 
-                      {/* Cuerpo de la tarjeta con padding y flex-grow garantizado */}
+                      {/* Cuerpo de la tarjeta */}
                       <div className="p-5 flex flex-col flex-1 justify-between bg-white space-y-4">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Store size={11} className="text-emerald-500 shrink-0" />
-                            <button 
-                              onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
-                              className="text-[9px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate w-full"
-                            >
-                              {prod.tienda}
-                            </button>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Store size={11} className="text-emerald-500 shrink-0" />
+                              <button 
+                                onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
+                                className="text-[9px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate w-full"
+                              >
+                                {prod.tienda}
+                              </button>
+                            </div>
+
+                            {/* MEJORA 3: INDICADOR DE STOCK LIMITADO CON SENSACIÓN DE URGENCIA */}
+                            {prod.stock <= 2 && (
+                              <span className="text-[8px] font-black bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2 py-0.5 uppercase tracking-tight shrink-0 animate-pulse">
+                                ¡Últimos {prod.stock}!
+                              </span>
+                            )}
                           </div>
+                          
                           <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase line-clamp-2 leading-tight min-h-[2.5rem]">
                             {prod.nombre}
                           </h3>
                         </div>
 
-                        {/* Precios y Botón de Rescate (Fijo abajo) */}
+                        {/* Precios y Botón de Rescate */}
+                        {/* MEJORA 1: EFECTO HOVER INTEGRADO (El botón cambia a verde si pones el mouse sobre toda la tarjeta) */}
                         <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-3">
                           <div className="shrink-0">
                             <span className="text-slate-300 text-[10px] line-through font-bold block">${prod.precioOriginal.toLocaleString()}</span>
@@ -460,7 +482,7 @@ export default function Catalog() {
                           </div>
                           <Button 
                               onClick={() => openRescate(prod)} 
-                              className="bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-4 py-4.5 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center"
+                              className="bg-slate-900 group-hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-4 py-4.5 shadow-sm group-hover:shadow-md group-hover:shadow-emerald-500/20 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center border border-transparent"
                           >
                               RESCATAR
                           </Button>
