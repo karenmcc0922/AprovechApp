@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import AppNavbar from "../components/AppNavbar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +15,12 @@ import {
   AlertCircle,
   Camera,
   Save,
-  X
+  X,
+  ChevronRight,
+  Edit2,
+  Users,
+  CreditCard,
+  Bell
 } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE } from "../lib/api";
@@ -137,134 +142,199 @@ export default function PerfilAliado() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* SIDEBAR INFO */}
-          <div className="lg:col-span-4 space-y-6">
-            <Card className="border border-slate-100/80 shadow-[0_15px_50px_rgba(0,0,0,0.02)] rounded-[40px] bg-white/90 backdrop-blur-md p-10">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Información Legal</p>
-              <div className="space-y-8">
-                <div className="group">
-                  <label className="text-[10px] font-black text-slate-300 uppercase block mb-2 tracking-tighter">Número de NIT</label>
-                  <p className="text-slate-900 font-black flex items-center gap-3 text-lg">
-                    <Hash className="w-5 h-5 text-green-600" /> {perfil.nit || "Pendiente"}
+          {/* ── LEFT SIDEBAR ── */}
+          <div className="space-y-4">
+            {/* Legal info */}
+            <Card className="border border-slate-200 rounded-3xl bg-white p-6 shadow-sm">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <ShieldCheck size={13} className="text-green-600" /> Información legal
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wide block mb-1">Número de NIT</label>
+                  <p className="text-slate-900 font-bold flex items-center gap-2 text-sm">
+                    <Hash className="w-4 h-4 text-green-600" /> {perfil.nit || "Pendiente"}
                   </p>
                 </div>
-                <div className="group">
-                  <label className="text-[10px] font-black text-slate-300 uppercase block mb-2 tracking-tighter">E-mail Corporativo</label>
-                  <p className="text-slate-900 font-black flex items-center gap-3 text-sm break-all">
-                    <Mail className="w-5 h-5 text-green-600" /> {perfil.correo_corporativo || "No registrado"}
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wide block mb-1">E-mail corporativo</label>
+                  <p className="text-slate-900 font-bold flex items-center gap-2 text-sm break-all">
+                    <Mail className="w-4 h-4 text-green-600 shrink-0" /> {perfil.correo_corporativo || "No registrado"}
                   </p>
                 </div>
-                <div className="pt-8 border-t border-slate-100">
-                  <div className="flex items-center gap-3 bg-green-50 text-green-700 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest">
-                    <ShieldCheck className="w-5 h-5" /> Aliado Estratégico
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2.5 rounded-xl font-semibold text-xs">
+                    <ShieldCheck className="w-4 h-4" /> Aliado estratégico
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1.5">Gracias por ser parte del cambio y ayudar a reducir el desperdicio de alimentos.</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="border-none shadow-[0_15px_40px_rgba(49,46,129,0.12)] rounded-[35px] bg-indigo-950 p-8 text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-5 h-5 text-indigo-400" />
-                  <h3 className="font-black text-[10px] uppercase tracking-widest text-indigo-300">Atención</h3>
-                </div>
-                <p className="text-sm font-bold leading-relaxed text-indigo-100/90">
-                  ¿Vas a cambiar de dirección? Recuerda avisar a tus rescatistas frecuentes para que no pierdan tus ofertas.
-                </p>
+            {/* Alert */}
+            <Card className="border border-indigo-200 bg-indigo-950 rounded-3xl p-5 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-bold text-xs text-indigo-300 uppercase tracking-wider">Atención</h3>
               </div>
-              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+              <p className="text-sm text-indigo-100/90 leading-relaxed">
+                ¿Vas a cambiar de dirección? Recuerda avisar a tus rescatistas frecuentes para que no pierdan tus ofertas.
+              </p>
+              <button className="mt-3 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors w-full">
+                Actualizar dirección
+              </button>
             </Card>
           </div>
 
-          {/* MAIN FORM */}
-          <Card className="lg:col-span-8 border border-slate-100/80 shadow-[0_15px_50px_rgba(0,0,0,0.02)] rounded-[50px] bg-white/90 backdrop-blur-md overflow-hidden">
-            <CardHeader className="p-12 pb-0">
-              <div className="flex justify-between items-center gap-4 flex-wrap sm:flex-nowrap">
+          {/* ── MAIN CONTENT ── */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Settings navigation */}
+            <Card className="border border-slate-200 rounded-3xl bg-white shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h2 className="text-sm font-bold text-slate-900">Ajustes del perfil</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Gestiona tu información y preferencias en la app.</p>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {[
+                  { icon: <Edit2 size={15} className="text-green-600"/>, title: "Editar perfil", sub: "Actualiza la información de tu negocio" },
+                  { icon: <Users size={15} className="text-green-600"/>, title: "Usuarios y accesos", sub: "Administra quién puede acceder" },
+                  { icon: <CreditCard size={15} className="text-green-600"/>, title: "Métodos de pago", sub: "Gestiona tus métodos de cobro" },
+                  { icon: <Bell size={15} className="text-green-600"/>, title: "Notificaciones", sub: "Configura tus preferencias" },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={i === 0 ? () => setEditMode(true) : undefined}
+                    className="w-full flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors text-left group"
+                  >
+                    <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                      <p className="text-xs text-slate-500 truncate">{item.sub}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Store details */}
+            <Card className="border border-slate-200 rounded-3xl bg-white shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">Ajustes del Local</h2>
-                  <p className="text-slate-400 font-bold text-xs uppercase mt-2 tracking-widest">Personaliza tu presencia en la app</p>
+                  <h2 className="text-sm font-bold text-slate-900">Detalles de tu local</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Esta información será visible para los rescatistas en el mapa.</p>
                 </div>
                 {!editMode && (
-                  <Button
+                  <button
                     onClick={() => setEditMode(true)}
-                    className="bg-slate-900 hover:bg-slate-800 text-white rounded-[20px] font-black px-8 py-6 border-none shadow-md transition-all active:scale-95"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-green-600 hover:text-green-700 transition-colors"
                   >
-                    Editar Perfil
-                  </Button>
+                    <Edit2 size={12}/> Editar información
+                  </button>
                 )}
               </div>
-            </CardHeader>
 
-            <CardContent className="p-12 space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nombre Comercial</label>
-                  <Input
-                    disabled={!editMode}
-                    value={perfil.nombre_local}
-                    onChange={(e) => setPerfil({...perfil, nombre_local: e.target.value})}
-                    className={`py-8 rounded-[25px] border-none font-black text-xl transition-all ${
-                      editMode ? "bg-slate-50 ring-2 ring-green-500/20 shadow-inner text-slate-900" : "bg-slate-50/50 text-slate-500"
-                    }`}
-                  />
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Nombre comercial</label>
+                    <Input
+                      disabled={!editMode}
+                      value={perfil.nombre_local}
+                      onChange={(e) => setPerfil({...perfil, nombre_local: e.target.value})}
+                      className={`rounded-xl border-slate-200 font-semibold text-slate-800 h-10 transition-all ${
+                        editMode ? "bg-white ring-2 ring-green-500/20" : "bg-slate-50 text-slate-600"
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Código interno</label>
+                    <div className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 font-mono text-xs flex items-center justify-between">
+                      <span>ALI-{aliadoId ? aliadoId.padStart(4, '0') : "0000"}</span>
+                      <Clock size={13} className="opacity-40" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+                      <MapPin size={11} className="inline mr-1 text-green-600"/>Punto de recogida principal
+                    </label>
+                    <Input
+                      disabled={!editMode}
+                      value={perfil.direccion}
+                      onChange={(e) => setPerfil({...perfil, direccion: e.target.value})}
+                      className={`rounded-xl border-slate-200 font-semibold text-slate-800 h-10 transition-all ${
+                        editMode ? "bg-white ring-2 ring-green-500/20" : "bg-slate-50 text-slate-600"
+                      }`}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      <MapPin size={9} className="inline mr-0.5" />{perfil.direccion || "Sin dirección"}, Pereira, Risaralda
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+                      <Clock size={11} className="inline mr-1 text-green-600"/>Horario de atención
+                    </label>
+                    <div className="h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs flex items-center font-semibold">
+                      Lunes a sábado · 7:00 a. m. – 6:00 p. m.
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400">
+                    📍 Esta dirección será visible para todos los rescatistas en el mapa principal.
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Código Interno</label>
-                  <div className="py-5 px-8 rounded-[25px] bg-slate-50 text-slate-400 font-mono text-xs border border-slate-100/60 flex items-center justify-between h-[66px]">
-                    <span>ALI-{aliadoId ? aliadoId.padStart(4, '0') : "0000"}</span>
-                    <Clock size={14} className="opacity-30" />
+                {/* Mini map placeholder */}
+                <div className="bg-slate-100 rounded-2xl overflow-hidden min-h-[160px] flex items-center justify-center border border-slate-200">
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
+                      <MapPin size={18} className="text-white" />
+                    </div>
+                    <p className="text-xs text-slate-500 font-semibold">Mapa de ubicación</p>
+                    <p className="text-[10px] text-slate-400">Pereira, Risaralda</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Punto de Recogida Principal</label>
-                <div className="relative group">
-                  <MapPin className={`absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 transition-colors ${editMode ? "text-green-600" : "text-slate-300"}`} />
-                  <Input
-                    disabled={!editMode}
-                    value={perfil.direccion}
-                    onChange={(e) => setPerfil({...perfil, direccion: e.target.value})}
-                    className={`pl-16 py-8 rounded-[25px] border-none font-bold text-slate-700 transition-all ${
-                      editMode ? "bg-slate-50 ring-2 ring-green-500/20 shadow-inner" : "bg-slate-50/50"
-                    }`}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter ml-2">
-                  * Esta dirección será visible para todos los rescatistas en el mapa principal.
-                </p>
-              </div>
-
               {editMode && (
-                <div className="pt-10 flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="px-6 pb-6 flex gap-3">
                   <Button
                     disabled={updating}
                     onClick={() => setEditMode(false)}
-                    variant="ghost"
-                    className="flex-1 py-8 rounded-[25px] font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                    variant="outline"
+                    className="flex-1 rounded-xl border-slate-200 font-semibold text-slate-500 h-10 gap-2"
                   >
-                    <X size={18} className="mr-2" /> Cancelar
+                    <X size={15}/> Cancelar
                   </Button>
                   <Button
                     disabled={updating}
                     onClick={handleUpdate}
-                    className="flex-[2] bg-green-600 hover:bg-slate-900 text-white py-8 rounded-[25px] font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-green-600/10 transition-all active:scale-95"
+                    className="flex-[2] bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm h-10 gap-2 shadow-sm transition-all"
                   >
-                    {updating ? (
-                      <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Save size={18} /> Guardar Configuración
-                      </span>
-                    )}
+                    {updating ? <Loader2 className="animate-spin w-4 h-4"/> : <><Save size={15}/> Guardar configuración</>}
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </Card>
+
+            {/* Bottom CTA Banner */}
+            <div className="bg-green-900 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-4 text-white">
+              <div className="flex-1">
+                <h3 className="text-base font-black">¡Gracias por ser parte del cambio! 💚</h3>
+                <p className="text-sm text-green-200 mt-1">Juntos reducimos el desperdicio de alimentos y construimos un futuro más sostenible.</p>
+              </div>
+              <button className="bg-white text-green-900 font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-green-50 transition-colors shrink-0 gap-2 flex items-center">
+                🌿 Ver mi impacto
+              </button>
+            </div>
+          </div>
         </div>
       </main>
     </div>

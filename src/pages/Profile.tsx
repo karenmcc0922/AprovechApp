@@ -6,22 +6,21 @@ import { API_BASE } from "../lib/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  History, 
-  Calendar, 
-  ShieldCheck, 
-  MapPin, 
-  Settings, 
-  QrCode, 
-  BadgeCheck, 
-  Droplet, 
-  Scale,  
+import {
+  History,
+  Calendar,
+  ShieldCheck,
+  MapPin,
+  Settings,
+  QrCode,
+  Droplet,
+  Scale,
   Leaf,
   Loader2,
   ChevronRight,
   Target,
-  Star,
-  Sparkles
+  Sparkles,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -182,244 +181,234 @@ export default function Profile() {
   };
 
   const totalGastado = historial.reduce((acc, curr) => acc + (Number(curr.precio_final) || 0), 0);
-  const co2Ahorrado = (historial.length * 2.5).toFixed(1); 
-  const aguaAhorrada = (historial.length * 1200).toLocaleString(); 
-  const comidaSalvada = (historial.length * 1.0).toFixed(1); 
+  const co2Ahorrado = (historial.length * 2.5).toFixed(1);
+  const comidaSalvada = (historial.length * 1.0).toFixed(1);
+
+  const rangoActual = historial.length >= 20 ? "Guardián Planetario" : historial.length >= 10 ? "Rescatista Activo" : "Explorador Verde";
+  const rangoMax = 20;
+  const rangoProgress = Math.min((historial.length / rangoMax) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <AppNavbar />
-      
-      {/* CAPA 1: Textura técnica sutil (Grilla fina) */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
 
-      {/* CAPA 2: Glow ambiental difuminado para romper la planicidad */}
-      <div className="absolute top-[-5%] right-[-5%] w-[450px] h-[450px] rounded-full bg-emerald-100/40 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[5%] left-[-5%] w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[140px] pointer-events-none" />
-      
-      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-6xl relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
-          {/* --- COLUMNA IZQUIERDA: TARJETA DE IDENTIDAD --- */}
-          <div className="lg:col-span-4 space-y-8">
-            <Card className="border border-slate-100/80 shadow-[0_20px_50px_rgba(15,23,42,0.03)] rounded-[45px] bg-white/80 backdrop-blur-md p-8 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-600" />
-              
-              <div className="relative w-36 h-36 mx-auto mb-6">
-                <div className="w-full h-full bg-slate-900 rounded-[40px] flex items-center justify-center text-white text-5xl font-black shadow-xl uppercase italic rotate-2 hover:rotate-0 transition-transform duration-500">
-                  {userName.charAt(0)}
+      <main className="flex-grow container mx-auto px-4 pt-24 pb-16 max-w-5xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── LEFT COLUMN ── */}
+          <div className="space-y-5">
+            {/* Identity card */}
+            <Card className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="relative">
+                  <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-white text-2xl font-black">
+                    {userName.charAt(0)}
+                  </div>
+                  <button className="absolute -bottom-1 -right-1 bg-green-600 p-1 rounded-lg border-2 border-white">
+                    <Settings size={10} className="text-white" />
+                  </button>
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-2.5 rounded-[18px] shadow-lg border-4 border-white">
-                  <BadgeCheck className="w-5 h-5 text-white" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-black text-slate-900 truncate">{userName}</h2>
+                  <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                    <MapPin size={10} className="text-green-600" /> Pereira, Colombia
+                  </div>
                 </div>
               </div>
 
-              <div className="text-center">
-                <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-tight mb-1">
-                  {userName}
-                </h2>
-                <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.15em] mb-6">{userEmail}</p>
-                
-                <div className="flex items-center justify-center gap-2 bg-slate-50/80 border border-slate-100 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 mb-6">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Pereira, CO
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles size={12} className="text-amber-500" />
+                  <span className="text-xs font-bold text-slate-700">RANGO</span>
+                  <span className="text-xs font-black text-green-600 ml-auto">{rangoActual}</span>
                 </div>
-
-                <div className="space-y-2 text-left bg-slate-50/60 p-4 rounded-2xl border border-slate-100/80">
-                  <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    <span className="flex items-center gap-1"><Sparkles size={10} className="text-amber-500"/> Rango</span>
-                    <span className="text-emerald-600 font-black">{historial.length}/20 Packs</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-200/60 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000" 
-                      style={{ width: `${Math.min((historial.length / 20) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight italic">Próximo: Guardián Planetario</p>
+                <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-1">
+                  <div
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-700"
+                    style={{ width: `${rangoProgress}%` }}
+                  />
                 </div>
+                <p className="text-[10px] text-slate-400">{historial.length} / {rangoMax} puntos • Sigue así, ¡Estás salvando el planeta!</p>
               </div>
 
-              <div className="mt-6 space-y-2">
+              <div className="space-y-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setIsModalOpen(true)}
-                  className="w-full rounded-xl py-5 border border-slate-100 font-black text-[9px] uppercase tracking-wider text-slate-500 hover:bg-slate-900 hover:text-white transition-all duration-300"
+                  className="w-full rounded-xl text-sm font-semibold text-slate-600 border-slate-200 gap-2 justify-start h-10"
                 >
-                  <Settings className="w-3.5 h-3.5 mr-2 shrink-0" /> Configurar Cuenta
+                  <Settings size={14} /> Configurar cuenta
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setIsPassModalOpen(true)}
-                  className="w-full rounded-xl py-5 border border-slate-100 font-black text-[9px] uppercase tracking-wider text-slate-500 hover:bg-emerald-600 hover:text-white transition-all duration-300"
+                  className="w-full rounded-xl text-sm font-semibold text-slate-600 border-slate-200 gap-2 justify-start h-10"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 mr-2 shrink-0" /> Cambiar Contraseña
+                  <ShieldCheck size={14} /> Cambiar contraseña
                 </Button>
               </div>
             </Card>
 
-            <Card className="border-none shadow-xl bg-slate-900 rounded-[40px] text-white p-8 flex flex-col items-center text-center group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-emerald-500/20 transition-colors" />
-              
-              <div className="bg-white p-5 rounded-[30px] mb-6 shadow-xl transform group-hover:scale-105 transition-all duration-500">
-                <QrCode className="w-16 h-16 text-slate-900" />
+            {/* VIP Card */}
+            <Card className="bg-slate-900 border-none rounded-3xl p-6 text-white overflow-hidden relative">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-amber-400 text-lg">👑</span>
+                    <span className="font-black text-sm text-amber-300">MIEMBRO VIP</span>
+                  </div>
+                  <p className="text-xs text-slate-400">ID: RES-{userId || "1"}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">¡Gracias por ser parte del cambio!</p>
+                </div>
+                <div
+                  className="bg-white p-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <QrCode className="w-12 h-12 text-slate-900" />
+                </div>
               </div>
-              <h3 className="font-black text-lg uppercase italic tracking-tighter">ID: RES-{userId || '000'}</h3>
-              <div className="mt-3 flex items-center gap-1.5 bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Miembro VIP</span>
-              </div>
+              <p className="text-xs text-slate-400">
+                Presenta este código en los comercios aliados para identificarte y acumular{" "}
+                <span className="text-green-400 font-semibold">más puntos.</span>
+              </p>
             </Card>
           </div>
 
-          {/* --- COLUMNA DERECHA: DASHBOARD DE IMPACTO AMBIENTAL --- */}
-          <div className="lg:col-span-8 space-y-10">
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.05)] hover:border-emerald-100/80 transition-all group border-l-4 border-emerald-500">
-                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Leaf className="w-5 h-5 text-emerald-600" />
-                </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Impacto CO₂ Evitado</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter italic">{co2Ahorrado} kg</p>
-                <p className="text-[9px] font-medium text-slate-400 mt-1.5 leading-tight">Retenido fuera de la atmósfera.</p>
+          {/* ── RIGHT COLUMN ── */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Impact stats */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-700">Tu impacto en números</h3>
+                <button className="text-xs text-green-600 font-semibold hover:underline">Ver impacto detallado →</button>
               </div>
-
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(59,130,246,0.05)] hover:border-blue-100/80 transition-all group border-l-4 border-blue-500">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Droplet className="w-5 h-5 text-blue-600" />
-                </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Agua Salvada</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter italic">{aguaAhorrada} L</p>
-                <p className="text-[9px] font-medium text-slate-400 mt-1.5 leading-tight">Líquido vital optimizado.</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-[0_15px_40px_rgba(245,158,11,0.05)] hover:border-amber-100/80 transition-all group border-l-4 border-amber-500">
-                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Scale className="w-5 h-5 text-amber-600" />
-                </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Alimentos Rescatados</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter italic">{comidaSalvada} kg</p>
-                <p className="text-[9px] font-medium text-slate-400 mt-1.5 leading-tight">Comida libre de desperdicio.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: <Leaf size={16} className="text-green-600" />, val: `${co2Ahorrado} kg`, label: "Impacto CO₂ evitado", sub: "Evitando gas contaminante", bg: "bg-green-50 border-green-100" },
+                  { icon: <Droplet size={16} className="text-blue-500" />, val: `${(historial.length * 1.2).toFixed(1)} L`, label: "Agua salvada", sub: "Agua que llegó más lejos", bg: "bg-blue-50 border-blue-100" },
+                  { icon: <Scale size={16} className="text-amber-600" />, val: `${comidaSalvada} kg`, label: "Alimentos rescatados", sub: "Comida fuera de la basura", bg: "bg-amber-50 border-amber-100" },
+                  { icon: <Target size={16} className="text-purple-600" />, val: `$${totalGastado.toLocaleString()}`, label: "Ahorro acumulado", sub: "Gracias por tu elección", bg: "bg-purple-50 border-purple-100" },
+                ].map((stat, i) => (
+                  <div key={i} className={`${stat.bg} border rounded-2xl p-3 flex flex-col gap-1`}>
+                    <div>{stat.icon}</div>
+                    <p className="text-base font-black text-slate-900">{stat.val}</p>
+                    <p className="text-[10px] font-semibold text-slate-600 leading-tight">{stat.label}</p>
+                    <p className="text-[9px] text-slate-400 leading-tight">{stat.sub}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-[26px] border border-slate-100 flex items-center justify-between px-6 shadow-[0_8px_30px_rgba(0,0,0,0.01)] hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center">
-                  <Target size={16} />
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">Inversión Inteligente</h4>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Dinero acumulado en rescates</p>
-                </div>
-              </div>
-              <p className="text-xl font-black text-slate-900 italic">${totalGastado.toLocaleString()}</p>
-            </div>
-
-            {/* CRONOLOGÍA DE ACTIVIDAD */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2.5 italic uppercase tracking-tighter">
-                  <History className="w-6 h-6 text-emerald-600" /> Cronología de Rescates
+            {/* History timeline */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <History size={15} className="text-green-600" /> Cronología de rescates
                 </h3>
-                <Badge variant="outline" className="rounded-full border-slate-200 text-slate-400 font-bold px-3 py-0.5 text-[9px]">
-                  {historial.length} movimientos
+                <Badge variant="outline" className="rounded-full text-slate-400 text-xs font-semibold px-2.5 py-0.5">
+                  {historial.length} rescates
                 </Badge>
               </div>
-              
-              <div className="space-y-4">
+
+              <div className="space-y-2">
                 {loading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((n) => (
-                      <div key={n} className="bg-white p-6 rounded-[28px] border border-slate-100 flex items-center justify-between animate-pulse h-28">
-                        <div className="flex items-center gap-4 w-2/3">
-                          <div className="bg-slate-100 w-12 h-12 rounded-xl" />
-                          <div className="space-y-2 flex-1">
-                            <div className="bg-slate-100 h-2.5 rounded w-1/4" />
-                            <div className="bg-slate-100 h-4 rounded w-3/4" />
-                          </div>
-                        </div>
-                        <div className="bg-slate-100 h-10 rounded-xl w-24" />
+                  [1, 2, 3].map((n) => (
+                    <div key={n} className="bg-white border border-slate-200 rounded-2xl p-4 animate-pulse flex gap-4 h-20">
+                      <div className="bg-slate-100 w-10 h-10 rounded-xl shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="bg-slate-100 h-3 rounded w-1/4" />
+                        <div className="bg-slate-100 h-4 rounded w-3/4" />
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))
                 ) : historial.length > 0 ? (
-                  historial.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="bg-white p-6 rounded-[28px] border border-slate-100/70 hover:border-emerald-100/80 flex flex-col md:flex-row items-center justify-between group transition-all duration-300 hover:shadow-[0_12px_35px_rgba(0,0,0,0.02)]"
+                  historial.slice(0, 5).map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-green-200 transition-colors group"
                     >
-                      <div className="flex items-center gap-4 flex-1 w-full">
-                        <div className="bg-slate-50 p-3.5 rounded-2xl group-hover:bg-emerald-50 transition-colors shrink-0">
-                          <Calendar className="w-6 h-6 text-slate-300 group-hover:text-emerald-600" />
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-green-50 transition-colors">
+                          <Calendar className="w-4 h-4 text-slate-400 group-hover:text-green-600" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider block">
-                            {formatearFecha(item.fecha)}
-                          </span>
-                          <h4 className="font-black text-slate-800 uppercase italic text-lg tracking-tighter truncate group-hover:text-emerald-600 transition-colors">
-                            {item.nombre_producto}
-                          </h4>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 flex items-center gap-1.5">
-                            Cód: <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono tracking-tight font-black">{item.codigo_qr}</span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-slate-400 font-medium">{formatearFecha(item.fecha)}</p>
+                          <p className="font-bold text-slate-800 text-sm truncate">{item.nombre_producto}</p>
+                          <p className="text-[10px] text-slate-400">
+                            Cód: <span className="font-mono bg-slate-100 px-1 rounded text-slate-600">{item.codigo_qr}</span>
                           </p>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center justify-between md:justify-end gap-6 mt-4 md:mt-0 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-slate-50">
-                        <div className="text-left md:text-right min-w-[120px]">
-                          <p className="text-xl font-black text-slate-900 tracking-tighter">${Number(item.precio_final).toLocaleString()}</p>
-                          <Badge className="bg-emerald-50 text-emerald-700 rounded-md font-black text-[8px] uppercase tracking-wider border border-emerald-100 px-2 py-0.5 mt-0.5">
-                            {item.estado || 'Rescatado'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="shrink-0">
-                          {(() => {
-                            const estadoFormateado = (item.estado || "").toLowerCase();
-                            const estadosValidos = ["entregado", "rescatado", "completado", "pagado"];
-                            if (estadosValidos.includes(estadoFormateado)) {
-                              return (
-                                <CalificacionPedido 
-                                  pedidoId={item.id} 
-                                  aliadoId={item.aliado_id} 
-                                  calificacionInicial={item.calificacion_guardada || 0} 
-                                />
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                        <ChevronRight className="text-slate-200 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all hidden md:block w-4 h-4" />
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className="font-bold text-slate-900">${Number(item.precio_final).toLocaleString()}</p>
+                        <Badge className={`text-[9px] font-semibold border-none px-2 py-0.5 ${
+                          item.estado === "entregado" || item.estado === "completado"
+                            ? "bg-green-100 text-green-700"
+                            : item.estado === "cancelado" || item.estado === "expirado"
+                            ? "bg-red-100 text-red-600"
+                            : "bg-orange-100 text-orange-700"
+                        }`}>
+                          {item.estado === "entregado" || item.estado === "completado" ? "Entregado" : item.estado || "Rescatado"}
+                        </Badge>
+                        {(() => {
+                          const est = (item.estado || "").toLowerCase();
+                          if (["entregado", "rescatado", "completado", "pagado"].includes(est)) {
+                            return (
+                              <CalificacionPedido
+                                pedidoId={item.id}
+                                aliadoId={item.aliado_id}
+                                calificacionInicial={item.calificacion_guardada || 0}
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-16 bg-white rounded-[32px] border border-dashed border-slate-200">
+                  <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
                     <Target className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                    <p className="text-slate-400 font-black uppercase tracking-wider text-[10px]">Tu historial está vacío</p>
-                    <Button 
-                      onClick={() => setLocation("/catalog")} 
-                      className="text-emerald-600 font-black mt-2 uppercase text-[9px] tracking-widest p-0 h-auto bg-transparent hover:bg-transparent hover:underline"
-                    >
-                      ¡Empieza a salvar comida ahora!
+                    <p className="text-slate-400 font-semibold text-sm mb-3">Tu historial está vacío</p>
+                    <Button onClick={() => setLocation("/catalog")} className="bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold px-4 py-2">
+                      ¡Empieza a salvar comida!
                     </Button>
                   </div>
                 )}
               </div>
+
+              {historial.length > 5 && (
+                <button
+                  onClick={() => setLocation("/mis-rescates")}
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-slate-500 hover:text-green-600 border border-slate-200 rounded-xl bg-white hover:border-green-200 transition-all"
+                >
+                  Ver más rescates <ChevronRight size={13} />
+                </button>
+              )}
             </div>
 
-            {/* --- EXCLUSIVO CUMPLIMIENTO REGULATORIO: LEY 1581 --- */}
-            <div className="bg-slate-50/60 rounded-2xl p-4 flex gap-3 items-start border border-slate-100">
-              <ShieldCheck className="text-slate-400 flex-shrink-0 mt-0.5" size={16} />
-              <div className="space-y-0.5">
-                <h5 className="text-[9px] font-black text-slate-700 uppercase tracking-wide">Aviso de Protección de Datos Personales (Ley 1581 de 2012)</h5>
-                <p className="text-[9px] text-slate-400 font-medium leading-normal">
-                  AprovechApp garantiza la confidencialidad de tu información logística e historial ecológico bajo los esquemas de seguridad vigentes en Colombia. El uso de los datos personales es estrictamente transaccional.
-                </p>
+            {/* CTA Banner */}
+            <div className="bg-green-50 border border-green-100 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-1">
+                <h3 className="text-base font-black text-slate-800">Cada rescate cuenta 💚</h3>
+                <p className="text-sm text-slate-500 mt-1">Gracias por ayudar a reducir el desperdicio de alimentos y construir un futuro más sostenible.</p>
               </div>
+              <Button
+                onClick={() => setLocation("/catalog")}
+                className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm px-5 py-2.5 gap-2 shrink-0"
+              >
+                🌿 Seguir rescatando
+              </Button>
             </div>
 
+            {/* Legal notice */}
+            <div className="bg-slate-50 rounded-2xl p-4 flex gap-3 items-start border border-slate-100">
+              <ShieldCheck className="text-slate-400 shrink-0 mt-0.5" size={14} />
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                <strong className="text-slate-600">Ley 1581 de 2012:</strong> AprovechApp garantiza la confidencialidad de tu información bajo los esquemas de seguridad vigentes en Colombia. El uso de datos es estrictamente transaccional.
+              </p>
+            </div>
           </div>
         </div>
       </main>

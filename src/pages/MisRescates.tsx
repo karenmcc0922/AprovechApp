@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   QrCode,
@@ -15,8 +14,11 @@ import {
   ArrowRight,
   Ticket,
   Loader2,
-  Maximize2,
-  Truck
+  Truck,
+  Package,
+  Leaf,
+  PiggyBank,
+  ChevronRight
 } from "lucide-react";
 import { API_BASE } from "../lib/api";
 
@@ -93,106 +95,127 @@ function ContadorRescate({ fechaCreacion }: { fechaCreacion: string }) {
 // COMPONENTE: TARJETA DE RESCATE ACTIVO
 // ==========================================
 function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModalQr: (r: any) => void }) {
-  return (
-    <Card className="border border-slate-100/70 shadow-[0_25px_60px_rgba(15,23,42,0.04)] rounded-[45px] overflow-hidden bg-white/90 backdrop-blur-md">
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row">
-          {/* Sección Ticket / QR */}
-          <div className="bg-slate-900 p-10 flex flex-col items-center justify-center text-white md:w-80 relative">
-            {/* Círculos laterales simulando troquelado de ticket real sobre el fondo blanco */}
-            <div className="absolute top-0 bottom-0 -right-3 hidden md:flex flex-col justify-around py-4 z-10">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="w-6 h-6 rounded-full bg-white border-l border-slate-100/10" />
-              ))}
-            </div>
+  const esDomicilio = rescate.tipo_entrega === "domicilio";
+  const estado = rescate.estado?.toLowerCase() || "pendiente";
 
-            <div 
-              onClick={() => abrirModalQr(rescate)}
-              className="bg-white p-5 rounded-[35px] mb-6 shadow-2xl rotate-2 hover:rotate-0 transition-all duration-500 cursor-pointer group relative"
-            >
-              <QrCode className="w-36 h-36 text-slate-900 group-hover:opacity-40 transition-opacity" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Maximize2 className="w-8 h-8 text-slate-900" />
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">CÓDIGO DE RESCATE</p>
-              <p className="font-mono text-2xl font-black tracking-widest text-green-400 uppercase">
-                {rescate.codigo || rescate.codigo_qr || "RESCATE"}
-              </p>
+  const steps = ["Confirmado", "En camino", "Entregado"];
+  const stepIndex = estado === "pagado" || estado === "pendiente" || estado === "reservado" ? 0
+    : estado === "en_camino" ? 1
+    : 2;
+
+  const estadoLabel = estado === "en_camino"
+    ? "En camino"
+    : estado === "pagado"
+    ? "Confirmado"
+    : estado === "pendiente" || estado === "reservado"
+    ? "Pendiente pago"
+    : "Entregado";
+
+  const estadoColor = estado === "en_camino"
+    ? "bg-blue-100 text-blue-700"
+    : estado === "pagado"
+    ? "bg-green-100 text-green-700"
+    : "bg-orange-100 text-orange-700";
+
+  return (
+    <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all">
+      <CardContent className="p-0">
+        {/* Delivery type header */}
+        <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+          {esDomicilio
+            ? <><Truck size={13} className="text-blue-500" /><span className="text-xs font-semibold text-slate-600">Entrega a domicilio</span></>
+            : <><Package size={13} className="text-green-600" /><span className="text-xs font-semibold text-slate-600">Para recoger</span></>
+          }
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-0">
+          {/* Left: image */}
+          <div
+            className="md:w-28 md:h-auto h-36 bg-slate-100 shrink-0 flex items-center justify-center cursor-pointer"
+            onClick={() => abrirModalQr(rescate)}
+          >
+            <div className="flex flex-col items-center gap-1 p-3">
+              <QrCode className="w-14 h-14 text-slate-400" />
+              <span className="text-[9px] font-semibold text-slate-400">Ver QR</span>
             </div>
           </div>
 
-          {/* Información */}
-          <div className="p-10 flex-1 flex flex-col justify-between">
+          {/* Middle: info */}
+          <div className="flex-1 p-5">
+            <p className="text-xs font-semibold text-green-600 flex items-center gap-1 mb-0.5">
+              <Ticket size={11} /> {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
+            </p>
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              {rescate.nombre_producto || rescate.producto}
+            </h3>
+            <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+              <Clock size={11} />
+              {rescate.fecha ? new Date(rescate.fecha.replace(" ", "T")).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
+            </p>
+
+            <div className="flex items-center gap-2 text-xs text-slate-700 mb-2">
+              <span className="bg-slate-100 px-2 py-0.5 rounded">1x {rescate.nombre_producto || rescate.producto}</span>
+              <span className="font-bold text-slate-900">${Number(rescate.precio_final || 0).toLocaleString()}</span>
+            </div>
+
+            <p className="text-xs text-slate-500 flex items-center gap-1">
+              <MapPin size={11} />
+              {esDomicilio ? (rescate.direccion || "Dirección de entrega") : (rescate.direccion_aliado || rescate.direccion || "Punto de recogida")}
+            </p>
+
+            {(rescate.estado === "pendiente" || rescate.estado === "reserva" || rescate.estado === "reservado") && (
+              <div className="mt-3">
+                <ContadorRescate fechaCreacion={rescate.fecha} />
+              </div>
+            )}
+          </div>
+
+          {/* Right: status + stepper */}
+          <div className="md:w-52 p-5 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col gap-4">
             <div>
-              <div className="flex justify-between items-start mb-6 gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <Badge className={`border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
-                      rescate.estado === "pagado"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : rescate.estado === "en_camino"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-orange-100 text-orange-800"
-                    }`}>
-                      {rescate.estado === "pagado" ? "PAGADO (RECOGER)" : rescate.estado === "en_camino" ? "EN CAMINO 🛵" : "RESERVADO (PAGA ALLÁ)"}
-                    </Badge>
-                  </div>
-                  <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter uppercase italic">
-                    {rescate.nombre_producto || rescate.producto}
-                  </h3>
-                  <p className="text-blue-600 font-bold text-sm mt-1 flex items-center gap-1">
-                    <Ticket className="w-4 h-4" /> {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
-                  </p>
-                </div>
-                <div className="text-right min-w-[80px]">
-                  <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                    ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4 py-6 border-y border-slate-100">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Punto de recogida</p>
-                    <p className="text-sm font-bold text-slate-700">{rescate.direccion || rescate.direccion_aliado || "Dirección no especificada"}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-0.5">Horario de retiro</p>
-                    {rescate.estado === "pendiente" || rescate.estado === "reserva" || rescate.estado === "reservado" ? (
-                      <ContadorRescate fechaCreacion={rescate.fecha} />
-                    ) : rescate.estado === "en_camino" ? (
-                      <span className="font-bold text-blue-600 text-sm flex items-center gap-1.5">
-                        <Truck size={14} className="animate-bounce" /> Tu pedido está en camino
-                      </span>
-                    ) : (
-                      <p className="text-sm font-bold text-slate-700">Hoy antes del cierre del establecimiento</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs font-semibold text-slate-500 mb-1.5">Estado</p>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${estadoColor}`}>
+                {estado === "en_camino" && <Truck size={11} />}
+                {(estado === "pagado" || estado === "completado") && <CheckCircle2 size={11} />}
+                {estadoLabel}
+              </span>
             </div>
 
-            <div className="mt-8 bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
-              <p className="text-[11px] font-black uppercase text-slate-600 tracking-tight">
-                Presenta este boleto en el local 🏪
-              </p>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                El encargado escaneará o validará tu código para procesar la entrega.
-              </p>
+            {/* Progress stepper */}
+            <div className="space-y-2">
+              {steps.map((step, i) => (
+                <div key={step} className="flex items-center gap-2">
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    i < stepIndex ? "bg-green-600 border-green-600"
+                    : i === stepIndex ? "border-green-600 bg-white"
+                    : "border-slate-200 bg-white"
+                  }`}>
+                    {i < stepIndex && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                    {i === stepIndex && <div className="w-1.5 h-1.5 bg-green-600 rounded-full" />}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`absolute ml-1.5 mt-3.5 w-0.5 h-3 ${i < stepIndex ? "bg-green-600" : "bg-slate-200"}`} style={{ display: "none" }} />
+                  )}
+                  <span className={`text-xs ${i <= stepIndex ? "font-semibold text-slate-700" : "text-slate-400"}`}>
+                    {step}
+                  </span>
+                </div>
+              ))}
             </div>
+
+            {estado === "pagado" && (
+              <button
+                onClick={() => abrirModalQr(rescate)}
+                className="mt-auto text-center bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-3 rounded-xl transition-colors"
+              >
+                Ver indicaciones
+              </button>
+            )}
+            {estado === "en_camino" && (
+              <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-auto">
+                <Truck size={11} className="animate-bounce" /> Tu pedido va en camino y llegará pronto.
+              </p>
+            )}
           </div>
         </div>
       </CardContent>
@@ -205,59 +228,61 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
 // ==========================================
 function RescateHistorialCard({ rescate }: { rescate: any }) {
   const formatearFechaHistorial = (fechaRaw: string) => {
-    if (!fechaRaw) return "Historial";
+    if (!fechaRaw) return "—";
     try {
       let stringFecha = String(fechaRaw).trim();
       if (stringFecha.includes(" ") && !stringFecha.includes("T")) {
         stringFecha = stringFecha.replace(" ", "T");
       }
       const fechaObjeto = new Date(stringFecha);
-      if (isNaN(fechaObjeto.getTime())) return "Historial";
-      
+      if (isNaN(fechaObjeto.getTime())) return "—";
       return fechaObjeto.toLocaleDateString("es-CO", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
+        day: "2-digit", month: "short", year: "numeric",
         timeZone: "America/Bogota"
-      });
-    } catch (e) {
-      return "Historial";
-    }
+      }) + " · " + fechaObjeto.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", timeZone: "America/Bogota" });
+    } catch { return "—"; }
   };
 
+  const cancelado = rescate.estado === "cancelado";
+
   return (
-    <Card className="border border-slate-100 bg-white/80 backdrop-blur-md p-8 rounded-[35px] shadow-[0_10px_35px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_45px_rgba(0,0,0,0.03)] hover:border-emerald-100/60 transition-all duration-300 group">
-      <div className="flex justify-between items-center mb-6">
-        <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <CheckCircle2 className="w-6 h-6 text-green-600" />
-        </div>
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <Badge className={`border-none font-black text-[9px] px-3 py-1 uppercase ${
-            rescate.estado === "cancelado" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"
-          }`}>
-            {rescate.estado === "cancelado" ? "CANCELADO" : "ENTREGADO"}
-          </Badge>
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${cancelado ? "bg-red-100" : "bg-green-100"}`}>
+            <CheckCircle2 size={13} className={cancelado ? "text-red-500" : "text-green-600"} />
+          </div>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cancelado ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
+            {cancelado ? "Cancelado" : "Entregado"}
+          </span>
         </div>
+        <span className="text-xs text-slate-400">{formatearFechaHistorial(rescate.fecha)}</span>
       </div>
-      <h4 className="font-black text-slate-900 uppercase text-lg tracking-tighter italic mb-1 group-hover:text-emerald-600 transition-colors">
+
+      <h4 className="font-bold text-slate-800 text-sm mb-0.5">
         {rescate.nombre_producto || rescate.producto}
       </h4>
-      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">
+      <p className="text-xs text-slate-500 mb-3">
         {rescate.nombre_local || rescate.nombre_aliado || rescate.local}
       </p>
-      
-      <div className="flex justify-between items-center pt-6 border-t border-slate-50">
+
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-4">
+        <Package size={11} />
+        <span>1x {rescate.nombre_producto || rescate.producto}</span>
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
         <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase">Valor</p>
-          <span className="font-black text-slate-900 text-xl">
+          <p className="text-[10px] text-slate-400 font-medium">Total pagado</p>
+          <span className="font-black text-slate-900 text-base">
             ${Number(rescate.precio_final || rescate.precio || 0).toLocaleString()}
           </span>
         </div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase">
-          {formatearFechaHistorial(rescate.fecha)}
-        </span>
+        <button className="flex items-center gap-1 text-xs font-semibold text-green-600 hover:text-green-700 transition-colors">
+          Ver detalle <ChevronRight size={13} />
+        </button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -310,86 +335,134 @@ export default function MisRescates() {
   const completados = rescates.filter(r => ["completado", "entregado", "cancelado"].includes(r.estado));
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <AppNavbar />
-      
-      {/* CAPA 1: Textura de cuadrícula técnica súper fina */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
 
-      {/* CAPA 2: Glow estético hiper-difuminado en esquinas */}
-      <div className="absolute top-[-5%] left-[-5%] w-[450px] h-[450px] rounded-full bg-emerald-100/30 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[140px] pointer-events-none" />
-      
-      <main className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-4xl relative z-10">
-        {/* Cabecera */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+      <main className="flex-grow container mx-auto px-4 pt-24 pb-16 max-w-5xl">
+        {/* ── HEADER ── */}
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-3xl p-6 sm:p-8 mb-6 flex items-start justify-between gap-4 border border-green-100">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-1 bg-green-500 rounded-full" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tu impacto positivo</p>
-            </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">
-              Mis <span className="text-green-600">Rescates</span>
+            <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-1">Tu impacto positivo</p>
+            <h1 className="text-3xl font-black text-slate-900 mb-1">
+              Mis <span className="text-green-600">rescates</span> 🌿
             </h1>
+            <p className="text-sm text-slate-500">
+              {filter === "pendientes"
+                ? "Aquí puedes ver todos los rescates que tienes activos."
+                : "Revisa tu historial y el impacto de cada rescate que realizaste."
+              }
+            </p>
           </div>
-          
-          <div className="flex bg-slate-100 p-1.5 rounded-[24px] border border-slate-200/40">
-            <button 
-              onClick={() => setFilter("pendientes")}
-              className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
-                filter === "pendientes" 
-                ? "bg-white text-slate-900 shadow-lg scale-105" 
-                : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Activos ({pendientes.length})
-            </button>
-            <button 
-              onClick={() => setFilter("completados")}
-              className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${
-                filter === "completados" 
-                ? "bg-white text-slate-900 shadow-lg scale-105" 
-                : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Historial ({completados.length})
-            </button>
+          <div className="hidden sm:flex flex-col items-end gap-2 shrink-0">
+            <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-full border border-green-100">
+              Gracias por hacer la diferencia 💚
+            </span>
           </div>
+        </div>
+
+        {/* ── TABS ── */}
+        <div className="flex bg-white border border-slate-200 rounded-2xl p-1 mb-6 w-fit shadow-sm">
+          <button
+            onClick={() => setFilter("pendientes")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+              filter === "pendientes"
+                ? "bg-green-600 text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Activos ({pendientes.length})
+          </button>
+          <button
+            onClick={() => setFilter("completados")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+              filter === "completados"
+                ? "bg-green-600 text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Historial ({completados.length})
+          </button>
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sincronizando con la red...</p>
+            <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+            <p className="text-sm text-slate-400 font-semibold">Cargando rescates...</p>
           </div>
         ) : filter === "pendientes" ? (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {pendientes.length > 0 ? (
               pendientes.map((rescate) => (
-                <RescateActivoCard 
-                  key={rescate.id} 
-                  rescate={rescate} 
-                  abrirModalQr={abrirModalQr} 
-                />
+                <RescateActivoCard key={rescate.id} rescate={rescate} abrirModalQr={abrirModalQr} />
               ))
             ) : (
               <EmptyState icon={<ShoppingBag />} message="No tienes rescates activos en este momento." />
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {completados.length > 0 ? (
-              completados.map((rescate) => (
-                <RescateHistorialCard 
-                  key={rescate.id} 
-                  rescate={rescate} 
-                />
-              ))
-            ) : (
-              <div className="col-span-full">
-                <EmptyState icon={<History />} message="Aún no tienes un historial de rescates." />
+          <div>
+            {/* Impact stats */}
+            {completados.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                {[
+                  { icon: <CheckCircle2 size={16} className="text-green-600" />, label: "rescates realizados", value: completados.length, bg: "bg-green-50" },
+                  { icon: <Leaf size={16} className="text-green-600" />, label: "CO₂ evitado", value: `${(completados.length * 2.5).toFixed(0)} kg`, bg: "bg-emerald-50" },
+                  { icon: <Package size={16} className="text-amber-600" />, label: "alimentos salvados", value: `${(completados.length * 1.5).toFixed(0)} kg`, bg: "bg-amber-50" },
+                  { icon: <PiggyBank size={16} className="text-pink-600" />, label: "ahorrado en total", value: `$${completados.reduce((a, c) => a + Number(c.precio_final || 0), 0).toLocaleString()}`, bg: "bg-pink-50" },
+                ].map((stat, i) => (
+                  <div key={i} className={`${stat.bg} rounded-2xl p-4 flex flex-col gap-2`}>
+                    <div>{stat.icon}</div>
+                    <p className="text-lg font-black text-slate-900">{stat.value}</p>
+                    <p className="text-xs text-slate-500 font-medium leading-tight">{stat.label}</p>
+                  </div>
+                ))}
               </div>
             )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {completados.length > 0 ? (
+                completados.map((rescate) => (
+                  <RescateHistorialCard key={rescate.id} rescate={rescate} />
+                ))
+              ) : (
+                <div className="col-span-full">
+                  <EmptyState icon={<History />} message="Aún no tienes un historial de rescates." />
+                </div>
+              )}
+            </div>
+
+            {completados.length > 0 && (
+              <div className="mt-8 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-slate-800">Cada rescate cuenta 💚</h3>
+                  <p className="text-sm text-slate-500 mt-1">Gracias por ayudar a reducir el desperdicio de alimentos y apoyar a los comercios locales.</p>
+                </div>
+                <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors">
+                  Seguir rescatando
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bottom impact banner for active tab */}
+        {filter === "pendientes" && pendientes.length > 0 && (
+          <div className="mt-8 bg-green-900 rounded-3xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 text-white">
+            <p className="font-bold text-sm">¡Gracias por rescatar alimentos! 🌍</p>
+            <div className="flex items-center gap-6 text-sm">
+              <div className="text-center">
+                <p className="font-black text-lg">{rescates.length}</p>
+                <p className="text-green-300 text-xs">Rescates realizados</p>
+              </div>
+              <div className="text-center">
+                <p className="font-black text-lg">{(rescates.length * 2.5).toFixed(0)} kg</p>
+                <p className="text-green-300 text-xs">CO₂ evitado</p>
+              </div>
+              <div className="text-center">
+                <p className="font-black text-lg">${completados.reduce((a, c) => a + Number(c.precio_final || 0), 0).toLocaleString()}</p>
+                <p className="text-green-300 text-xs">Ahorrado</p>
+              </div>
+            </div>
           </div>
         )}
       </main>

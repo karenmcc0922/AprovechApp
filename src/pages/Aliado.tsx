@@ -226,72 +226,123 @@ export default function Aliado() {
       <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-5%] w-[450px] h-[450px] rounded-full bg-blue-100/20 blur-[140px] pointer-events-none" />
 
-      <main className="flex-grow container mx-auto px-4 pt-32 pb-12 max-w-7xl relative z-10">
+      <main className="flex-grow container mx-auto px-4 pt-24 pb-12 max-w-7xl">
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        {/* ── WELCOME HEADER ── */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-6 shadow-sm flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
-              Dashboard <span className="text-green-600">Aliado</span>
+            <h1 className="text-2xl font-black text-slate-900 mb-1">
+              ¡Bienvenido, {JSON.parse(localStorage.getItem("usuario") || "{}").nombre || "Aliado"}! 👋
             </h1>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Panel de analíticas e inventario</p>
+            <p className="text-sm text-slate-500">Aquí puedes gestionar tus ofertas y hacer crecer tu impacto.</p>
+          </div>
+          <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3 text-center shrink-0">
+            <p className="text-xs text-green-700 font-semibold">Tu impacto juntos</p>
+            <p className="text-xl font-black text-green-600">{(stats.total_rescates * 2.5).toFixed(1)} kg</p>
+            <p className="text-[10px] text-green-600">CO₂ evitado este mes</p>
           </div>
         </div>
 
-        {/* MÉTRICAS Y GRÁFICA */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <Card className="border border-slate-100/80 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white/90 backdrop-blur-md p-6 flex items-center gap-5 border-l-4 border-l-green-500">
-              <div className="bg-green-50 p-4 rounded-2xl"><TrendingUp className="text-green-600 w-6 h-6" /></div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ingresos Totales</p>
-                <h3 className="text-2xl font-black text-slate-900">${Number(stats.total_ganado || 0).toLocaleString()}</h3>
-              </div>
-            </Card>
-            
-            <Card className="border border-slate-100/80 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white/90 backdrop-blur-md p-6 flex items-center gap-5 border-l-4 border-l-blue-500">
-              <div className="bg-blue-50 p-4 rounded-2xl"><BarChart3 className="text-blue-600 w-6 h-6" /></div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rescates Exitosos</p>
-                <h3 className="text-2xl font-black text-slate-900">{stats.total_rescates}</h3>
-              </div>
-            </Card>
-          </div>
-
-          <Card className="lg:col-span-8 border border-slate-100/80 shadow-[0_20px_50px_rgba(0,0,0,0.03)] rounded-[35px] bg-white/90 backdrop-blur-md p-8 min-h-[300px] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-black text-slate-900 uppercase italic tracking-tighter">Ventas Semanales</h3>
-              <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Live</div>
+        {/* ── METRIC CARDS ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <Card className="border border-slate-200 rounded-2xl bg-white p-5 shadow-sm flex items-center gap-4">
+            <div className="bg-green-100 p-3 rounded-xl shrink-0"><TrendingUp className="text-green-600 w-5 h-5" /></div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Ingresos totales</p>
+              <h3 className="text-xl font-black text-slate-900">${Number(stats.total_ganado || 0).toLocaleString()}</h3>
+              <p className="text-[10px] text-green-600 font-semibold">+10.6% vs. semana pasada</p>
             </div>
-            <div className="flex-1 w-full flex items-center justify-center">
-              {datosGrafica.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={datosGrafica}>
-                    <defs>
-                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.25}/>
-                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} />
-                    <YAxis hide />
-                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)'}} />
-                    <Area type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={4} fillOpacity={1} fill="url(#colorTotal)" dot={{ r: 4, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex flex-col items-center text-center space-y-2 opacity-50">
-                  <AlertCircle className="w-8 h-8 text-slate-300" />
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Aún no hay ventas registradas</p>
-                </div>
-              )}
+          </Card>
+          <Card className="border border-slate-200 rounded-2xl bg-white p-5 shadow-sm flex items-center gap-4">
+            <div className="bg-blue-100 p-3 rounded-xl shrink-0"><BarChart3 className="text-blue-600 w-5 h-5" /></div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Rescates exitosos</p>
+              <h3 className="text-xl font-black text-slate-900">{stats.total_rescates}</h3>
+              <p className="text-[10px] text-blue-600 font-semibold">+2 vs. semana pasada</p>
+            </div>
+          </Card>
+          <Card className="border border-slate-200 rounded-2xl bg-white p-5 shadow-sm flex items-center gap-4">
+            <div className="bg-orange-100 p-3 rounded-xl shrink-0"><ShieldCheck className="text-orange-500 w-5 h-5" /></div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Productos rescatados</p>
+              <h3 className="text-xl font-black text-slate-900">{(stats.total_rescates * 1.5).toFixed(1)} kg</h3>
+              <p className="text-[10px] text-orange-500 font-semibold">+8.3 kg vs. semana pasada</p>
             </div>
           </Card>
         </div>
 
+        {/* ── CHART + QUICK SUMMARY ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <Card className="lg:col-span-2 border border-slate-200 rounded-2xl bg-white p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-900 text-sm">Ventas semanales</h3>
+              <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Esta semana</span>
+            </div>
+            <div className="h-[180px] w-full">
+              {datosGrafica.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={datosGrafica}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                    <YAxis hide />
+                    <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: '12px'}} />
+                    <Area type="monotone" dataKey="total" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" dot={{ r: 3, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 5 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center opacity-50">
+                  <AlertCircle className="w-8 h-8 text-slate-300 mb-2" />
+                  <p className="text-xs text-slate-400 font-semibold">Sin ventas registradas aún</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="border border-slate-200 rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="font-bold text-slate-900 text-sm mb-4">Resumen rápido</h3>
+            <div className="space-y-3">
+              {[
+                { label: "Ofertas activas", value: productos.length },
+                { label: "Vencen hoy", value: productos.filter(p => {
+                  if (!p.fecha_vencimiento) return false;
+                  const hoy = new Date().toISOString().split("T")[0];
+                  return p.fecha_vencimiento.split("T")[0] === hoy;
+                }).length },
+                { label: "Stock disponible", value: `${productos.reduce((a, p) => a + (Number(p.stock) || 0), 0)} kg` },
+                { label: "Categorías", value: [...new Set(productos.map(p => p.categoria))].length },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-b-0">
+                  <span className="text-sm text-slate-600">{item.label}</span>
+                  <span className="text-sm font-black text-slate-900">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── CREATE OFFER BANNER ── */}
+        <div className="bg-green-50 border border-green-100 rounded-2xl p-5 mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-bold text-slate-800 text-sm">¡Ofrece más, desperdicia menos y gana más!</p>
+            <p className="text-xs text-slate-500 mt-0.5">Publica nuevas ofertas y llega a más personas.</p>
+          </div>
+          <button
+            onClick={() => document.getElementById('form-crear-oferta')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0"
+          >
+            <Plus size={14} /> Crear nueva oferta
+          </button>
+        </div>
+
         {/* SECCIÓN INFERIOR: GESTIÓN */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-4">
+          <div id="form-crear-oferta" className="lg:col-span-4">
             <Card className="border border-slate-100 shadow-[0_30px_70px_rgba(15,23,42,0.06)] rounded-[45px] bg-white overflow-hidden">
               <div className={`p-8 text-white flex items-center justify-between transition-colors duration-300 ${editingId ? 'bg-amber-600' : 'bg-slate-900'}`}>
                 <div className="flex items-center gap-3">
@@ -437,60 +488,80 @@ export default function Aliado() {
           </div>
 
           {/* LISTADO DE PRODUCTOS */}
-          <div className="lg:col-span-5 space-y-4">
-            <h2 className="text-lg font-black text-slate-800 uppercase italic px-2">Mis Ofertas Activas</h2>
+          <div className="lg:col-span-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">Mis ofertas activas</h2>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{productos.length} activas</span>
+            </div>
             {productos.length > 0 ? productos.map((prod) => (
-              <Card key={prod.id} className={`border border-slate-100/70 shadow-[0_10px_30px_rgba(0,0,0,0.01)] rounded-[30px] p-4 bg-white hover:shadow-md transition-all duration-300 ${editingId === prod.id ? 'ring-2 ring-amber-500 bg-amber-50/10 border-transparent' : ''}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+              <Card key={prod.id} className={`border rounded-2xl p-4 bg-white hover:shadow-sm transition-all ${editingId === prod.id ? 'ring-2 ring-amber-400 border-transparent bg-amber-50/30' : 'border-slate-200'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={prod.imagen_url && prod.imagen_url.trim() !== "" ? prod.imagen_url : IMG_SORPRESA}
-                      className="w-14 h-14 rounded-2xl object-cover shadow-inner"
+                      className="w-12 h-12 rounded-xl object-cover shrink-0"
                       alt={prod.nombre}
                       onError={(e) => { (e.target as HTMLImageElement).src = IMG_SORPRESA; }}
                     />
-                    <div>
-                      <h4 className="font-black text-slate-800 text-sm uppercase">{prod.nombre}</h4>
-                      <div className="flex gap-2 items-center mt-0.5">
-                        <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">{prod.categoria || 'Rescate'}</span>
-                        <p className="text-[10px] font-bold text-green-600 uppercase">Stock: {prod.stock}</p>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-800 text-sm truncate">{prod.nombre}</h4>
+                      <div className="flex gap-2 items-center mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{prod.categoria || 'Rescate'}</span>
+                        <span className="text-[10px] font-semibold text-green-600">Stock: {prod.stock}</span>
                       </div>
+                      <p className="text-sm font-black text-slate-900 mt-0.5">${Number(prod.precio_rescate).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" onClick={() => activarEdicion(prod)} className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors">
-                      <Edit2 size={14}/>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Activa</span>
+                    <Button variant="ghost" onClick={() => activarEdicion(prod)} className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg">
+                      <Edit2 size={13}/>
                     </Button>
-                    <Button variant="ghost" onClick={() => eliminarProducto(prod.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                      <Trash2 size={14}/>
+                    <Button variant="ghost" onClick={() => eliminarProducto(prod.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                      <Trash2 size={13}/>
                     </Button>
                   </div>
                 </div>
               </Card>
-            )) : <p className="text-xs font-bold text-slate-400 uppercase p-4 italic">No hay productos activos</p>}
+            )) : (
+              <div className="text-center py-10 border border-dashed border-slate-200 rounded-2xl bg-white">
+                <p className="text-sm text-slate-400 font-semibold">No hay productos activos</p>
+              </div>
+            )}
           </div>
 
           {/* ACTIVIDAD RECIENTE */}
           <div className="lg:col-span-3">
-            <Card className="border border-slate-100/70 shadow-[0_15px_40px_rgba(0,0,0,0.02)] rounded-[35px] bg-white p-6">
-              <div className="flex items-center gap-3 mb-6">
+            <Card className="border border-slate-200 rounded-2xl bg-white p-5">
+              <div className="flex items-center gap-2 mb-4">
                 <History className="w-4 h-4 text-slate-400" />
-                <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Actividad Reciente</h3>
+                <h3 className="font-bold text-slate-900 text-sm">Actividad reciente</h3>
               </div>
-              <div className="space-y-6 relative">
-                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-100" />
+              <div className="space-y-4 relative">
+                <div className="absolute left-1 top-1.5 bottom-1.5 w-[2px] bg-slate-100" />
                 {actividad.length > 0 ? actividad.map((log) => (
-                  <div key={log.id} className="relative pl-6">
-                    <div className="absolute left-0 top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm bg-green-500 z-10" />
-                    <p className="text-[10px] font-bold text-slate-800 leading-tight">{log.descripcion}</p>
-                    <p className="text-[8px] font-black text-slate-400 uppercase mt-1">
+                  <div key={log.id} className="relative pl-5">
+                    <div className="absolute left-0 top-1 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white shadow-sm" />
+                    <p className="text-xs font-semibold text-slate-700 leading-tight">{log.descripcion}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
                       {new Date(log.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                )) : <p className="text-[10px] font-bold text-slate-400 uppercase">Sin movimientos</p>}
+                )) : <p className="text-xs text-slate-400 font-semibold pl-5">Sin movimientos recientes</p>}
               </div>
             </Card>
           </div>
+        </div>
+
+        {/* ── BOTTOM BANNER ── */}
+        <div className="mt-8 bg-green-900 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+          <div>
+            <h3 className="text-base font-black">Gracias por ser parte del cambio 💚</h3>
+            <p className="text-sm text-green-200 mt-1">Juntos reducimos el desperdicio de alimentos y construimos un futuro más sostenible.</p>
+          </div>
+          <button className="bg-white text-green-900 font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-green-50 transition-colors shrink-0">
+            Ver mi impacto
+          </button>
         </div>
       </main>
     </div>

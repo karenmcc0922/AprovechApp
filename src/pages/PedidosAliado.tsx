@@ -10,11 +10,13 @@ import {
   Ticket,
   RefreshCcw,
   Clock,
-  ChevronRight,
   Search,
   CheckCircle2,
   Check,
-  Truck
+  Truck,
+  CircleX,
+  Timer,
+  PackageCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { API_BASE } from "../lib/api";
@@ -90,119 +92,105 @@ export default function PedidosAliado() {
     }
   };
 
+  const entregados = pedidos.filter(p => ["entregado","completado"].includes((p.estado||"").toLowerCase())).length;
+  const enCamino   = pedidos.filter(p => (p.estado||"").toLowerCase() === "en_camino").length;
+  const pendientes = pedidos.filter(p => ["pagado","pendiente","reservado"].includes((p.estado||"").toLowerCase())).length;
+  const expirados  = pedidos.filter(p => (p.estado||"").toLowerCase() === "expirado").length;
+
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <AppNavbar />
 
-      {/* REJILLA TECNOLÓGICA SUTIL */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+      <div className="flex-grow container mx-auto px-4 pt-24 pb-16 max-w-5xl">
 
-      {/* HALOS DE LUZ AMBIENTAL */}
-      <div className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[10%] left-[-5%] w-[450px] h-[450px] rounded-full bg-blue-100/20 blur-[130px] pointer-events-none" />
-
-      <div className="flex-grow container mx-auto px-6 pt-32 pb-20 max-w-5xl relative z-10">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+        {/* ── HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="relative flex h-3 w-3">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 ${isRefreshing ? 'block' : 'hidden'}`}></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 ${isRefreshing ? '' : 'hidden'}`}/>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"/>
               </span>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Panel de Control en Vivo</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Panel de control en vivo</p>
             </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">
-              Pedidos <span className="text-green-600">Recibidos</span>
+            <h1 className="text-2xl font-black text-slate-900">
+              Pedidos <span className="text-green-600">recibidos</span>
             </h1>
           </div>
 
-          <div className="flex gap-4">
-            <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.02)] border border-slate-100 hidden sm:block">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
-              <p className="text-xl font-black text-slate-900">{pedidos.length} Rescates</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
+              <p className="text-xs text-slate-400 font-medium">Total</p>
+              <p className="text-lg font-black text-slate-900">{pedidos.length} Rescates</p>
             </div>
             <button
               onClick={() => fetchPedidos(true)}
-              className="bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-2xl shadow-lg shadow-slate-900/10 transition-all active:scale-95"
+              className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl shadow-sm transition-all active:scale-95"
             >
               <RefreshCcw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* CHECKPOINT QR */}
-        <div className="mb-12">
-          <div className="bg-slate-900 rounded-[35px] p-8 shadow-[0_30px_60px_rgba(15,23,42,0.15)] relative overflow-hidden">
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="text-center md:text-left">
-                <h3 className="text-white font-black text-xl uppercase italic tracking-tighter mb-1">Checkpoint de Rescate</h3>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Valida el código de entrega aquí</p>
+        {/* ── CHECKPOINT QR ── */}
+        <div className="mb-5">
+          <div className="bg-slate-900 rounded-2xl p-5 shadow-md">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-white font-bold text-sm mb-0.5">Checkpoint de rescate</h3>
+                <p className="text-slate-400 text-xs">Valida el código de entrega para completar el rescate.</p>
               </div>
 
-              <div className="flex gap-2 w-full md:w-auto max-w-md">
+              <div className="flex gap-2 w-full sm:w-auto max-w-sm">
                 <div className="relative flex-1">
                   <Input
-                    placeholder="Código de rescate..."
-                    className="h-14 rounded-2xl border-none bg-white/10 text-white placeholder:text-slate-500 font-black pl-12 uppercase tracking-wider focus-visible:ring-1 focus-visible:ring-white/20"
+                    placeholder="Ingresa el código de rescate"
+                    className="h-11 rounded-xl border-none bg-white/10 text-white placeholder:text-slate-500 font-semibold pl-10 uppercase tracking-wider focus-visible:ring-1 focus-visible:ring-white/20 text-sm"
                     value={codigoBusqueda}
                     onChange={(e) => setCodigoBusqueda(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && buscarPedidoPorCodigo()}
                   />
-                  <Ticket className="absolute left-4 top-4 text-slate-500 w-6 h-6" />
+                  <Ticket className="absolute left-3 top-3 text-slate-500 w-5 h-5" />
                 </div>
                 <Button
                   onClick={buscarPedidoPorCodigo}
                   disabled={buscando}
-                  className="h-14 px-8 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black uppercase text-xs shadow-md shadow-green-600/10"
+                  className="h-11 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm"
                 >
-                  {buscando ? <Loader2 className="animate-spin" /> : <Search />}
+                  {buscando ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
 
             {pedidoEncontrado && (
-              <div className="mt-8 p-6 bg-white rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in duration-300 shadow-xl">
-                <div className="flex items-center gap-5">
-                  <div className="bg-green-50 p-4 rounded-2xl">
-                    <CheckCircle2 className="text-green-600 w-6 h-6" />
+              <div className="mt-4 p-4 bg-white rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-50 p-2.5 rounded-xl">
+                    <CheckCircle2 className="text-green-600 w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-[10px] font-black text-slate-400 uppercase">Cliente: {pedidoEncontrado.nombre_usuario}</p>
-                      <span className="bg-slate-100 text-slate-700 font-mono text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-                        Cód: {pedidoEncontrado.codigo || `##${pedidoEncontrado.id}`}
-                      </span>
-                    </div>
-                    <h4 className="text-lg font-black text-slate-900 uppercase italic">{pedidoEncontrado.nombre_producto}</h4>
+                    <p className="text-xs text-slate-500">Cliente: <strong>{pedidoEncontrado.nombre_usuario}</strong> · <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{pedidoEncontrado.codigo || `#${pedidoEncontrado.id}`}</span></p>
+                    <h4 className="text-sm font-bold text-slate-900">{pedidoEncontrado.nombre_producto}</h4>
                     {pedidoEncontrado.tipo_entrega === 'domicilio' && (
-                      <span className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase mt-1">
-                        <Truck size={10} /> Domicilio — será recogido por repartidor
+                      <span className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold mt-0.5">
+                        <Truck size={10} /> Domicilio
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setPedidoEncontrado(null)}
-                    className="text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-widest transition-colors"
-                  >
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setPedidoEncontrado(null)} className="text-slate-400 hover:text-red-500 text-xs font-semibold transition-colors">
                     Cancelar
                   </button>
                   {pedidoEncontrado.tipo_entrega !== 'domicilio' &&
-                   pedidoEncontrado.estado?.toLowerCase() !== 'entregado' &&
-                   pedidoEncontrado.estado?.toLowerCase() !== 'completado' ? (
-                    <Button
-                      onClick={() => ejecutarEntregaFinal(pedidoEncontrado.id)}
-                      className="bg-slate-900 text-white hover:bg-green-600 rounded-2xl px-10 font-black uppercase text-xs h-12 shadow-md transition-colors"
-                    >
+                   !["entregado","completado"].includes(pedidoEncontrado.estado?.toLowerCase() || "") ? (
+                    <Button onClick={() => ejecutarEntregaFinal(pedidoEncontrado.id)} className="bg-slate-900 text-white hover:bg-green-600 rounded-xl px-5 font-bold text-sm h-9 transition-colors">
                       Confirmar Entrega
                     </Button>
                   ) : (
-                    <Badge className="bg-slate-100 text-slate-400 py-3 px-6 rounded-xl font-black border-none">
-                      {pedidoEncontrado.tipo_entrega === 'domicilio' ? 'DOMICILIO — REPARTIDOR' : 'YA ENTREGADO'}
+                    <Badge className="bg-slate-100 text-slate-500 py-2 px-4 rounded-lg font-semibold border-none text-xs">
+                      {pedidoEncontrado.tipo_entrega === 'domicilio' ? 'Domicilio — repartidor' : 'Ya entregado'}
                     </Badge>
                   )}
                 </div>
@@ -211,117 +199,145 @@ export default function PedidosAliado() {
           </div>
         </div>
 
-        {/* LISTADO */}
+        {/* ── STATS CHIPS ── */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {[
+            { icon: <PackageCheck size={14}/>, label: "Rescates totales", val: pedidos.length, cls: "bg-white border-slate-200 text-slate-700" },
+            { icon: <CheckCircle2 size={14} className="text-green-600"/>, label: "Entregados", val: entregados, cls: "bg-green-50 border-green-200 text-green-700" },
+            { icon: <Truck size={14} className="text-blue-500"/>, label: "En camino", val: enCamino, cls: "bg-blue-50 border-blue-200 text-blue-700" },
+            { icon: <Timer size={14} className="text-amber-500"/>, label: "Pendientes", val: pendientes, cls: "bg-amber-50 border-amber-200 text-amber-700" },
+            { icon: <CircleX size={14} className="text-red-500"/>, label: "Expirados", val: expirados, cls: "bg-red-50 border-red-200 text-red-600" },
+          ].map((chip, i) => (
+            <div key={i} className={`flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-semibold ${chip.cls}`}>
+              {chip.icon} {chip.label} <span className="font-black">{chip.val}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── ORDER LIST ── */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="animate-spin text-green-600 w-12 h-12 mb-4" />
-            <p className="text-slate-400 font-bold animate-pulse">Sincronizando pedidos...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="animate-spin text-green-600 w-8 h-8 mb-3" />
+            <p className="text-slate-400 text-sm font-semibold">Sincronizando pedidos...</p>
           </div>
         ) : pedidos.length === 0 ? (
-          <div className="bg-white p-20 rounded-[50px] text-center border-2 border-dashed border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.01)]">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag className="w-10 h-10 text-slate-200" />
-            </div>
-            <h3 className="text-xl font-black text-slate-900 uppercase italic">Sin pedidos activos</h3>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Los rescates que publiquen aparecerán aquí</p>
+          <div className="bg-white py-16 rounded-2xl text-center border border-dashed border-slate-200">
+            <ShoppingBag className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-700">Sin pedidos activos</h3>
+            <p className="text-slate-400 text-sm mt-1">Los rescates que los clientes compren aparecerán aquí</p>
           </div>
         ) : (
-          <div className="grid gap-6">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2 px-4">Historial de Hoy</h2>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Historial de hoy</p>
             {pedidos.map((pedido) => {
-              const estadoNorm = pedido.estado ? String(pedido.estado).toLowerCase() : 'pendiente';
-              const esEntregado = estadoNorm === 'entregado' || estadoNorm === 'completado' || estadoNorm === 'en_camino';
-              const esDomicilio = pedido.tipo_entrega === 'domicilio';
+              const estadoNorm = (pedido.estado || "pendiente").toLowerCase();
+              const esEntregado = ["entregado","completado"].includes(estadoNorm);
+              const esDomicilio = pedido.tipo_entrega === "domicilio";
+              const esExpirado = estadoNorm === "expirado";
+              const esEnCamino = estadoNorm === "en_camino";
+
+              const statusInfo = esEntregado
+                ? { label: "Entregado", cls: "bg-green-100 text-green-700" }
+                : esEnCamino
+                ? { label: "En camino", cls: "bg-blue-100 text-blue-700" }
+                : esExpirado
+                ? { label: "Expirado", cls: "bg-red-100 text-red-600" }
+                : { label: "Pendiente", cls: "bg-amber-100 text-amber-700" };
 
               return (
                 <div
                   key={pedido.id}
-                  className="bg-white/90 backdrop-blur-md p-8 rounded-[40px] shadow-[0_15px_50px_rgba(0,0,0,0.02)] border border-slate-100/80 hover:border-green-100/80 transition-all duration-300 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 group"
+                  className={`bg-white border rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all ${esEntregado || esExpirado ? 'border-slate-200 opacity-80' : 'border-slate-200 hover:border-green-200 hover:shadow-sm'}`}
                 >
-                  <div className="flex gap-6 items-center flex-1">
-                    <div className="relative">
-                      <div className={`p-5 rounded-[28px] text-white transition-all duration-300 ${esEntregado ? 'bg-slate-100 text-slate-400' : esDomicilio ? 'bg-blue-600 shadow-md shadow-blue-600/10' : 'bg-slate-900 shadow-md shadow-slate-900/10 group-hover:bg-green-600 group-hover:shadow-green-600/10'}`}>
-                        {esDomicilio ? <Truck className="w-8 h-8" /> : <ShoppingBag className="w-8 h-8" />}
-                      </div>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`p-2.5 rounded-xl shrink-0 ${esEntregado ? 'bg-slate-100 text-slate-400' : esDomicilio ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-700'}`}>
+                      {esDomicilio ? <Truck size={18}/> : <ShoppingBag size={18}/>}
                     </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge className={`border-none font-black text-[9px] uppercase px-2 py-0 ${esEntregado ? 'bg-slate-100 text-slate-400' : esDomicilio ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                          {esDomicilio ? 'Domicilio' : 'Retiro en local'}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                        <Badge className={`border-none text-[10px] font-semibold px-2 py-0.5 ${esDomicilio ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-700'}`}>
+                          {esDomicilio ? "Domicilio" : "Retiro en local"}
                         </Badge>
-                        <span className="text-[10px] font-bold text-slate-300 uppercase flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {pedido.fecha ? new Date(pedido.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "En proceso"}
+                        <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+                          <Clock size={10}/> {pedido.fecha ? new Date(pedido.fecha).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "—"}
                         </span>
                       </div>
-                      <h3 className={`text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 transition-colors ${esEntregado ? 'text-slate-400 line-through' : 'text-slate-900 group-hover:text-green-600'}`}>
+                      <h3 className={`text-sm font-bold truncate ${esEntregado || esExpirado ? 'text-slate-400' : 'text-slate-900'}`}>
                         {pedido.nombre_producto}
                       </h3>
-                      <div className="flex items-center gap-2 bg-slate-50 w-fit px-3 py-1.5 rounded-full">
-                        <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                          <User className="w-3 h-3 text-slate-500" />
-                        </div>
-                        <span className="text-xs font-bold text-slate-600">{pedido.nombre_usuario}</span>
-                      </div>
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <User size={10}/> {pedido.nombre_usuario}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap lg:flex-nowrap items-center gap-6 w-full lg:w-auto pt-6 lg:pt-0 border-t lg:border-t-0 border-slate-50 justify-between lg:justify-end">
-                    <div className="flex flex-col items-start lg:items-end">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Monto</p>
-                      <span className={`font-black text-2xl tracking-tighter ${esEntregado ? 'text-slate-400' : 'text-slate-900'}`}>
-                        ${Number(pedido.precio_final || 0).toLocaleString()}
+                  <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end w-full sm:w-auto">
+                    <div className="text-right">
+                      <p className="text-xs text-slate-400 font-medium">Monto</p>
+                      <span className={`text-base font-black ${esEntregado || esExpirado ? 'text-slate-400' : 'text-slate-900'}`}>
+                        ${Number(pedido.precio_final||0).toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-2 min-w-[140px]">
-                      <div className="flex items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-sm">
-                        <div className="flex flex-col">
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Código QR</span>
-                          <span className="font-mono text-sm font-black tracking-wider text-green-400 uppercase">
-                            {pedido.codigo || `##${pedido.id}`}
-                          </span>
-                        </div>
-                        <Ticket className="w-4 h-4 text-slate-600" />
+                    <div className="bg-slate-900 text-white px-3 py-2 rounded-xl flex items-center gap-2 min-w-[130px]">
+                      <div>
+                        <p className="text-[9px] text-slate-500 font-medium">Código QR</p>
+                        <p className={`font-mono text-xs font-black tracking-wider ${esEntregado ? 'text-slate-400' : 'text-green-400'}`}>
+                          {pedido.codigo || `#${pedido.id}`}
+                        </p>
                       </div>
-
-                      <Badge className={`justify-center py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border-none ${
-                        esEntregado
-                          ? "bg-slate-100 text-slate-400"
-                          : estadoNorm === 'pagado'
-                          ? "bg-green-50 text-green-600"
-                          : "bg-orange-50 text-orange-600"
-                      }`}>
-                        {estadoNorm === 'en_camino' ? 'En camino' : pedido.estado || "Pendiente"}
-                      </Badge>
+                      <Ticket size={14} className="text-slate-600 ml-auto" />
                     </div>
 
-                    {/* Acción directa solo para retiro en local */}
-                    <div className="w-full lg:w-auto">
-                      {!esDomicilio && !esEntregado ? (
-                        <Button
-                          onClick={() => ejecutarEntregaFinal(pedido.id)}
-                          className="w-full lg:w-auto bg-green-600 hover:bg-slate-900 text-white font-black text-[10px] uppercase px-5 h-12 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-                        >
-                          <Check size={14} strokeWidth={3} /> Entregar
-                        </Button>
-                      ) : esDomicilio && !esEntregado ? (
-                        <div className="flex items-center gap-2 bg-blue-50/60 px-4 py-2.5 rounded-2xl border border-blue-100">
-                          <Truck size={14} className="text-blue-500 flex-shrink-0" />
-                          <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider">Repartidor lo recoge</span>
-                        </div>
-                      ) : (
-                        <div className="hidden lg:flex w-12 h-12 bg-slate-50/50 rounded-2xl items-center justify-center text-slate-300">
-                          <ChevronRight className="w-6 h-6" />
-                        </div>
-                      )}
-                    </div>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${statusInfo.cls}`}>
+                      {statusInfo.label}
+                    </span>
+
+                    {!esDomicilio && !esEntregado && !esExpirado ? (
+                      <Button
+                        onClick={() => ejecutarEntregaFinal(pedido.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 h-9 rounded-xl flex items-center gap-1.5 transition-all active:scale-95"
+                      >
+                        <Check size={13} strokeWidth={3} /> Entregar
+                      </Button>
+                    ) : esDomicilio && !esEntregado && !esExpirado ? (
+                      <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 text-blue-600 text-xs font-semibold">
+                        <Truck size={12}/> Repartidor
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* ── BOTTOM BANNERS ── */}
+        {pedidos.length > 0 && entregados === pedidos.length && (
+          <div className="mt-6 bg-green-50 border border-green-100 rounded-2xl p-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-bold text-slate-800 text-sm">¿Todo entregado? 🎉</p>
+              <p className="text-xs text-slate-500 mt-0.5">¡Excelente trabajo! Tu compromiso reduce el desperdicio de alimentos.</p>
+            </div>
+            <button className="text-xs font-semibold text-green-700 bg-white px-4 py-2 rounded-xl border border-green-200 hover:bg-green-50 transition-colors">
+              Ver mis estadísticas
+            </button>
+          </div>
+        )}
+
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">?</div>
+            <div>
+              <p className="text-sm font-semibold text-slate-700">¿Necesitas ayuda?</p>
+              <p className="text-xs text-slate-400">Consulta nuestras guías o contáctanos</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button className="flex-1 bg-white border border-slate-200 rounded-2xl py-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Ver guías</button>
+            <button className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3 text-xs font-semibold transition-colors">Contactar soporte</button>
+          </div>
+        </div>
       </div>
     </div>
   );

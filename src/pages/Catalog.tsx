@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { API_BASE } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,22 +21,25 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { 
-  Search, 
-  SlidersHorizontal, 
-  CheckCircle2, 
+import {
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
   QrCode,
   Loader2,
   MapPin,
   Package2,
-  Clock,
   CreditCard,
   Banknote,
   Lock,
   Truck,
   Store,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Heart,
+  Map,
+  BadgeCheck,
+  ShoppingBag
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
@@ -66,18 +68,6 @@ export default function Catalog() {
   const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(3600);
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
 
-  const getSemaforo = (categoria: string) => {
-    switch(categoria) {
-      case 'Preparados': 
-        return { color: 'bg-red-50 text-red-600 border-red-100', texto: 'Consumo hoy ⚠️' };
-      case 'Panaderia': 
-        return { color: 'bg-orange-50 text-orange-600 border-orange-100', texto: 'Consumir pronto ⏳' };
-      case 'Frutas': 
-        return { color: 'bg-emerald-50 text-emerald-600 border-emerald-100', texto: 'Fresco 🍎' };
-      default: 
-        return { color: 'bg-blue-50 text-blue-600 border-blue-100', texto: 'Larga duración ✅' };
-    }
-  };
 
   const fetchProductos = async () => {
     try {
@@ -343,205 +333,257 @@ export default function Catalog() {
     }
   };
 
+  const CATEGORIES = [
+    { key: "Todas",      icon: "⊞",  label: "Todas" },
+    { key: "Preparados", icon: "🍲", label: "Preparados" },
+    { key: "Panaderia",  icon: "🥖", label: "Panadería" },
+    { key: "Frutas",     icon: "🍎", label: "Frutas" },
+    { key: "Despensa",   icon: "🛒", label: "Despensa" },
+  ];
+
+  const getFreshnessLabel = (categoria: string) => {
+    if (categoria === "Preparados") return "Consumo hoy";
+    if (categoria === "Panaderia")  return "Consumir pronto";
+    if (categoria === "Frutas")     return "Fresco";
+    return "Larga duración";
+  };
+
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
-      <AppNavbar /> 
-      
-      <div className="absolute top-[15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-100/40 blur-[130px] -z-10 animate-pulse duration-[8000ms]" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-orange-100/30 blur-[120px] -z-10 animate-pulse duration-[6000ms] delay-1000" />
-      
-      {/* Encabezado Principal */}
-      <div className="w-full bg-gradient-to-b from-emerald-50/50 via-slate-50/30 to-transparent pt-32 pb-12 border-b border-slate-100/50">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white shadow-[0_8px_20px_rgba(0,0,0,0.04)] rounded-2xl border border-slate-100">
-                  <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-                </div>
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Explorar Rescates</h1>
-              </div>
-              <p className="text-slate-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
-                 <MapPin size={14} className="text-emerald-500 animate-bounce"/> Pereira, Colombia — <span className="text-slate-800 font-black">{productosFinales.length} disponibles</span>
+    <div className="min-h-screen bg-white">
+      <AppNavbar />
+
+      {/* ── HERO ── */}
+      <div className="pt-20 pb-0 bg-white">
+        <div className="max-w-5xl mx-auto px-5">
+          {/* Title row */}
+          <div className="flex items-start justify-between pt-6 pb-4">
+            <div>
+              <h1 className="text-[2rem] font-black text-slate-900 leading-tight">
+                Explorar <span className="text-green-500">rescates</span>{" "}
+                <span className="text-green-500">🌿</span>
+              </h1>
+              <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                <MapPin size={13} className="text-green-500" />
+                Pereira, Colombia —{" "}
+                <span className="font-semibold text-slate-700">{productosFinales.length} disponibles</span>
               </p>
             </div>
-            
-            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/40 shadow-sm max-w-full overflow-x-auto whitespace-nowrap scrollbar-none">
-              {["Todas", "Preparados", "Panaderia", "Frutas", "Despensa"].map((cat) => (
-                  <button 
-                   key={cat}
-                   onClick={() => setSelectedCategory(cat)}
-                   className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all duration-300 ${
-                     selectedCategory === cat 
-                       ? 'bg-white text-emerald-600 shadow-md scale-[1.02]' 
-                       : 'text-slate-500 hover:text-slate-800'
-                   }`}
-                  >
-                    {cat === "Panaderia" ? "Panadería" : cat}
-                  </button>
-              ))}
+            {/* Illustration placeholder */}
+            <div className="hidden sm:flex flex-col items-end gap-2 relative">
+              <div className="text-6xl select-none">🛒</div>
+              <span className="bg-green-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-2xl shadow-sm">
+                Menos desperdicio,<br />más ahorro 💚
+              </span>
             </div>
+          </div>
+
+          {/* Category pills */}
+          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+                  selectedCategory === cat.key
+                    ? "bg-green-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <span className="text-base leading-none">{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-10">
-          
-          {/* Sidebar de Filtros */}
-          <aside className="w-full lg:w-72 shrink-0">
-            <div className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-slate-100/80 space-y-8 sticky top-28">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <span className="font-black text-slate-800 text-xs uppercase tracking-wider">Filtros Avanzados</span>
-                <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-              </div>
+      {/* ── FILTERS ── */}
+      <div className="max-w-5xl mx-auto px-5 mt-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          {/* Filter header */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+              Filtros avanzados ⚡
+            </span>
+            <SlidersHorizontal size={15} className="text-slate-400" />
+          </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Presupuesto max</Label>
-                    <span className="text-sm font-black text-emerald-600">${maxPrice.toLocaleString()}</span>
-                </div>
-                <div className="py-2">
-                  <Slider
-                      value={[maxPrice]}
-                      onValueChange={(([v]) => setMaxPrice(v))}
-                      max={100000}
-                      step={1000}
-                      className="accent-emerald-600"
-                  />
-                </div>
+          {/* Budget + Sort */}
+          <div className="grid grid-cols-2 gap-4 mb-1">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                  Presupuesto máx <span className="text-slate-400">ⓘ</span>
+                </span>
+                <span className="text-xs font-bold text-slate-800">${maxPrice.toLocaleString()}</span>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Ordenar por</Label>
-                <Select value={sortBy} onValueChange={(v) => { if (v === "proximity") { activarProximidad(); } else { setSortBy(v); } }}>
-                  <SelectTrigger className="w-full py-5 rounded-xl border border-slate-100 bg-slate-50/60 font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-none shadow-xl">
-                    <SelectItem value="discount">🔥 Mayor Descuento</SelectItem>
-                    <SelectItem value="price_asc">💰 Menor Precio</SelectItem>
-                    <SelectItem value="proximity">📍 Más Cercano</SelectItem>
-                  </SelectContent>
-                </Select>
-                {loadingProximidad && (
-                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                    <Loader2 size={10} className="animate-spin" /> Calculando distancias...
-                  </p>
-                )}
-              </div>
-            </div>
-          </aside>
-
-          {/* Listado Principal */}
-          <main className="flex-1 space-y-8">
-            <div className="relative group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-              <Input 
-                placeholder="Buscar por comida, local o categoría..." 
-                className="pl-13 py-7 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.02)] bg-white font-bold text-slate-700 placeholder:text-slate-300 text-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
+              <Slider
+                value={[maxPrice]}
+                onValueChange={([v]) => setMaxPrice(v)}
+                max={100000}
+                step={1000}
+                className="[&_[data-slot=slider-track]]:bg-slate-200 [&_[data-slot=slider-range]]:bg-green-500 [&_[data-slot=slider-thumb]]:bg-white [&_[data-slot=slider-thumb]]:border-2 [&_[data-slot=slider-thumb]]:border-green-500"
               />
             </div>
 
-            {loading ? (
-              /* MEJORA 2: SKELETONS ANIMADOS PREMIUM EN LUGAR DE UN SIMPLE SPINNER */
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-slate-50/60 border border-slate-100 rounded-[28px] p-5 space-y-4 animate-pulse h-[430px] flex flex-col justify-between">
-                    <div className="bg-slate-200/70 h-56 rounded-2xl w-full" />
-                    <div className="space-y-2">
-                      <div className="bg-slate-200/70 h-3 rounded w-1/3" />
-                      <div className="bg-slate-200/70 h-5 rounded w-3/4" />
-                    </div>
-                    <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-                      <div className="bg-slate-200/70 h-6 rounded w-1/4" />
-                      <div className="bg-slate-200/70 h-10 rounded-xl w-1/2" />
-                    </div>
+            <div>
+              <Label className="text-xs text-slate-500 font-medium mb-1 block">Ordenar por</Label>
+              <Select value={sortBy} onValueChange={(v) => { if (v === "proximity") activarProximidad(); else setSortBy(v); }}>
+                <SelectTrigger className="h-9 rounded-xl border-slate-200 bg-white text-sm text-slate-700 font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-lg">
+                  <SelectItem value="discount">🔥 Mayor descuento</SelectItem>
+                  <SelectItem value="price_asc">💰 Menor precio</SelectItem>
+                  <SelectItem value="proximity">📍 Más cercano</SelectItem>
+                </SelectContent>
+              </Select>
+              {loadingProximidad && (
+                <p className="text-[10px] text-blue-500 flex items-center gap-1 mt-1">
+                  <Loader2 size={9} className="animate-spin" /> Calculando...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Search + Mapa */}
+        <div className="flex gap-2 mt-3 mb-5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por comida, local o categoría..."
+              className="pl-10 h-10 rounded-xl border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="h-10 rounded-xl border-green-500 text-green-600 font-semibold text-sm gap-1.5 px-4 hover:bg-green-50"
+          >
+            <Map size={14} /> Ver mapa
+          </Button>
+        </div>
+
+        {/* ── PRODUCT GRID ── */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1,2,3,4,5,6].map((i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden animate-pulse">
+                <div className="bg-slate-100 h-44 w-full" />
+                <div className="p-3 space-y-2">
+                  <div className="bg-slate-100 h-2.5 rounded w-1/3" />
+                  <div className="bg-slate-100 h-4 rounded w-3/4" />
+                  <div className="bg-slate-100 h-3 rounded w-1/2" />
+                  <div className="bg-slate-100 h-9 rounded-xl w-full mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : productosFinales.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-slate-200 rounded-2xl">
+            <Package2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-400 text-sm font-medium">No hay rescates vigentes por ahora</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {productosFinales.map((prod) => (
+              <div
+                key={prod.id}
+                className="bg-white rounded-2xl overflow-hidden border border-slate-200 hover:shadow-md transition-shadow flex flex-col"
+              >
+                {/* Image section */}
+                <div className="relative h-44 bg-slate-100 overflow-hidden">
+                  <img
+                    src={prod.imagen}
+                    alt={prod.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Discount + freshness badges */}
+                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                    <span className="bg-orange-400 text-white text-xs font-black px-2 py-0.5 rounded-lg leading-5">
+                      -{prod.descuento}%
+                    </span>
+                    <span className="bg-white/90 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 leading-4">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                      {getFreshnessLabel(prod.categoria)}
+                    </span>
                   </div>
-                ))}
+                  {/* Heart */}
+                  <button className="absolute top-2.5 right-2.5 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
+                    <Heart size={13} className="text-slate-400" />
+                  </button>
+                  {prod.stock <= 2 && (
+                    <span className="absolute bottom-2 left-2.5 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                      ¡Últimos {prod.stock}!
+                    </span>
+                  )}
+                </div>
+
+                {/* Card body */}
+                <div className="p-3 flex flex-col flex-1">
+                  {/* Store name */}
+                  <button
+                    onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
+                    className="flex items-center gap-1 mb-1 w-fit"
+                  >
+                    <span className="text-xs text-slate-500 font-medium hover:text-green-600 transition-colors">
+                      {prod.tienda}
+                    </span>
+                    <BadgeCheck size={12} className="text-blue-500 shrink-0" />
+                  </button>
+
+                  {/* Product name */}
+                  <h3 className="text-sm font-bold text-slate-800 leading-snug line-clamp-2 mb-2 flex-1">
+                    {prod.nombre}
+                  </h3>
+
+                  {/* Prices */}
+                  <div className="flex items-baseline gap-2 mb-2.5">
+                    <span className="text-slate-400 text-xs line-through font-medium">
+                      ${prod.precioOriginal.toLocaleString()}
+                    </span>
+                    <span className="text-base font-black text-slate-900">
+                      ${prod.precioOferta.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => openRescate(prod)}
+                    className="w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white rounded-xl py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <ShoppingBag size={14} /> Rescatar
+                  </button>
+                </div>
               </div>
-            ) : productosFinales.length === 0 ? (
-              <div className="text-center py-24 bg-white/60 backdrop-blur-md rounded-[32px] border-2 border-dashed border-slate-200/60 max-w-xl mx-auto">
-                  <Package2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="font-black text-slate-400 uppercase text-xs">No hay rescates vigentes por ahora</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {productosFinales.map((prod) => {
-                  const semaforo = getSemaforo(prod.categoria);
-                  return (
-                    <div key={prod.id} className="group bg-white rounded-[28px] overflow-hidden border border-slate-100/80 shadow-[0_8px_25px_rgba(0,0,0,0.015)] hover:shadow-[0_25px_60px_rgba(16,185,129,0.12)] transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between relative">
-                      
-                      {/* Contenedor de Imagen Estilizado Vertical */}
-                      <div className="relative h-64 w-full overflow-hidden bg-slate-50/40 border-b border-slate-50 shrink-0">
-                        <img 
-                          src={prod.imagen} 
-                          alt={prod.nombre} 
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                        />
-                        
-                        {/* Badges Flotantes */}
-                        <div className="absolute top-3 left-3 right-3 flex flex-col gap-1.5 items-start">
-                          <Badge className="bg-white/95 backdrop-blur-sm text-slate-900 border-none font-black px-3 py-1 rounded-xl shadow-sm text-[11px]">
-                            -{prod.descuento}%
-                          </Badge>
-                          <Badge className={`${semaforo.color} backdrop-blur-sm border font-black px-2.5 py-1 rounded-xl shadow-sm text-[8px] flex items-center gap-1 uppercase tracking-wide`}>
-                            <Clock size={9} /> {semaforo.texto}
-                          </Badge>
-                        </div>
-                      </div>
+            ))}
+          </div>
+        )}
 
-                      {/* Cuerpo de la tarjeta */}
-                      <div className="p-5 flex flex-col flex-1 justify-between bg-white space-y-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <Store size={11} className="text-emerald-500 shrink-0" />
-                              <button 
-                                onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
-                                className="text-[9px] font-black text-slate-400 hover:text-emerald-600 hover:underline uppercase tracking-wider transition-colors text-left truncate w-full"
-                              >
-                                {prod.tienda}
-                              </button>
-                            </div>
-
-                            {/* MEJORA 3: INDICADOR DE STOCK LIMITADO CON SENSACIÓN DE URGENCIA */}
-                            {prod.stock <= 2 && (
-                              <span className="text-[8px] font-black bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-2 py-0.5 uppercase tracking-tight shrink-0 animate-pulse">
-                                ¡Últimos {prod.stock}!
-                              </span>
-                            )}
-                          </div>
-                          
-                          <h3 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase line-clamp-2 leading-tight min-h-[2.5rem]">
-                            {prod.nombre}
-                          </h3>
-                        </div>
-
-                        {/* Precios y Botón de Rescate */}
-                        {/* MEJORA 1: EFECTO HOVER INTEGRADO (El botón cambia a verde si pones el mouse sobre toda la tarjeta) */}
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-3">
-                          <div className="shrink-0">
-                            <span className="text-slate-300 text-[10px] line-through font-bold block">${prod.precioOriginal.toLocaleString()}</span>
-                            <span className="text-base font-black text-slate-900 tracking-tight block">${prod.precioOferta.toLocaleString()}</span>
-                          </div>
-                          <Button 
-                              onClick={() => openRescate(prod)} 
-                              className="bg-slate-900 group-hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] px-4 py-4.5 shadow-sm group-hover:shadow-md group-hover:shadow-emerald-500/20 transition-all duration-300 active:scale-95 uppercase tracking-wider flex-1 text-center border border-transparent"
-                          >
-                              RESCATAR
-                          </Button>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </main>
+        {/* ── BOTTOM BANNER ── */}
+        <div className="mt-10 mb-6 bg-green-50 rounded-3xl px-6 py-5 flex items-center gap-4">
+          <div className="text-4xl shrink-0">🛍️</div>
+          <div className="flex-1">
+            <p className="text-base font-black text-slate-800">
+              Pequeñas decisiones, <span className="text-green-600">grandes cambios</span> 💚
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-6">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-2xl">🐷</span>
+              <span className="text-[11px] font-semibold text-slate-600">Ahorra<br/>dinero</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-2xl">🌍</span>
+              <span className="text-[11px] font-semibold text-slate-600">Ayuda al<br/>planeta</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-2xl">🤝</span>
+              <span className="text-[11px] font-semibold text-slate-600">Apoya tu<br/>comunidad</span>
+            </div>
+          </div>
         </div>
       </div>
 
