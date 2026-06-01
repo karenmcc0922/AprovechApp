@@ -40,7 +40,8 @@ import {
   Heart,
   Map,
   BadgeCheck,
-  ShoppingBag
+  ShoppingBag,
+  X,
 } from "lucide-react";
 
 const IMG_FALLBACK = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80";
@@ -653,62 +654,78 @@ export default function Catalog() {
         </div>
       </div>
 
-      {/* Modal Mapa de Tiendas */}
-      <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
-        <DialogContent className="sm:max-w-[680px] rounded-2xl p-0 flex flex-col" style={{ maxHeight: "85dvh", overflow: "hidden" }}>
-          {/* Header fijo */}
-          <DialogHeader className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
-            <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
-              <Map size={16} className="text-green-600" /> Tiendas disponibles en Pereira
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-0.5">
-              Haz clic en un marcador para ver sus ofertas
-            </DialogDescription>
-          </DialogHeader>
-
-          {mapLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 shrink-0">
-              <Loader2 className="animate-spin text-green-600 w-8 h-8" />
-              <p className="text-sm text-slate-500 font-medium">Calculando ubicaciones...</p>
-            </div>
-          ) : mapTiendas.length > 0 ? (
-            <>
-              {/* Contenedor del mapa — altura fija con overflow hidden */}
-              <div style={{ height: 340, minHeight: 340, overflow: "hidden", position: "relative", flexShrink: 0 }}>
-                <MapaCatalogo
-                  tiendas={mapTiendas}
-                  onVerVitrina={(id) => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${id}`); }}
-                />
+      {/* Overlay Mapa de Tiendas — custom para evitar conflictos z-index con Leaflet */}
+      {isMapModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          onClick={() => setIsMapModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full flex flex-col"
+            style={{ maxWidth: 680, maxHeight: "88dvh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex-none flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Map size={16} className="text-green-600" /> Tiendas disponibles en Pereira
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Haz clic en un marcador para ver sus ofertas</p>
               </div>
+              <button
+                onClick={() => setIsMapModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100 shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-              {/* Lista de tiendas — scrollable */}
-              <div className="border-t border-slate-100 p-4 overflow-y-auto" style={{ flexShrink: 1 }}>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                  O selecciona un comercio directamente:
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {mapTiendas.map((tienda) => (
-                    <button
-                      key={tienda.aliado_id}
-                      onClick={() => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${tienda.aliado_id}`); }}
-                      className="text-left bg-slate-50 hover:bg-green-50 rounded-xl p-3 transition-colors border border-transparent hover:border-green-200"
-                    >
-                      <p className="text-xs font-bold text-slate-700 truncate">{tienda.nombre}</p>
-                      <p className="text-[10px] text-green-600 font-semibold mt-0.5">{tienda.productos} productos</p>
-                    </button>
-                  ))}
+            {mapLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="animate-spin text-green-600 w-8 h-8" />
+                <p className="text-sm text-slate-500 font-medium">Calculando ubicaciones...</p>
+              </div>
+            ) : mapTiendas.length > 0 ? (
+              <>
+                {/* Contenedor del mapa: isolation:isolate encierra los z-index de Leaflet */}
+                <div style={{ height: 360, minHeight: 360, flexShrink: 0, position: "relative", overflow: "hidden", isolation: "isolate" }}>
+                  <MapaCatalogo
+                    tiendas={mapTiendas}
+                    onVerVitrina={(id) => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${id}`); }}
+                  />
                 </div>
+
+                {/* Lista scrollable */}
+                <div className="border-t border-slate-100 p-4 overflow-y-auto flex-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                    O selecciona un comercio directamente:
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {mapTiendas.map((tienda) => (
+                      <button
+                        key={tienda.aliado_id}
+                        onClick={() => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${tienda.aliado_id}`); }}
+                        className="text-left bg-slate-50 hover:bg-green-50 rounded-xl p-3 transition-colors border border-transparent hover:border-green-200"
+                      >
+                        <p className="text-xs font-bold text-slate-700 truncate">{tienda.nombre}</p>
+                        <p className="text-[10px] text-green-600 font-semibold mt-0.5">{tienda.productos} productos</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-6">
+                <MapPin className="w-8 h-8 text-slate-300" />
+                <p className="text-sm font-bold text-slate-500">No se pudieron cargar las ubicaciones</p>
+                <p className="text-xs text-slate-400">Verifica tu conexión e intenta de nuevo</p>
               </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-6 shrink-0">
-              <MapPin className="w-8 h-8 text-slate-300" />
-              <p className="text-sm font-bold text-slate-500">No se pudieron cargar las ubicaciones</p>
-              <p className="text-xs text-slate-400">Verifica tu conexión e intenta de nuevo</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal Multifase Glassmorphism */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
