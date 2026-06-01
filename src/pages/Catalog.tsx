@@ -655,8 +655,9 @@ export default function Catalog() {
 
       {/* Modal Mapa de Tiendas */}
       <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
-        <DialogContent className="sm:max-w-[700px] rounded-2xl p-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-4 border-b border-slate-100">
+        <DialogContent className="sm:max-w-[680px] rounded-2xl p-0 flex flex-col" style={{ maxHeight: "85dvh", overflow: "hidden" }}>
+          {/* Header fijo */}
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-slate-100 shrink-0">
             <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
               <Map size={16} className="text-green-600" /> Tiendas disponibles en Pereira
             </DialogTitle>
@@ -666,19 +667,22 @@ export default function Catalog() {
           </DialogHeader>
 
           {mapLoading ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <div className="flex flex-col items-center justify-center py-16 gap-3 shrink-0">
               <Loader2 className="animate-spin text-green-600 w-8 h-8" />
               <p className="text-sm text-slate-500 font-medium">Calculando ubicaciones...</p>
             </div>
           ) : mapTiendas.length > 0 ? (
             <>
-              <div className="h-[380px] relative">
+              {/* Contenedor del mapa — altura fija con overflow hidden */}
+              <div style={{ height: 340, minHeight: 340, overflow: "hidden", position: "relative", flexShrink: 0 }}>
                 <MapaCatalogo
                   tiendas={mapTiendas}
                   onVerVitrina={(id) => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${id}`); }}
                 />
               </div>
-              <div className="border-t border-slate-100 p-4">
+
+              {/* Lista de tiendas — scrollable */}
+              <div className="border-t border-slate-100 p-4 overflow-y-auto" style={{ flexShrink: 1 }}>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
                   O selecciona un comercio directamente:
                 </p>
@@ -697,7 +701,7 @@ export default function Catalog() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-6">
+            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-6 shrink-0">
               <MapPin className="w-8 h-8 text-slate-300" />
               <p className="text-sm font-bold text-slate-500">No se pudieron cargar las ubicaciones</p>
               <p className="text-xs text-slate-400">Verifica tu conexión e intenta de nuevo</p>
