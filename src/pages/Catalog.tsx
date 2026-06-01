@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import AppNavbar from "../components/AppNavbar";
 import { toast } from "sonner";
 import { API_BASE } from "../lib/api";
+import MapaCatalogo, { type TiendaMapa } from "../components/MapaCatalogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -68,6 +69,9 @@ export default function Catalog() {
   const [reservaTimeLeft, setReservaTimeLeft] = useState<number>(3600);
   const [tarjeta, setTarjeta] = useState({ numero: "", fecha: "", cvc: "", nombre: "" });
 
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [mapTiendas, setMapTiendas] = useState<TiendaMapa[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
 
   const fetchProductos = async () => {
     try {
@@ -209,6 +213,56 @@ export default function Catalog() {
       setAliadoCoords(coords);
       setLoadingProximidad(false);
     }, () => { setLoadingProximidad(false); setSortBy("discount"); });
+  };
+
+  const abrirMapa = async () => {
+    setIsMapModalOpen(true);
+    setMapTiendas([]);
+
+    // Agrupar productos por aliado_id (sin genéricos explícitos por restricción de tsconfig)
+    const idsSeen: number[] = [];
+    const stores: { aliado_id: number; nombre: string; direccion: string; count: number }[] = [];
+    for (const p of productosDB) {
+      const idx = idsSeen.indexOf(p.aliado_id);
+      if (idx === -1) {
+        idsSeen.push(p.aliado_id);
+        stores.push({ aliado_id: p.aliado_id, nombre: p.nombre_local, direccion: p.direccion || "", count: 1 });
+      } else {
+        stores[idx].count++;
+      }
+    }
+
+    const workingCoords: Record<string, { lat: number; lng: number }> = { ...aliadoCoords };
+    const sinCoords = stores.filter(s => s.direccion && !workingCoords[s.direccion]);
+
+    if (sinCoords.length > 0) {
+      setMapLoading(true);
+      for (let i = 0; i < sinCoords.length; i++) {
+        const store = sinCoords[i];
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(store.direccion + ", Pereira, Colombia")}`;
+          const res = await fetch(url, { headers: { "User-Agent": "AprovechApp/1.0" } });
+          const data = await res.json();
+          if (data[0]) workingCoords[store.direccion] = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          if (i < sinCoords.length - 1) await new Promise(r => setTimeout(r, 1100));
+        } catch { /* skip */ }
+      }
+      setAliadoCoords(workingCoords);
+      setMapLoading(false);
+    }
+
+    setMapTiendas(
+      stores
+        .filter(s => s.direccion && workingCoords[s.direccion])
+        .map(s => ({
+          aliado_id: s.aliado_id,
+          nombre: s.nombre,
+          direccion: s.direccion,
+          lat: workingCoords[s.direccion].lat,
+          lng: workingCoords[s.direccion].lng,
+          productos: s.count,
+        }))
+    );
   };
 
   const openRescate = (product: any) => {
@@ -460,6 +514,7 @@ export default function Catalog() {
           </div>
           <Button
             variant="outline"
+            onClick={abrirMapa}
             className="h-10 rounded-xl border-green-500 text-green-600 font-semibold text-sm gap-1.5 px-4 hover:bg-green-50"
           >
             <Map size={14} /> Ver mapa
@@ -523,16 +578,27 @@ export default function Catalog() {
 
                 {/* Card body */}
                 <div className="p-3 flex flex-col flex-1">
-                  {/* Store name */}
-                  <button
-                    onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
-                    className="flex items-center gap-1 mb-1 w-fit"
-                  >
-                    <span className="text-xs text-slate-500 font-medium hover:text-green-600 transition-colors">
-                      {prod.tienda}
-                    </span>
-                    <BadgeCheck size={12} className="text-blue-500 shrink-0" />
-                  </button>
+                  {/* Store name + Maps link */}
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <button
+                      onClick={() => setLocation(`/aliado-publico/${prod.aliado_id}`)}
+                      className="flex items-center gap-1 w-fit"
+                    >
+                      <span className="text-xs text-slate-500 font-medium hover:text-green-600 transition-colors">
+                        {prod.tienda}
+                      </span>
+                      <BadgeCheck size={12} className="text-blue-500 shrink-0" />
+                    </button>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(prod.direccion + ", Pereira, Colombia")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Ver en Google Maps"
+                      className="text-slate-300 hover:text-green-500 transition-colors"
+                    >
+                      <MapPin size={11} />
+                    </a>
+                  </div>
 
                   {/* Product name */}
                   <h3 className="text-sm font-bold text-slate-800 leading-snug line-clamp-2 mb-2 flex-1">
@@ -586,6 +652,59 @@ export default function Catalog() {
           </div>
         </div>
       </div>
+
+      {/* Modal Mapa de Tiendas */}
+      <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
+        <DialogContent className="sm:max-w-[700px] rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-slate-100">
+            <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
+              <Map size={16} className="text-green-600" /> Tiendas disponibles en Pereira
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-0.5">
+              Haz clic en un marcador para ver sus ofertas
+            </DialogDescription>
+          </DialogHeader>
+
+          {mapLoading ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3">
+              <Loader2 className="animate-spin text-green-600 w-8 h-8" />
+              <p className="text-sm text-slate-500 font-medium">Calculando ubicaciones...</p>
+            </div>
+          ) : mapTiendas.length > 0 ? (
+            <>
+              <div className="h-[380px] relative">
+                <MapaCatalogo
+                  tiendas={mapTiendas}
+                  onVerVitrina={(id) => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${id}`); }}
+                />
+              </div>
+              <div className="border-t border-slate-100 p-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                  O selecciona un comercio directamente:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {mapTiendas.map((tienda) => (
+                    <button
+                      key={tienda.aliado_id}
+                      onClick={() => { setIsMapModalOpen(false); setLocation(`/aliado-publico/${tienda.aliado_id}`); }}
+                      className="text-left bg-slate-50 hover:bg-green-50 rounded-xl p-3 transition-colors border border-transparent hover:border-green-200"
+                    >
+                      <p className="text-xs font-bold text-slate-700 truncate">{tienda.nombre}</p>
+                      <p className="text-[10px] text-green-600 font-semibold mt-0.5">{tienda.productos} productos</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center px-6">
+              <MapPin className="w-8 h-8 text-slate-300" />
+              <p className="text-sm font-bold text-slate-500">No se pudieron cargar las ubicaciones</p>
+              <p className="text-xs text-slate-400">Verifica tu conexión e intenta de nuevo</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Multifase Glassmorphism */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

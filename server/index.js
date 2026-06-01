@@ -166,15 +166,19 @@ app.get('/api/aliados/:id/perfil', async (req, res) => {
   const { id } = req.params;
   const sqlAliado = "SELECT id, nombre_local, direccion, estado_calidad FROM aliados WHERE id = ?";
   const sqlProductos = `
-    SELECT * FROM productos_rescate 
-    WHERE aliado_id = ? 
-    AND stock > 0 
+    SELECT * FROM productos_rescate
+    WHERE aliado_id = ?
+    AND stock > 0
     AND (
-      (categoria = 'Preparados' AND fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
-      (categoria = 'Panaderia' AND fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
-      (categoria = 'Frutas' AND fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
-      (categoria = 'Despensa') 
-      OR categoria IS NULL
+      (fecha_vencimiento IS NOT NULL AND fecha_vencimiento >= CURDATE()) OR
+      (fecha_vencimiento IS NULL AND (
+        (categoria = 'Preparados' AND fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
+        (categoria = 'Panaderia' AND fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
+        (categoria = 'Frutas' AND fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
+        categoria = 'Despensa' OR
+        categoria IS NULL OR
+        fecha_elaboracion IS NULL
+      ))
     )
     ORDER BY id DESC`;
 
@@ -325,14 +329,18 @@ app.get('/api/productos-todos', async (req, res) => {
     SELECT p.*, a.nombre_local, a.direccion 
     FROM productos_rescate p 
     JOIN aliados a ON p.aliado_id = a.id 
-    WHERE p.stock > 0 
+    WHERE p.stock > 0
     AND a.estado_calidad != 'Bloqueado'
     AND (
-      (p.categoria = 'Preparados' AND p.fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
-      (p.categoria = 'Panaderia' AND p.fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
-      (p.categoria = 'Frutas' AND p.fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
-      (p.categoria = 'Despensa') 
-      OR p.categoria IS NULL
+      (p.fecha_vencimiento IS NOT NULL AND p.fecha_vencimiento >= CURDATE()) OR
+      (p.fecha_vencimiento IS NULL AND (
+        (p.categoria = 'Preparados' AND p.fecha_elaboracion >= NOW() - INTERVAL 12 HOUR) OR
+        (p.categoria = 'Panaderia' AND p.fecha_elaboracion >= NOW() - INTERVAL 48 HOUR) OR
+        (p.categoria = 'Frutas' AND p.fecha_elaboracion >= NOW() - INTERVAL 72 HOUR) OR
+        p.categoria = 'Despensa' OR
+        p.categoria IS NULL OR
+        p.fecha_elaboracion IS NULL
+      ))
     )
     ORDER BY p.id DESC`;
   try {
@@ -356,12 +364,12 @@ app.get('/api/mis-productos/:id', async (req, res) => {
 
 app.put('/api/productos/:id/actualizar', async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio_original, precio_rescate, stock, imagen_url, categoria, aliado_id } = req.body;
+  const { nombre, precio_original, precio_rescate, stock, imagen_url, categoria, aliado_id, fecha_vencimiento } = req.body;
   const catFinal = categoria || 'Preparados';
 
-  const sql = `UPDATE productos_rescate SET nombre = ?, precio_original = ?, precio_rescate = ?, stock = ?, imagen_url = ?, categoria = ? WHERE id = ?`;
+  const sql = `UPDATE productos_rescate SET nombre = ?, precio_original = ?, precio_rescate = ?, stock = ?, imagen_url = ?, categoria = ?, fecha_vencimiento = ? WHERE id = ?`;
   try {
-    const [result] = await promisePool.query(sql, [nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, id]);
+    const [result] = await promisePool.query(sql, [nombre, precio_original, precio_rescate, stock, imagen_url, catFinal, fecha_vencimiento || null, id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: "Producto no encontrado" });
     
     if (aliado_id) {

@@ -212,9 +212,22 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
               </button>
             )}
             {estado === "en_camino" && (
-              <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-auto">
-                <Truck size={11} className="animate-bounce" /> Tu pedido va en camino y llegará pronto.
-              </p>
+              <div className="flex flex-col gap-2 mt-auto">
+                <p className="text-xs text-blue-600 font-semibold flex items-center gap-1">
+                  <Truck size={11} className="animate-bounce" /> Pedido en camino
+                </p>
+                <p className="text-xs text-slate-400 flex items-center gap-1">
+                  <Clock size={11} /> Tiempo estimado: 30–45 min
+                </p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((rescate.direccion || rescate.nombre_local || "") + ", Pereira, Colombia")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-green-600 font-semibold flex items-center gap-1 hover:text-green-700 transition-colors"
+                >
+                  <MapPin size={11} /> Ver ubicación del comercio
+                </a>
+              </div>
             )}
           </div>
         </div>
@@ -290,6 +303,7 @@ function RescateHistorialCard({ rescate }: { rescate: any }) {
 // VISTA / COMPONENTE PRINCIPAL: MIS RESCATES
 // ==========================================
 export default function MisRescates() {
+  const [, setLocation] = useLocation();
   const [rescates, setRescates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pendientes" | "completados">("pendientes");
@@ -437,7 +451,10 @@ export default function MisRescates() {
                   <h3 className="text-lg font-black text-slate-800">Cada rescate cuenta 💚</h3>
                   <p className="text-sm text-slate-500 mt-1">Gracias por ayudar a reducir el desperdicio de alimentos y apoyar a los comercios locales.</p>
                 </div>
-                <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors">
+                <button
+                  onClick={() => setLocation("/catalog")}
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors"
+                >
                   Seguir rescatando
                 </button>
               </div>
