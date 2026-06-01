@@ -100,18 +100,22 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
 
   const steps = ["Confirmado", "En camino", "Entregado"];
   const stepIndex = estado === "pagado" || estado === "pendiente" || estado === "reservado" ? 0
-    : estado === "en_camino" ? 1
+    : estado === "en_camino" || estado === "recogido" ? 1
     : 2;
 
-  const estadoLabel = estado === "en_camino"
-    ? "En camino"
+  const estadoLabel = estado === "recogido"
+    ? "Repartidor en camino 🛵"
+    : estado === "en_camino"
+    ? "Asignado"
     : estado === "pagado"
     ? "Confirmado"
     : estado === "pendiente" || estado === "reservado"
     ? "Pendiente pago"
     : "Entregado";
 
-  const estadoColor = estado === "en_camino"
+  const estadoColor = estado === "recogido"
+    ? "bg-amber-100 text-amber-700"
+    : estado === "en_camino"
     ? "bg-blue-100 text-blue-700"
     : estado === "pagado"
     ? "bg-green-100 text-green-700"
@@ -214,9 +218,19 @@ function RescateActivoCard({ rescate, abrirModalQr }: { rescate: any; abrirModal
             {estado === "en_camino" && (
               <div className="flex flex-col gap-2 mt-auto">
                 <p className="text-xs text-blue-600 font-semibold flex items-center gap-1">
-                  <Truck size={11} className="animate-bounce" /> Pedido en camino
+                  <Truck size={11} className="animate-bounce" /> Repartidor asignado
                 </p>
                 <p className="text-xs text-slate-400 flex items-center gap-1">
+                  <Clock size={11} /> Recogiendo en el comercio...
+                </p>
+              </div>
+            )}
+            {estado === "recogido" && (
+              <div className="flex flex-col gap-2 mt-auto">
+                <p className="text-xs text-amber-600 font-semibold flex items-center gap-1">
+                  <Truck size={11} className="animate-bounce" /> ¡Tu pedido está en camino!
+                </p>
+                <p className="text-xs text-slate-500 flex items-center gap-1">
                   <Clock size={11} /> Tiempo estimado: 30–45 min
                 </p>
                 <a
@@ -345,7 +359,7 @@ export default function MisRescates() {
     setIsQrModalOpen(true);
   };
 
-  const pendientes = rescates.filter(r => ["pendiente", "pagado", "reserva", "reservado", "en_camino"].includes(r.estado));
+  const pendientes = rescates.filter(r => ["pendiente", "pagado", "reserva", "reservado", "en_camino", "recogido"].includes(r.estado));
   const completados = rescates.filter(r => ["completado", "entregado", "cancelado"].includes(r.estado));
 
   return (

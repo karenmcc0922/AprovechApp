@@ -691,7 +691,7 @@ app.get('/api/entregas/en-camino', async (req, res) => {
     FROM pedidos p
     JOIN aliados a ON p.aliado_id = a.id
     JOIN usuarios u ON p.usuario_id = u.id
-    WHERE p.tipo_entrega = 'domicilio' AND p.estado = 'en_camino'
+    WHERE p.tipo_entrega = 'domicilio' AND p.estado IN ('en_camino', 'recogido')
     ORDER BY p.id DESC
   `;
   try {
@@ -699,6 +699,45 @@ app.get('/api/entregas/en-camino', async (req, res) => {
     res.json(results || []);
   } catch (err) {
     return handleSQLError(res, err, "Error al cargar entregas en curso");
+  }
+});
+
+app.get('/api/entregas/historial', async (req, res) => {
+  const sql = `
+    SELECT p.id, p.nombre_producto, p.precio_final, p.costo_domicilio, p.codigo_qr,
+           p.tipo_entrega, p.estado, p.fecha,
+           a.nombre_local, a.direccion AS direccion_aliado,
+           u.nombre AS nombre_cliente, u.direccion AS direccion_cliente
+    FROM pedidos p
+    JOIN aliados a ON p.aliado_id = a.id
+    JOIN usuarios u ON p.usuario_id = u.id
+    WHERE p.tipo_entrega = 'domicilio' AND p.estado IN ('entregado', 'completado')
+    ORDER BY p.id DESC
+    LIMIT 50
+  `;
+  try {
+    const [results] = await promisePool.query(sql);
+    res.json(results || []);
+  } catch (err) {
+    return handleSQLError(res, err, "Error al cargar historial de entregas");
+  }
+});
+
+app.get('/api/entregas/estadisticas', async (req, res) => {
+  const sql = `
+    SELECT
+      COUNT(*) AS total_entregas,
+      COALESCE(SUM(costo_domicilio), 0) AS total_ganado,
+      COUNT(CASE WHEN fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) AS entregas_semana,
+      COALESCE(SUM(CASE WHEN fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN costo_domicilio ELSE 0 END), 0) AS ganado_semana
+    FROM pedidos
+    WHERE tipo_entrega = 'domicilio' AND estado IN ('entregado', 'completado')
+  `;
+  try {
+    const [results] = await promisePool.query(sql);
+    res.json(results[0] || { total_entregas: 0, total_ganado: 0, entregas_semana: 0, ganado_semana: 0 });
+  } catch (err) {
+    return handleSQLError(res, err, "Error al cargar estadísticas del repartidor");
   }
 });
 
